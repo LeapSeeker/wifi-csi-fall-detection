@@ -1,0 +1,8 @@
+.venv/
+
+.venv/
+esp-csi/
+__pycache__/
+*.pyc
+build/
+.vscode/
