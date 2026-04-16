@@ -1,8 +1,26 @@
+# .gitignore
+
+# 가상환경
 .venv/
 
-.venv/
+# 외부 저장소
 esp-csi/
+wifi-csi-fall-detection/
+
+# 데이터 & 모델
+data/raw/*.csv
+data/augmented/*.csv
+model/pretrained/*.pth
+*.onnx
+
+# Python
 __pycache__/
 *.pyc
+
+# 빌드
 build/
+
+# 에디터
 .vscode/
+.DS_Store
+Thumbs.db
