@@ -33,11 +33,12 @@
 
 ```json
 {
-  "label": "fall",          // "fall" | "normal" | "lying" | ...
+  "label": "fall",          // "label": "fall" | "walking" | "sit_stand" | "lying" | "standing" | "running" | "picking"
   "confidence": 0.94,
   "timestamp_us": 1234567890
 }
 ```
+// 낙상 3방향(fall_forward/backward/side)은 학습 내부 레이블. 추론 출력은 "fall"로 통합.
 
 ## 모델 입력 스펙
 
