@@ -5,11 +5,20 @@ import threading
 from receiver.udp_receiver import start_receivers
 from utils.pairing import PairingBuffer
 from tcp_handler.rpi_connection import RPiConnection
+from notification.sms import send_fall_sms
 
 # -----------------------------------------------
 # RPi4 TCP 연결 인스턴스
 # -----------------------------------------------
 rpi_connection = RPiConnection()
+
+# -----------------------------------------------
+# 낙상 감지 시 실행
+# -----------------------------------------------
+def on_fall_detected():
+    print("[FALL] 낙상 감지!")
+    rpi_connection.send_fall_alert()   # RPi4에 TCP 알림
+    send_fall_sms()                    # 보호자에게 SMS 발송
 
 # -----------------------------------------------
 # 페어링 완료 시 호출되는 콜백
@@ -22,7 +31,7 @@ def on_paired(rx1, rx2):
     # TODO: AI 추론 팀 모듈 연결 (전처리 → CNN-LSTM)
     # result = inference(rx1, rx2)
     # if result == "fall":
-    #     rpi_connection.send_fall_alert()
+    #     on_fall_detected()
 
 # -----------------------------------------------
 # 메인 실행
