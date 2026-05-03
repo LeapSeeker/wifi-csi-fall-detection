@@ -3,13 +3,13 @@
 import socket
 import struct
 import threading
+from typing import Optional
 from config.settings import UDP_HOST, UDP_PORT_RX1, UDP_PORT_RX2, SUBCARRIER_COUNT
 
-# 패킷 구조: magic(1) + rx_id(1) + seq(4) + timestamp(8) + rssi(4) + subcarrier_count(2) + data(64 * 4)
 PACKET_FORMAT = "<BBIfd" + f"{SUBCARRIER_COUNT}f"
 PACKET_SIZE = struct.calcsize(PACKET_FORMAT)
 
-def parse_packet(raw: bytes) -> dict | None:
+def parse_packet(raw: bytes) -> Optional[dict]:
     try:
         unpacked = struct.unpack(PACKET_FORMAT, raw[:PACKET_SIZE])
         magic, rx_id, seq, timestamp, rssi, subcarrier_count, *amplitudes = unpacked
