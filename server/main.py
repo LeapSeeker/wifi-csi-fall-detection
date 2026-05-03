@@ -4,6 +4,12 @@ import time
 import threading
 from receiver.udp_receiver import start_receivers
 from utils.pairing import PairingBuffer
+from tcp_handler.rpi_connection import RPiConnection
+
+# -----------------------------------------------
+# RPi4 TCP 연결 인스턴스
+# -----------------------------------------------
+rpi_connection = RPiConnection()
 
 # -----------------------------------------------
 # 페어링 완료 시 호출되는 콜백
@@ -12,17 +18,20 @@ def on_paired(rx1, rx2):
     print(f"[PAIR] seq={rx1['seq']} | "
           f"RX1 rssi={rx1['rssi']:.1f} | "
           f"RX2 rssi={rx2['rssi']:.1f}")
-    
+
     # TODO: AI 추론 팀 모듈 연결 (전처리 → CNN-LSTM)
     # result = inference(rx1, rx2)
     # if result == "fall":
-    #     send_alert_to_rpi4()
+    #     rpi_connection.send_fall_alert()
 
 # -----------------------------------------------
 # 메인 실행
 # -----------------------------------------------
 if __name__ == "__main__":
     print("[SERVER] 서버 시작")
+
+    # TCP 서버 시작 (RPi4 연결 대기)
+    rpi_connection.start()
 
     # 페어링 버퍼 초기화
     pairing_buffer = PairingBuffer(on_paired=on_paired)
