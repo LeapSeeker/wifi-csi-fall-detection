@@ -4,12 +4,12 @@ import time
 import threading
 from receiver.udp_receiver import start_receivers
 from utils.pairing import PairingBuffer
-from tcp_handler.rpi_connection import RPiConnection
+from ws_handler.rpi_connection import RPiConnection
 from notification.sms import send_fall_sms
 from dashboard.app import start_dashboard, update_pair, update_fall, update_rpi4_status
 
 # -----------------------------------------------
-# RPi4 TCP 연결 인스턴스
+# Pi4 WebSocket 연결 인스턴스
 # -----------------------------------------------
 rpi_connection = RPiConnection(on_status_change=update_rpi4_status)
 
@@ -19,19 +19,19 @@ rpi_connection = RPiConnection(on_status_change=update_rpi4_status)
 def on_fall_detected():
     print("[FALL] 낙상 감지!")
     update_fall()                          # 대시보드 업데이트
-    rpi_connection.send_fall_alert()       # RPi4에 TCP 알림
+    rpi_connection.send_fall_alert()       # Pi4에 WebSocket 알림
     send_fall_sms()                        # 보호자에게 SMS 발송
 
 # -----------------------------------------------
 # 페어링 완료 시 호출되는 콜백
 # -----------------------------------------------
 def on_paired(rx1, rx2):
-    print(f"[PAIR] seq={rx1['seq']} | "
-          f"RX1 rssi={rx1['rssi']:.1f} | "
-          f"RX2 rssi={rx2['rssi']:.1f}")
+    print(f"[PAIR] seq={rx1['seq_num']} | "
+          f"RX1 subs={rx1['n_subcarriers']} | "
+          f"RX2 subs={rx2['n_subcarriers']}")
     update_pair(rx1, rx2)                  # 대시보드 업데이트
 
-    # TODO: AI 추론 팀 모듈 연결 (전처리 → CNN-LSTM)
+    # TODO: AI 추론 팀 모듈 연결 (RPCA → ACF → SDP → z-score → CNN+GRU+Attention)
     # result = inference(rx1, rx2)
     # if result == "fall":
     #     on_fall_detected()
@@ -42,13 +42,13 @@ def on_paired(rx1, rx2):
 if __name__ == "__main__":
     print("[SERVER] 서버 시작")
 
-    # TCP 서버 시작 (RPi4 연결 대기)
+    # WebSocket 서버 시작 (Pi4 연결 대기)
     rpi_connection.start()
 
     # 페어링 버퍼 초기화
     pairing_buffer = PairingBuffer(on_paired=on_paired)
 
-    # UDP 수신 시작 (RX1, RX2 각각 스레드로 실행)
+    # UDP 수신 시작
     start_receivers(callback=pairing_buffer.add)
 
     # 타임아웃된 페어 주기적으로 정리 (1초마다)
