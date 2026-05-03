@@ -15,7 +15,7 @@ state = {
     "pair_count": 0,
     "fall_count": 0,
     "last_fall_time": None,
-    "recent_pairs": []   # 최근 10개 페어링 기록
+    "recent_pairs": []
 }
 
 # -----------------------------------------------
@@ -24,13 +24,15 @@ state = {
 def update_pair(rx1, rx2):
     state["pair_count"] += 1
     record = {
-        "seq": rx1["seq"],
-        "rx1_rssi": round(rx1["rssi"], 1),
-        "rx2_rssi": round(rx2["rssi"], 1),
+        "seq": rx1["seq_num"],
+        "rx1_subs": rx1["n_subcarriers"],
+        "rx2_subs": rx2["n_subcarriers"],
+        "rx1_ts": rx1["timestamp_us"],
+        "rx2_ts": rx2["timestamp_us"],
         "time": datetime.datetime.now().strftime("%H:%M:%S")
     }
     state["recent_pairs"].insert(0, record)
-    state["recent_pairs"] = state["recent_pairs"][:10]  # 최근 10개만 유지
+    state["recent_pairs"] = state["recent_pairs"][:10]
     socketio.emit("pair_update", record)
 
 def update_fall():
