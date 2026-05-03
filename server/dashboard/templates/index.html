@@ -8,42 +8,24 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background: #0a0c14;
-            color: #c9d1d9;
-            min-height: 100vh;
-        }
+        body { font-family: 'Segoe UI', sans-serif; background: #0a0c14; color: #c9d1d9; min-height: 100vh; }
 
         header {
-            background: #0d1117;
-            border-bottom: 1px solid #21262d;
-            padding: 16px 30px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            background: #0d1117; border-bottom: 1px solid #21262d;
+            padding: 16px 30px; display: flex; align-items: center; justify-content: space-between;
         }
         header .title { display: flex; align-items: center; gap: 12px; }
         header .title h1 { font-size: 18px; font-weight: 600; color: #e6edf3; }
-        header .title span {
-            font-size: 12px; color: #8b949e;
-            background: #21262d; padding: 3px 10px; border-radius: 20px;
-        }
+        header .title span { font-size: 12px; color: #8b949e; background: #21262d; padding: 3px 10px; border-radius: 20px; }
         header .uptime { font-size: 13px; color: #8b949e; }
         header .uptime span { color: #58a6ff; font-weight: 600; }
 
         .fall-banner {
             display: none;
             background: linear-gradient(90deg, #ff000022, #ff4d4d33, #ff000022);
-            border-top: 2px solid #ff4d4d;
-            border-bottom: 2px solid #ff4d4d;
-            padding: 14px 30px;
-            text-align: center;
-            color: #ff4d4d;
-            font-weight: 700;
-            font-size: 15px;
-            letter-spacing: 1px;
+            border-top: 2px solid #ff4d4d; border-bottom: 2px solid #ff4d4d;
+            padding: 14px 30px; text-align: center; color: #ff4d4d;
+            font-weight: 700; font-size: 15px; letter-spacing: 1px;
             animation: pulse 1s infinite;
         }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
@@ -51,70 +33,51 @@
         .main { padding: 24px 30px; display: flex; flex-direction: column; gap: 20px; }
 
         .status-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-        .card {
-            background: #0d1117; border: 1px solid #21262d;
-            border-radius: 10px; padding: 20px;
-        }
-        .card .label {
-            font-size: 11px; color: #8b949e;
-            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;
-        }
+        .card { background: #0d1117; border: 1px solid #21262d; border-radius: 10px; padding: 20px; }
+        .card .label { font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
         .card .val { font-size: 32px; font-weight: 700; color: #e6edf3; }
         .card .sub { font-size: 12px; color: #8b949e; margin-top: 6px; }
         .card.blue .val { color: #58a6ff; }
-        .card.green .val { color: #3fb950; }
         .card.red .val { color: #ff4d4d; }
         .card.yellow .val { color: #d29922; }
 
         .rpi-status { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
         .dot { width: 10px; height: 10px; border-radius: 50%; background: #ff4d4d; }
-        .dot.on {
-            background: #3fb950; box-shadow: 0 0 8px #3fb950;
-            animation: blink 2s infinite;
-        }
+        .dot.on { background: #3fb950; box-shadow: 0 0 8px #3fb950; animation: blink 2s infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
         .rpi-label { font-size: 14px; font-weight: 600; }
 
         .content-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
-        .panel {
-            background: #0d1117; border: 1px solid #21262d;
-            border-radius: 10px; overflow: hidden;
-        }
+        .panel { background: #0d1117; border: 1px solid #21262d; border-radius: 10px; overflow: hidden; }
         .panel-header {
             padding: 14px 20px; border-bottom: 1px solid #21262d;
             display: flex; align-items: center; justify-content: space-between;
         }
-        .panel-header h3 {
-            font-size: 13px; font-weight: 600; color: #e6edf3;
-            text-transform: uppercase; letter-spacing: 0.5px;
-        }
-        .panel-header .badge {
-            font-size: 11px; background: #21262d;
-            color: #8b949e; padding: 2px 8px; border-radius: 20px;
-        }
+        .panel-header h3 { font-size: 13px; font-weight: 600; color: #e6edf3; text-transform: uppercase; letter-spacing: 0.5px; }
+        .panel-header .badge { font-size: 11px; background: #21262d; color: #8b949e; padding: 2px 8px; border-radius: 20px; }
         .panel-body { padding: 20px; }
 
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th {
-            color: #8b949e; text-align: left; padding: 8px 12px;
-            border-bottom: 1px solid #21262d; font-weight: 500;
-            font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
-        }
+        th { color: #8b949e; text-align: left; padding: 8px 12px; border-bottom: 1px solid #21262d; font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
         td { padding: 10px 12px; border-bottom: 1px solid #161b22; }
         tr:last-child td { border-bottom: none; }
         tr:hover td { background: #161b22; }
 
         .timeline { display: flex; flex-direction: column; gap: 12px; }
         .timeline-item { display: flex; align-items: flex-start; gap: 12px; }
-        .timeline-dot {
-            width: 8px; height: 8px; border-radius: 50%;
-            background: #ff4d4d; margin-top: 5px; flex-shrink: 0;
-        }
+        .timeline-dot { width: 8px; height: 8px; border-radius: 50%; background: #ff4d4d; margin-top: 5px; flex-shrink: 0; }
         .timeline-content .time { font-size: 11px; color: #8b949e; }
         .timeline-content .event { font-size: 13px; color: #e6edf3; margin-top: 2px; }
         .empty-state { text-align: center; color: #8b949e; font-size: 13px; padding: 20px 0; }
         .chart-wrap { position: relative; height: 200px; }
+
+        /* 손실률 바 */
+        .loss-bar-wrap { margin-top: 6px; background: #21262d; border-radius: 4px; height: 6px; overflow: hidden; }
+        .loss-bar { height: 100%; border-radius: 4px; transition: width 0.5s; }
+        .loss-good { background: #3fb950; }
+        .loss-mid { background: #d29922; }
+        .loss-bad { background: #ff4d4d; }
     </style>
 </head>
 <body>
@@ -133,6 +96,7 @@
 
 <div class="main">
 
+    <!-- 상태 카드 -->
     <div class="status-row">
         <div class="card">
             <div class="label">Pi4 연결 상태</div>
@@ -159,6 +123,41 @@
         </div>
     </div>
 
+    <!-- 패킷 손실률 -->
+    <div class="content-row">
+        <div class="panel">
+            <div class="panel-header">
+                <h3>RX1 패킷 손실률</h3>
+                <span class="badge" id="rx1LossRate">0.00%</span>
+            </div>
+            <div class="panel-body">
+                <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;">
+                    <span style="color:#8b949e">수신: <span id="rx1Received" style="color:#e6edf3">0</span></span>
+                    <span style="color:#8b949e">손실: <span id="rx1Lost" style="color:#ff4d4d">0</span></span>
+                </div>
+                <div class="loss-bar-wrap">
+                    <div class="loss-bar loss-good" id="rx1Bar" style="width:0%"></div>
+                </div>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="panel-header">
+                <h3>RX2 패킷 손실률</h3>
+                <span class="badge" id="rx2LossRate">0.00%</span>
+            </div>
+            <div class="panel-body">
+                <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;">
+                    <span style="color:#8b949e">수신: <span id="rx2Received" style="color:#e6edf3">0</span></span>
+                    <span style="color:#8b949e">손실: <span id="rx2Lost" style="color:#ff4d4d">0</span></span>
+                </div>
+                <div class="loss-bar-wrap">
+                    <div class="loss-bar loss-good" id="rx2Bar" style="width:0%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 페어링 기록 + 낙상 타임라인 -->
     <div class="content-row">
         <div class="panel">
             <div class="panel-header">
@@ -195,123 +194,135 @@
         </div>
     </div>
 
-    <div class="content-row">
-        <div class="panel">
-            <div class="panel-header">
-                <h3>서브캐리어 수 실시간 차트</h3>
+   <!-- 서브캐리어 차트 + PPS 차트 -->
+        <div class="content-row">
+            <div class="panel">
+                <div class="panel-header"><h3>서브캐리어 수 실시간 차트</h3></div>
+                <div class="panel-body">
+                    <div class="chart-wrap"><canvas id="subChart"></canvas></div>
+                </div>
             </div>
-            <div class="panel-body">
-                <div class="chart-wrap">
-                    <canvas id="subChart"></canvas>
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>초당 패킷 수신 (PPS)</h3>
+                    <span class="badge" id="ppsBadge">0 pps</span>
+                </div>
+                <div class="panel-body">
+                    <div class="chart-wrap"><canvas id="ppsChart"></canvas></div>
                 </div>
             </div>
         </div>
-
-        <div class="panel">
-            <div class="panel-header">
-                <h3>시스템 정보</h3>
-            </div>
-            <div class="panel-body">
-                <table>
-                    <tr><td style="color:#8b949e">UDP 포트 (RX1/RX2)</td><td>5005</td></tr>
-                    <tr><td style="color:#8b949e">WebSocket 포트 (Pi4)</td><td>8765</td></tr>
-                    <tr><td style="color:#8b949e">대시보드 포트</td><td>8080</td></tr>
-                    <tr><td style="color:#8b949e">유효 서브캐리어 수</td><td>52 (LLTF)</td></tr>
-                    <tr><td style="color:#8b949e">샘플링 레이트</td><td>10 Hz</td></tr>
-                    <tr><td style="color:#8b949e">전처리 파이프라인</td><td>RPCA → ACF → SDP → z-score</td></tr>
-                    <tr><td style="color:#8b949e">AI 모델</td><td>CNN + GRU + Attention</td></tr>
-                    <tr><td style="color:#8b949e">알림 방식</td><td>SMS (Solapi)</td></tr>
-                </table>
-            </div>
-        </div>
-    </div>
 
 </div>
 
 <script>
     const socket = io();
 
+    // 가동 시간
     let startTime = Date.now();
     setInterval(() => {
-        const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
-        const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
-        const s = String(elapsed % 60).padStart(2, '0');
+        const e = Math.floor((Date.now() - startTime) / 1000);
+        const h = String(Math.floor(e / 3600)).padStart(2, '0');
+        const m = String(Math.floor((e % 3600) / 60)).padStart(2, '0');
+        const s = String(e % 60).padStart(2, '0');
         document.getElementById('uptime').textContent = `${h}:${m}:${s}`;
     }, 1000);
 
+    // 마지막 패킷 수신
     let lastPacketTime = null;
     setInterval(() => {
-        if (lastPacketTime === null) return;
-        const sec = Math.floor((Date.now() - lastPacketTime) / 1000);
-        document.getElementById('lastPacketVal').textContent = sec;
+        if (!lastPacketTime) return;
+        document.getElementById('lastPacketVal').textContent =
+            Math.floor((Date.now() - lastPacketTime) / 1000);
     }, 1000);
 
-    // 서브캐리어 수 차트
+    // 서브캐리어 차트
     const ctx = document.getElementById('subChart').getContext('2d');
     const subChart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: [],
             datasets: [
-                {
-                    label: 'RX1 서브캐리어',
-                    data: [],
-                    borderColor: '#58a6ff',
-                    backgroundColor: '#58a6ff22',
-                    tension: 0.4, pointRadius: 2, fill: true
-                },
-                {
-                    label: 'RX2 서브캐리어',
-                    data: [],
-                    borderColor: '#3fb950',
-                    backgroundColor: '#3fb95022',
-                    tension: 0.4, pointRadius: 2, fill: true
-                }
+                { label: 'RX1', data: [], borderColor: '#58a6ff', backgroundColor: '#58a6ff22', tension: 0.4, pointRadius: 2, fill: true },
+                { label: 'RX2', data: [], borderColor: '#3fb950', backgroundColor: '#3fb95022', tension: 0.4, pointRadius: 2, fill: true }
             ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, animation: false,
+            plugins: { legend: { labels: { color: '#8b949e', font: { size: 11 } } } },
+            scales: {
+                x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } },
+                y: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' }, min: 0, max: 64 }
+            }
+        }
+    });
+
+// PPS 차트
+    const ppsCtx = document.getElementById('ppsChart').getContext('2d');
+    const ppsChart = new Chart(ppsCtx, {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'PPS',
+                data: [],
+                backgroundColor: '#58a6ff44',
+                borderColor: '#58a6ff',
+                borderWidth: 1
+            }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             animation: false,
-            plugins: { legend: { labels: { color: '#8b949e', font: { size: 11 } } } },
+            plugins: { legend: { display: false } },
             scales: {
                 x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } },
                 y: {
                     ticks: { color: '#8b949e', font: { size: 10 } },
                     grid: { color: '#21262d' },
-                    min: 0, max: 64
+                    min: 0, max: 20
                 }
             }
         }
     });
 
+    // 초기 상태
     fetch('/status').then(r => r.json()).then(data => {
         document.getElementById('pairCount').textContent = data.pair_count;
         document.getElementById('fallCount').textContent = data.fall_count;
-        if (data.last_fall_time) {
+        if (data.last_fall_time)
             document.getElementById('lastFallTime').textContent = `마지막: ${data.last_fall_time}`;
-        }
         updateRpi4(data.rpi4_connected);
-        data.recent_pairs.forEach(p => addPairRow(p));
+        data.recent_pairs.forEach(addPairRow);
+        updatePacketStats(data.packet_stats);
     });
 
+    // 소켓 이벤트
     socket.on('pair_update', (data) => {
         const count = parseInt(document.getElementById('pairCount').textContent) + 1;
         document.getElementById('pairCount').textContent = count;
         document.getElementById('pairBadge').textContent = `${Math.min(count, 10)} / 10`;
         lastPacketTime = Date.now();
         addPairRow(data);
-
         subChart.data.labels.push(data.time);
         subChart.data.datasets[0].data.push(data.rx1_subs);
         subChart.data.datasets[1].data.push(data.rx2_subs);
         if (subChart.data.labels.length > 20) {
             subChart.data.labels.shift();
-            subChart.data.datasets[0].data.shift();
-            subChart.data.datasets[1].data.shift();
+            subChart.data.datasets.forEach(d => d.data.shift());
         }
         subChart.update();
+
+        // PPS 업데이트
+        ppsChart.data.labels.push(data.time);
+        ppsChart.data.datasets[0].data.push(data.pps);
+        if (ppsChart.data.labels.length > 20) {
+            ppsChart.data.labels.shift();
+            ppsChart.data.datasets[0].data.shift();
+        }
+        ppsChart.update();
+        document.getElementById('ppsBadge').textContent = `${data.pps} pps`;
     });
 
     socket.on('fall_detected', (data) => {
@@ -324,7 +335,43 @@
         addFallTimeline(data.time, data.fall_count);
     });
 
-    socket.on('rpi4_status', (data) => updateRpi4(data.connected));
+    socket.on('rpi4_status', (data) => updateRpi4(data.connected, data.message));
+
+    socket.on('rpi4_disconnected', (data) => {
+        // 연결 끊김 경고 배너
+        const banner = document.createElement('div');
+        banner.style.cssText = `
+            position: fixed; top: 60px; right: 20px;
+            background: #21262d; border: 1px solid #ff4d4d;
+            border-radius: 8px; padding: 12px 16px;
+            font-size: 13px; color: #ff4d4d;
+            z-index: 9999; animation: fadeIn 0.3s ease;
+        `;
+        banner.textContent = `⚠️ Pi4 연결 끊김 — ${data.message}`;
+        document.body.appendChild(banner);
+        setTimeout(() => banner.remove(), 5000);
+    });
+
+    socket.on('packet_stats', (data) => updatePacketStats(data));
+
+    // UI 함수
+    function updatePacketStats(stats) {
+        if (!stats) return;
+        updateLossBar('rx1', stats.rx1);
+        updateLossBar('rx2', stats.rx2);
+    }
+
+    function updateLossBar(id, data) {
+        document.getElementById(`${id}Received`).textContent = data.received;
+        document.getElementById(`${id}Lost`).textContent = data.lost;
+        document.getElementById(`${id}LossRate`).textContent = `${data.loss_rate}%`;
+        const bar = document.getElementById(`${id}Bar`);
+        bar.style.width = `${Math.min(data.loss_rate, 100)}%`;
+        bar.className = 'loss-bar ' + (
+            data.loss_rate < 5 ? 'loss-good' :
+            data.loss_rate < 20 ? 'loss-mid' : 'loss-bad'
+        );
+    }
 
     function addPairRow(data) {
         const tbody = document.getElementById('pairTable');
@@ -355,7 +402,7 @@
         timeline.insertBefore(item, timeline.firstChild);
     }
 
-    function updateRpi4(connected) {
+    function updateRpi4(connected, message) {
         const dot = document.getElementById('rpi4Dot');
         const label = document.getElementById('rpi4Label');
         const sub = document.getElementById('rpi4Sub');
@@ -363,12 +410,12 @@
             dot.className = 'dot on';
             label.textContent = '연결됨';
             label.style.color = '#3fb950';
-            sub.textContent = 'WebSocket 연결 활성';
+            sub.textContent = message || 'WebSocket 연결 활성';
         } else {
             dot.className = 'dot';
             label.textContent = '미연결';
             label.style.color = '#ff4d4d';
-            sub.textContent = 'WebSocket 대기 중...';
+            sub.textContent = message || 'WebSocket 대기 중...';
         }
     }
 </script>
