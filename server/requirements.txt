@@ -1,3 +1,5 @@
 numpy
 requests
 python-dotenv
+flask
+flask-socketio

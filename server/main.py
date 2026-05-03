@@ -6,19 +6,21 @@ from receiver.udp_receiver import start_receivers
 from utils.pairing import PairingBuffer
 from tcp_handler.rpi_connection import RPiConnection
 from notification.sms import send_fall_sms
+from dashboard.app import start_dashboard, update_pair, update_fall, update_rpi4_status
 
 # -----------------------------------------------
 # RPi4 TCP 연결 인스턴스
 # -----------------------------------------------
-rpi_connection = RPiConnection()
+rpi_connection = RPiConnection(on_status_change=update_rpi4_status)
 
 # -----------------------------------------------
 # 낙상 감지 시 실행
 # -----------------------------------------------
 def on_fall_detected():
     print("[FALL] 낙상 감지!")
-    rpi_connection.send_fall_alert()   # RPi4에 TCP 알림
-    send_fall_sms()                    # 보호자에게 SMS 발송
+    update_fall()                          # 대시보드 업데이트
+    rpi_connection.send_fall_alert()       # RPi4에 TCP 알림
+    send_fall_sms()                        # 보호자에게 SMS 발송
 
 # -----------------------------------------------
 # 페어링 완료 시 호출되는 콜백
@@ -27,6 +29,7 @@ def on_paired(rx1, rx2):
     print(f"[PAIR] seq={rx1['seq']} | "
           f"RX1 rssi={rx1['rssi']:.1f} | "
           f"RX2 rssi={rx2['rssi']:.1f}")
+    update_pair(rx1, rx2)                  # 대시보드 업데이트
 
     # TODO: AI 추론 팀 모듈 연결 (전처리 → CNN-LSTM)
     # result = inference(rx1, rx2)
@@ -57,10 +60,6 @@ if __name__ == "__main__":
     cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
     cleanup_thread.start()
 
-    print("[SERVER] UDP 수신 대기 중... (종료: Ctrl+C)")
-
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("[SERVER] 서버 종료")
+    # 대시보드 시작 (http://localhost:8080)
+    print("[SERVER] 대시보드: http://localhost:8080")
+    start_dashboard()
