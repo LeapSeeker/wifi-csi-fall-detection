@@ -3,7 +3,22 @@
     "allow": [
       "mcp__claude_ai_Notion__notion-search",
       "mcp__claude_ai_Notion__notion-fetch",
-      "Bash(cat -n \"c:/Project/LastProject/README\\(Old\\).md\")"
+      "Bash(cat -n \"c:/Project/LastProject/README\\(Old\\).md\")",
+      "Bash(python -c ' *)",
+      "Bash(python -m model.preprocessing.test_pipeline)",
+      "Bash(python model/preprocessing/test_pipeline.py)",
+      "Bash(python model/pretrained/model.py)",
+      "Bash(python -c \"import model.pretrained.train as t; print\\('imports OK'\\); print\\('args:', [a for a in vars\\(t.parse_args.__wrapped__ if hasattr\\(t.parse_args,'__wrapped__'\\) else t.parse_args\\)] if False else 'use --help'\\)\")",
+      "Bash(python -m model.pretrained.train --help)",
+      "Bash(python -m model.pretrained.train --rebuild_cache --epochs 0)",
+      "Bash(python -m model.pretrained.train --envs 1 --rebuild_cache --epochs 2 --batch_size 4)",
+      "Bash(grep -v \"^$\")",
+      "Bash(python -m model.preprocessing.test_parallel)",
+      "Bash(python -c \"import model.pretrained.train as t; print\\('imports OK'\\); print\\('build_cache sig:', t.build_cache.__doc__ or 'ok'\\)\")",
+      "Bash(python -m model.pretrained.train --envs 1 --epochs 1 --batch_size 4)",
+      "Bash(python model/augment/augment.py)",
+      "Bash(python model/pretrained/metrics.py)",
+      "Bash(python -c \"import model.pretrained.train; print\\('OK'\\)\")"
     ]
   }
 }
