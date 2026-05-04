@@ -11,6 +11,8 @@ wifi-csi-fall-detection/
 data/raw/*.csv
 data/augmented/*.csv
 model/pretrained/*.pth
+model/pretrained/checkpoints/
+model/pretrained/*.pt
 *.onnx
 
 # Python
@@ -24,3 +26,6 @@ build/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# 사전학습 데이터셋
+data/alsaify-raw/
