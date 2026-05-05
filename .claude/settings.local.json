@@ -18,7 +18,15 @@
       "Bash(python -m model.pretrained.train --envs 1 --epochs 1 --batch_size 4)",
       "Bash(python model/augment/augment.py)",
       "Bash(python model/pretrained/metrics.py)",
-      "Bash(python -c \"import model.pretrained.train; print\\('OK'\\)\")"
+      "Bash(python -c \"import model.pretrained.train; print\\('OK'\\)\")",
+      "Bash(git ls-tree *)",
+      "Bash(grep -E \"\\(\\\\.pt$|\\\\.pth$|\\\\.onnx$|data/\\)\")",
+      "Bash(git check-ignore *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Project\\LastProject\\wifi-csi-fall-detection\\data"
     ]
   }
 }

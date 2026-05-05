@@ -24,8 +24,7 @@ data/
 
 주의: Subject_*.zip 형태로 되어 있으면 반드시 압축 해제 후 배치해야 합니다.
 주의: alsaify-raw/ 전체 폴더는 .gitignore 처리되어 있으므로 로컬에만 존재합니다.
-참고: 사전학습 캐시(model/pretrained/checkpoints/dataset_cache*.npz)는 git 에
-      포함되어 있어 raw CSV 없이도 재학습 가능 (--rebuild_cache 미지정 시).
+참고: 사전학습 캐시(model/pretrained/checkpoints/dataset_cache*.npz)는 git 에 포함되어 있어 raw CSV 없이도 재학습 가능 (--rebuild_cache 미지정 시).
 
 3. 자체 수집 데이터 배치
 ESP32 수집 결과물은 data/raw/ 에 .csv 형식으로 저장하고,
