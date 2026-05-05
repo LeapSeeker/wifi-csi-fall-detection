@@ -214,6 +214,100 @@ def load_metrics(path: str | Path) -> FallMetrics:
     return FallMetrics(**data)
 
 
+# ── 시각화 ─────────────────────────────────────────────────────────────────
+
+def plot_confusion_matrix(
+    y_true: Sequence[int] | np.ndarray,
+    y_pred: Sequence[int] | np.ndarray,
+    class_names: Sequence[str],
+    save_path: str | Path | None = None,
+    fall_label: int = DEFAULT_FALL_LABEL,
+) -> None:
+    """행 정규화 혼동 행렬을 그리고 fall 행/열을 강조 표시.
+
+    각 셀에는 "비율%\\n(원시 카운트)" 를 함께 주석. 제목에는 기존 FallMetrics
+    에서 뽑은 Recall / FAR 값을 표시. ``save_path`` 가 주어지면 PNG 로 저장,
+    아니면 ``plt.show()`` 호출.
+
+    matplotlib·sklearn 임포트는 함수 내부에서만 수행하여 학습 경로(train.py)의
+    런타임 의존성을 늘리지 않는다.
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Rectangle
+    from sklearn.metrics import confusion_matrix
+
+    y_true = np.asarray(y_true).ravel()
+    y_pred = np.asarray(y_pred).ravel()
+    n_classes = len(class_names)
+    labels = list(range(n_classes))
+
+    # 원시 카운트와 행 정규화 (true 기준 — recall 해석)
+    cm_raw = confusion_matrix(y_true, y_pred, labels=labels)
+    row_sums = cm_raw.sum(axis=1, keepdims=True)
+    cm_norm = np.divide(
+        cm_raw, row_sums,
+        where=row_sums != 0,
+        out=np.zeros(cm_raw.shape, dtype=float),
+    )
+
+    # 기존 FallMetrics 에서 Recall / FAR 재사용 (제목에 표시)
+    m = compute_metrics(y_true, y_pred, classes=class_names, fall_label=fall_label)
+
+    fig, ax = plt.subplots(figsize=(8, 7))
+    im = ax.imshow(cm_norm, cmap="Blues", vmin=0.0, vmax=1.0)
+    cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    cbar.set_label("Row-normalized rate")
+
+    ax.set_xticks(range(n_classes))
+    ax.set_yticks(range(n_classes))
+    ax.set_xticklabels(class_names, rotation=45, ha="right")
+    ax.set_yticklabels(class_names)
+
+    for i in range(n_classes):
+        for j in range(n_classes):
+            pct = cm_norm[i, j] * 100
+            cnt = int(cm_raw[i, j])
+            text_color = "white" if cm_norm[i, j] > 0.5 else "black"
+            ax.text(
+                j, i, f"{pct:.1f}%\n({cnt})",
+                ha="center", va="center",
+                color=text_color, fontsize=9,
+            )
+
+    # fall 행/열 강조 — 빨간 테두리 + 틱 라벨 색/굵기
+    fall_color = "crimson"
+    ax.add_patch(Rectangle(
+        (-0.5, fall_label - 0.5), n_classes, 1,
+        fill=False, edgecolor=fall_color, lw=2.5,
+    ))
+    ax.add_patch(Rectangle(
+        (fall_label - 0.5, -0.5), 1, n_classes,
+        fill=False, edgecolor=fall_color, lw=2.5,
+    ))
+    ax.get_xticklabels()[fall_label].set_color(fall_color)
+    ax.get_xticklabels()[fall_label].set_fontweight("bold")
+    ax.get_yticklabels()[fall_label].set_color(fall_color)
+    ax.get_yticklabels()[fall_label].set_fontweight("bold")
+
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("True")
+    fall_name = class_names[fall_label]
+    ax.set_title(
+        f"Confusion Matrix (row-normalized)\n"
+        f"Fall='{fall_name}'  Recall={m.fall_recall:.3f}  FAR={m.far:.3f}"
+    )
+
+    fig.tight_layout()
+
+    if save_path is not None:
+        out = Path(save_path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(out, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+    else:
+        plt.show()
+
+
 # ── 단위 테스트 ────────────────────────────────────────────────────────────
 
 def _self_test() -> None:
@@ -300,5 +394,53 @@ def _self_test() -> None:
     print("\nPASS — 6개 검증 모두 통과")
 
 
+def _demo_plot() -> None:
+    """7-클래스 더미 라벨로 시각화 데모. `python metrics.py` 실행 시 함께 표시.
+
+    참고: 사전학습 파이프라인은 6 클래스 (Alsaify 매핑상 'running' 미존재)지만,
+    파인튜닝 단계에서는 'running' 이 추가된 7 클래스 구성이므로 데모도 7 클래스
+    로 둔다. (model/CLAUDE.md 「달리기(빠른 보행): 파인튜닝 전용」)
+    """
+    rng = np.random.default_rng(0)
+    classes = ["fall", "walking", "sit_stand", "lying",
+               "standing", "running", "picking"]
+    n_per_class = [60, 80, 70, 60, 80, 50, 60]
+
+    # 클래스별 정확도(대각) ≈ correct_rates, 나머지는 다른 클래스로 분산.
+    # 비-fall 의 일부 오답은 fall 로 보내 FAR 가 0이 아닌 시나리오를 생성.
+    correct_rates = [0.83, 0.92, 0.88, 0.90, 0.85, 0.80, 0.88]
+    y_true_parts, y_pred_parts = [], []
+    for cls_idx, n in enumerate(n_per_class):
+        y_true_parts.append(np.full(n, cls_idx, dtype=np.int64))
+        n_correct = int(round(n * correct_rates[cls_idx]))
+        n_wrong = n - n_correct
+        wrong_choices = [c for c in range(len(classes)) if c != cls_idx]
+        wrong = rng.choice(wrong_choices, size=n_wrong).astype(np.int64)
+        if cls_idx != 0 and n_wrong > 0:
+            n_to_fall = max(1, n_wrong // 3)
+            wrong[:n_to_fall] = 0
+        y_pred_parts.append(np.concatenate([
+            np.full(n_correct, cls_idx, dtype=np.int64), wrong,
+        ]))
+
+    y_true = np.concatenate(y_true_parts)
+    y_pred = np.concatenate(y_pred_parts)
+
+    m = compute_metrics(y_true, y_pred, classes=classes)
+    print("\n" + "=" * 64)
+    print("Demo metrics (7-class dummy, fall=index 0):")
+    print(f"  Accuracy  : {m.accuracy:.4f}  ({sum(m.counts.values())} samples)")
+    print(f"  Recall    : {m.fall_recall:.4f}   (fall TP/(TP+FN))")
+    print(f"  Precision : {m.fall_precision:.4f}")
+    print(f"  F1        : {m.fall_f1:.4f}")
+    print(f"  FAR       : {m.far:.4f}        (fall FP/(FP+TN))")
+    print("\nplot_confusion_matrix 호출 — 창을 닫으면 종료됩니다.")
+    plot_confusion_matrix(y_true, y_pred, class_names=classes)
+
+
 if __name__ == "__main__":
-    _self_test()
+    try:
+        _self_test()
+        _demo_plot()
+    except KeyboardInterrupt:
+        print("\n중단됨.")
