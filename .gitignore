@@ -27,5 +27,6 @@ build/
 .DS_Store
 Thumbs.db
 
-# 사전학습 데이터셋
-data/alsaify-raw/
+# 사전학습 데이터셋 (폴더는 보존, 내용물만 제외)
+data/alsaify-raw/*
+!data/alsaify-raw/.gitkeep
