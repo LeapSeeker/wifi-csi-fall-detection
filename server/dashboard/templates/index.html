@@ -72,7 +72,6 @@
         .empty-state { text-align: center; color: #8b949e; font-size: 13px; padding: 20px 0; }
         .chart-wrap { position: relative; height: 200px; }
 
-        /* 손실률 바 */
         .loss-bar-wrap { margin-top: 6px; background: #21262d; border-radius: 4px; height: 6px; overflow: hidden; }
         .loss-bar { height: 100%; border-radius: 4px; transition: width 0.5s; }
         .loss-good { background: #3fb950; }
@@ -96,7 +95,6 @@
 
 <div class="main">
 
-    <!-- 상태 카드 -->
     <div class="status-row">
         <div class="card">
             <div class="label">Pi4 연결 상태</div>
@@ -170,12 +168,14 @@
                         <tr>
                             <th>시간</th>
                             <th>SEQ</th>
+                            <th>RX1 RSSI</th>
+                            <th>RX2 RSSI</th>
                             <th>RX1 서브캐리어</th>
                             <th>RX2 서브캐리어</th>
                         </tr>
                     </thead>
                     <tbody id="pairTable">
-                        <tr><td colspan="4" class="empty-state">수신 대기 중...</td></tr>
+                        <tr><td colspan="6" class="empty-state">수신 대기 중...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -194,24 +194,49 @@
         </div>
     </div>
 
-   <!-- 서브캐리어 차트 + PPS 차트 -->
-        <div class="content-row">
-            <div class="panel">
-                <div class="panel-header"><h3>서브캐리어 수 실시간 차트</h3></div>
-                <div class="panel-body">
-                    <div class="chart-wrap"><canvas id="subChart"></canvas></div>
-                </div>
-            </div>
-            <div class="panel">
-                <div class="panel-header">
-                    <h3>초당 패킷 수신 (PPS)</h3>
-                    <span class="badge" id="ppsBadge">0 pps</span>
-                </div>
-                <div class="panel-body">
-                    <div class="chart-wrap"><canvas id="ppsChart"></canvas></div>
-                </div>
+    <!-- 차트 -->
+    <div class="content-row">
+        <div class="panel">
+            <div class="panel-header"><h3>RSSI 실시간 차트</h3></div>
+            <div class="panel-body">
+                <div class="chart-wrap"><canvas id="rssiChart"></canvas></div>
             </div>
         </div>
+        <div class="panel">
+            <div class="panel-header">
+                <h3>초당 패킷 수신 (PPS)</h3>
+                <span class="badge" id="ppsBadge">0 pps</span>
+            </div>
+            <div class="panel-body">
+                <div class="chart-wrap"><canvas id="ppsChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 시스템 정보 -->
+    <div class="content-row">
+        <div class="panel">
+            <div class="panel-header"><h3>서브캐리어 수 실시간 차트</h3></div>
+            <div class="panel-body">
+                <div class="chart-wrap"><canvas id="subChart"></canvas></div>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="panel-header"><h3>시스템 정보</h3></div>
+            <div class="panel-body">
+                <table>
+                    <tr><td style="color:#8b949e">UDP 포트 (RX1/RX2)</td><td>5005</td></tr>
+                    <tr><td style="color:#8b949e">WebSocket 포트 (Pi4)</td><td>8765</td></tr>
+                    <tr><td style="color:#8b949e">대시보드 포트</td><td>8080</td></tr>
+                    <tr><td style="color:#8b949e">유효 서브캐리어 수</td><td>52 (LLTF)</td></tr>
+                    <tr><td style="color:#8b949e">샘플링 레이트</td><td>10 Hz</td></tr>
+                    <tr><td style="color:#8b949e">전처리 파이프라인</td><td>RPCA → ACF → SDP → z-score</td></tr>
+                    <tr><td style="color:#8b949e">AI 모델</td><td>CNN + GRU + Attention</td></tr>
+                    <tr><td style="color:#8b949e">알림 방식</td><td>SMS (Solapi)</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
 
 </div>
 
@@ -236,9 +261,48 @@
             Math.floor((Date.now() - lastPacketTime) / 1000);
     }, 1000);
 
+    // RSSI 차트
+    const rssiCtx = document.getElementById('rssiChart').getContext('2d');
+    const rssiChart = new Chart(rssiCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                { label: 'RX1 RSSI', data: [], borderColor: '#58a6ff', backgroundColor: '#58a6ff22', tension: 0.4, pointRadius: 2, fill: true },
+                { label: 'RX2 RSSI', data: [], borderColor: '#3fb950', backgroundColor: '#3fb95022', tension: 0.4, pointRadius: 2, fill: true }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, animation: false,
+            plugins: { legend: { labels: { color: '#8b949e', font: { size: 11 } } } },
+            scales: {
+                x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } },
+                y: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' }, min: -90, max: -20 }
+            }
+        }
+    });
+
+    // PPS 차트
+    const ppsCtx = document.getElementById('ppsChart').getContext('2d');
+    const ppsChart = new Chart(ppsCtx, {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [{ label: 'PPS', data: [], backgroundColor: '#58a6ff44', borderColor: '#58a6ff', borderWidth: 1 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, animation: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } },
+                y: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' }, min: 0, max: 20 }
+            }
+        }
+    });
+
     // 서브캐리어 차트
-    const ctx = document.getElementById('subChart').getContext('2d');
-    const subChart = new Chart(ctx, {
+    const subCtx = document.getElementById('subChart').getContext('2d');
+    const subChart = new Chart(subCtx, {
         type: 'line',
         data: {
             labels: [],
@@ -253,36 +317,6 @@
             scales: {
                 x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } },
                 y: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' }, min: 0, max: 64 }
-            }
-        }
-    });
-
-// PPS 차트
-    const ppsCtx = document.getElementById('ppsChart').getContext('2d');
-    const ppsChart = new Chart(ppsCtx, {
-        type: 'bar',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'PPS',
-                data: [],
-                backgroundColor: '#58a6ff44',
-                borderColor: '#58a6ff',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } },
-                y: {
-                    ticks: { color: '#8b949e', font: { size: 10 } },
-                    grid: { color: '#21262d' },
-                    min: 0, max: 20
-                }
             }
         }
     });
@@ -305,16 +339,18 @@
         document.getElementById('pairBadge').textContent = `${Math.min(count, 10)} / 10`;
         lastPacketTime = Date.now();
         addPairRow(data);
-        subChart.data.labels.push(data.time);
-        subChart.data.datasets[0].data.push(data.rx1_subs);
-        subChart.data.datasets[1].data.push(data.rx2_subs);
-        if (subChart.data.labels.length > 20) {
-            subChart.data.labels.shift();
-            subChart.data.datasets.forEach(d => d.data.shift());
-        }
-        subChart.update();
 
-        // PPS 업데이트
+        // RSSI 차트
+        rssiChart.data.labels.push(data.time);
+        rssiChart.data.datasets[0].data.push(data.rx1_rssi);
+        rssiChart.data.datasets[1].data.push(data.rx2_rssi);
+        if (rssiChart.data.labels.length > 20) {
+            rssiChart.data.labels.shift();
+            rssiChart.data.datasets.forEach(d => d.data.shift());
+        }
+        rssiChart.update();
+
+        // PPS 차트
         ppsChart.data.labels.push(data.time);
         ppsChart.data.datasets[0].data.push(data.pps);
         if (ppsChart.data.labels.length > 20) {
@@ -323,6 +359,16 @@
         }
         ppsChart.update();
         document.getElementById('ppsBadge').textContent = `${data.pps} pps`;
+
+        // 서브캐리어 차트
+        subChart.data.labels.push(data.time);
+        subChart.data.datasets[0].data.push(data.rx1_subs);
+        subChart.data.datasets[1].data.push(data.rx2_subs);
+        if (subChart.data.labels.length > 20) {
+            subChart.data.labels.shift();
+            subChart.data.datasets.forEach(d => d.data.shift());
+        }
+        subChart.update();
     });
 
     socket.on('fall_detected', (data) => {
@@ -338,14 +384,13 @@
     socket.on('rpi4_status', (data) => updateRpi4(data.connected, data.message));
 
     socket.on('rpi4_disconnected', (data) => {
-        // 연결 끊김 경고 배너
         const banner = document.createElement('div');
         banner.style.cssText = `
             position: fixed; top: 60px; right: 20px;
             background: #21262d; border: 1px solid #ff4d4d;
             border-radius: 8px; padding: 12px 16px;
             font-size: 13px; color: #ff4d4d;
-            z-index: 9999; animation: fadeIn 0.3s ease;
+            z-index: 9999;
         `;
         banner.textContent = `⚠️ Pi4 연결 끊김 — ${data.message}`;
         document.body.appendChild(banner);
@@ -380,6 +425,8 @@
         row.innerHTML = `
             <td>${data.time}</td>
             <td style="color:#8b949e">${data.seq}</td>
+            <td style="color:#58a6ff">${data.rx1_rssi} dBm</td>
+            <td style="color:#3fb950">${data.rx2_rssi} dBm</td>
             <td style="color:#58a6ff">${data.rx1_subs}</td>
             <td style="color:#3fb950">${data.rx2_subs}</td>
         `;

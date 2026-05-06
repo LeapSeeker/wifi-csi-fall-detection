@@ -35,20 +35,20 @@ _packet_count_lock = threading.Lock()
 def update_pair(rx1, rx2):
     state["pair_count"] += 1
 
-    # 초당 패킷 수신 카운트
     now = time.time()
     with _packet_count_lock:
         _packet_count_window.append(now)
-        # 최근 1초 이내 것만 유지
         cutoff = now - 1.0
         while _packet_count_window and _packet_count_window[0] < cutoff:
             _packet_count_window.pop(0)
-        pps = len(_packet_count_window)  # packets per second
+        pps = len(_packet_count_window)
 
     record = {
         "seq": rx1["seq_num"],
         "rx1_subs": rx1["n_subcarriers"],
         "rx2_subs": rx2["n_subcarriers"],
+        "rx1_rssi": rx1["rssi"],
+        "rx2_rssi": rx2["rssi"],
         "rx1_ts": rx1["timestamp_us"],
         "rx2_ts": rx2["timestamp_us"],
         "time": datetime.datetime.now().strftime("%H:%M:%S"),
