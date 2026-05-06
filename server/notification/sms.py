@@ -13,6 +13,18 @@ API_KEY = os.getenv("SOLAPI_API_KEY")
 API_SECRET = os.getenv("SOLAPI_API_SECRET")
 SENDER = os.getenv("SOLAPI_SENDER")
 RECEIVER = os.getenv("SOLAPI_RECEIVER")
+SMS_ENABLED = os.getenv("SMS_ENABLED", "true").lower() == "true"
+
+def reload_config():
+    """설정 변경 시 즉시 반영"""
+    global API_KEY, API_SECRET, SENDER, RECEIVER, SMS_ENABLED
+    load_dotenv(override=True)
+    API_KEY = os.getenv("SOLAPI_API_KEY")
+    API_SECRET = os.getenv("SOLAPI_API_SECRET")
+    SENDER = os.getenv("SOLAPI_SENDER")
+    RECEIVER = os.getenv("SOLAPI_RECEIVER")
+    SMS_ENABLED = os.getenv("SMS_ENABLED", "true").lower() == "true"
+    print(f"[SMS] 설정 재로드 완료 — SMS_ENABLED={SMS_ENABLED}, RECEIVER={RECEIVER}")
 
 def _get_auth_header() -> dict:
     date = str(int(time.time() * 1000))
@@ -30,6 +42,14 @@ def _get_auth_header() -> dict:
     }
 
 def send_fall_sms():
+    if not SMS_ENABLED:
+        print("[SMS] SMS 비활성화 상태 — 발송 생략")
+        return
+
+    if not RECEIVER:
+        print("[SMS] 수신 번호 없음 — 발송 생략")
+        return
+
     url = "https://api.solapi.com/messages/v4/send"
     headers = _get_auth_header()
     payload = {

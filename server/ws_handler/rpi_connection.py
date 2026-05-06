@@ -3,6 +3,8 @@
 import asyncio
 import websockets
 import threading
+import json
+import datetime
 
 class RPiConnection:
     def __init__(self, on_status_change=None):
@@ -58,11 +60,18 @@ class RPiConnection:
             return
         if self.loop is None:
             return
+
+        message = json.dumps({
+            "event": "fall_detected",
+            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "confidence": 0.0,   # TODO: AI 추론 신뢰도 연결
+            "seq_num": 0         # TODO: 해당 프레임 seq 연결
+        })
+
         asyncio.run_coroutine_threadsafe(
-            self._send("FALL_DETECTED"),
+            self._send(message),
             self.loop
         )
-
     async def _send(self, message: str):
         try:
             await self.websocket.send(message)

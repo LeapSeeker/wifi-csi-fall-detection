@@ -20,6 +20,23 @@
         header .uptime { font-size: 13px; color: #8b949e; }
         header .uptime span { color: #58a6ff; font-weight: 600; }
 
+        /* 탭 메뉴 */
+        .tab-bar {
+            background: #0d1117; border-bottom: 1px solid #21262d;
+            padding: 0 30px; display: flex; gap: 4px;
+        }
+        .tab-btn {
+            padding: 12px 20px; font-size: 13px; font-weight: 500;
+            color: #8b949e; background: none; border: none;
+            border-bottom: 2px solid transparent; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { color: #e6edf3; }
+        .tab-btn.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
         .fall-banner {
             display: none;
             background: linear-gradient(90deg, #ff000022, #ff4d4d33, #ff000022);
@@ -77,6 +94,72 @@
         .loss-good { background: #3fb950; }
         .loss-mid { background: #d29922; }
         .loss-bad { background: #ff4d4d; }
+
+        /* 설정 페이지 */
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .settings-section {
+            background: #0d1117; border: 1px solid #21262d;
+            border-radius: 10px; padding: 24px;
+        }
+        .settings-section h3 {
+            font-size: 13px; font-weight: 600; color: #e6edf3;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            margin-bottom: 20px; padding-bottom: 12px;
+            border-bottom: 1px solid #21262d;
+        }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 12px; color: #8b949e; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-group input, .form-group select {
+            width: 100%; background: #161b22; border: 1px solid #30363d;
+            border-radius: 6px; padding: 8px 12px; color: #e6edf3;
+            font-size: 13px; outline: none;
+        }
+        .form-group input:focus, .form-group select:focus { border-color: #58a6ff; }
+        .toggle-wrap { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+        .toggle { position: relative; width: 44px; height: 24px; }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background: #30363d; border-radius: 24px; transition: 0.3s;
+        }
+        .toggle-slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px;
+            left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s;
+        }
+        .toggle input:checked + .toggle-slider { background: #3fb950; }
+        .toggle input:checked + .toggle-slider:before { transform: translateX(20px); }
+        .toggle-label { font-size: 13px; color: #e6edf3; }
+
+        .save-btn {
+            background: #238636; border: none; border-radius: 6px;
+            padding: 10px 20px; color: white; font-size: 13px;
+            font-weight: 600; cursor: pointer; margin-top: 8px;
+            transition: background 0.2s;
+        }
+        .save-btn:hover { background: #2ea043; }
+        .save-btn:disabled { background: #21262d; color: #8b949e; cursor: not-allowed; }
+
+        .settings-toast {
+            display: none; position: fixed; bottom: 30px; right: 30px;
+            background: #238636; color: white; padding: 12px 20px;
+            border-radius: 8px; font-size: 13px; font-weight: 600;
+            z-index: 9999;
+        }
+        .settings-toast.error { background: #da3633; }
+
+        .restart-notice {
+            display: none; background: #d2992233; border: 1px solid #d29922;
+            border-radius: 8px; padding: 12px 16px; font-size: 13px;
+            color: #d29922; margin-top: 16px;
+        }
+
+        /* 낙상 트리거 버튼 */
+        .trigger-btn {
+            background: #da3633; border: none; border-radius: 6px;
+            padding: 10px 20px; color: white; font-size: 13px;
+            font-weight: 600; cursor: pointer; transition: background 0.2s;
+        }
+        .trigger-btn:hover { background: #f85149; }
     </style>
 </head>
 <body>
@@ -93,6 +176,14 @@
     ⚠️ FALL DETECTED — 보호자 SMS 발송 완료
 </div>
 
+<!-- 탭 메뉴 -->
+<div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('dashboard')">📊 대시보드</button>
+    <button class="tab-btn" onclick="switchTab('settings')">⚙️ 설정</button>
+</div>
+
+<!-- 대시보드 탭 -->
+<div id="tab-dashboard" class="tab-content active">
 <div class="main">
 
     <div class="status-row">
@@ -119,6 +210,11 @@
             <div class="val" id="lastPacketVal">-</div>
             <div class="sub">초 전</div>
         </div>
+    </div>
+
+    <!-- 낙상 트리거 버튼 -->
+    <div style="display:flex; justify-content:flex-end;">
+        <button class="trigger-btn" onclick="triggerFall()">⚠️ 낙상 감지 시뮬레이션</button>
     </div>
 
     <!-- 패킷 손실률 -->
@@ -213,7 +309,7 @@
         </div>
     </div>
 
-    <!-- 시스템 정보 -->
+    <!-- 서브캐리어 차트 + 시스템 정보 -->
     <div class="content-row">
         <div class="panel">
             <div class="panel-header"><h3>서브캐리어 수 실시간 차트</h3></div>
@@ -239,9 +335,82 @@
     </div>
 
 </div>
+</div>
+
+<!-- 설정 탭 -->
+<div id="tab-settings" class="tab-content">
+<div class="main">
+
+    <div class="settings-grid">
+
+        <!-- 알림 설정 -->
+        <div class="settings-section">
+            <h3>📱 알림 설정</h3>
+            <div class="form-group">
+                <label>보호자 수신 번호</label>
+                <input type="text" id="set-receiver" placeholder="01012345678">
+            </div>
+            <div class="form-group">
+                <label>SMS 발송</label>
+                <div class="toggle-wrap">
+                    <label class="toggle">
+                        <input type="checkbox" id="set-sms-enabled" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label" id="sms-toggle-label">활성화</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>낙상 감지 쿨다운 (초)</label>
+                <input type="number" id="set-cooldown" placeholder="30" min="5" max="300">
+            </div>
+            <button class="save-btn" onclick="saveNotificationSettings()">저장</button>
+        </div>
+
+        <!-- 네트워크 설정 -->
+        <div class="settings-section">
+            <h3>🌐 네트워크 설정</h3>
+            <div class="form-group">
+                <label>서버 모드</label>
+                <select id="set-mode">
+                    <option value="demo">시연 (핫스팟 로컬)</option>
+                    <option value="production">상용화 (공인 IP)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>시연용 서버 IP</label>
+                <input type="text" id="set-ip-demo" placeholder="192.168.137.1">
+            </div>
+            <div class="form-group">
+                <label>상용화용 서버 IP</label>
+                <input type="text" id="set-ip-production" placeholder="123.456.789.0">
+            </div>
+            <button class="save-btn" onclick="saveNetworkSettings()">저장</button>
+            <div class="restart-notice" id="restart-notice">
+                ⚠️ 네트워크 설정 변경은 서버 재시작 후 적용됩니다.
+            </div>
+        </div>
+
+    </div>
+
+</div>
+</div>
+
+<!-- 저장 완료 토스트 -->
+<div class="settings-toast" id="settingsToast"></div>
 
 <script>
     const socket = io();
+
+    // 탭 전환
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`tab-${tab}`).classList.add('active');
+        event.target.classList.add('active');
+
+        if (tab === 'settings') loadSettings();
+    }
 
     // 가동 시간
     let startTime = Date.now();
@@ -340,7 +509,6 @@
         lastPacketTime = Date.now();
         addPairRow(data);
 
-        // RSSI 차트
         rssiChart.data.labels.push(data.time);
         rssiChart.data.datasets[0].data.push(data.rx1_rssi);
         rssiChart.data.datasets[1].data.push(data.rx2_rssi);
@@ -350,7 +518,6 @@
         }
         rssiChart.update();
 
-        // PPS 차트
         ppsChart.data.labels.push(data.time);
         ppsChart.data.datasets[0].data.push(data.pps);
         if (ppsChart.data.labels.length > 20) {
@@ -360,7 +527,6 @@
         ppsChart.update();
         document.getElementById('ppsBadge').textContent = `${data.pps} pps`;
 
-        // 서브캐리어 차트
         subChart.data.labels.push(data.time);
         subChart.data.datasets[0].data.push(data.rx1_subs);
         subChart.data.datasets[1].data.push(data.rx2_subs);
@@ -389,8 +555,7 @@
             position: fixed; top: 60px; right: 20px;
             background: #21262d; border: 1px solid #ff4d4d;
             border-radius: 8px; padding: 12px 16px;
-            font-size: 13px; color: #ff4d4d;
-            z-index: 9999;
+            font-size: 13px; color: #ff4d4d; z-index: 9999;
         `;
         banner.textContent = `⚠️ Pi4 연결 끊김 — ${data.message}`;
         document.body.appendChild(banner);
@@ -398,6 +563,76 @@
     });
 
     socket.on('packet_stats', (data) => updatePacketStats(data));
+
+    // 낙상 트리거
+    function triggerFall() {
+        fetch('/trigger_fall', { method: 'POST' })
+            .then(r => r.json())
+            .then(() => showToast('낙상 감지 시뮬레이션 실행됨', false));
+    }
+
+    // 설정 로드
+    function loadSettings() {
+        fetch('/settings').then(r => r.json()).then(data => {
+            document.getElementById('set-receiver').value = data.receiver || '';
+            document.getElementById('set-sms-enabled').checked = data.sms_enabled === 'true';
+            document.getElementById('set-cooldown').value = data.cooldown_sec || '30';
+            document.getElementById('set-mode').value = data.mode || 'demo';
+            document.getElementById('set-ip-demo').value = data.server_ip_demo || '';
+            document.getElementById('set-ip-production').value = data.server_ip_production || '';
+            updateSmsToggleLabel();
+        });
+    }
+
+    function updateSmsToggleLabel() {
+        const enabled = document.getElementById('set-sms-enabled').checked;
+        document.getElementById('sms-toggle-label').textContent = enabled ? '활성화' : '비활성화';
+    }
+    document.getElementById('set-sms-enabled').addEventListener('change', updateSmsToggleLabel);
+
+    // 알림 설정 저장
+    function saveNotificationSettings() {
+        const payload = {
+            receiver: document.getElementById('set-receiver').value,
+            sms_enabled: document.getElementById('set-sms-enabled').checked,
+            cooldown_sec: document.getElementById('set-cooldown').value
+        };
+        saveSettings(payload);
+    }
+
+    // 네트워크 설정 저장
+    function saveNetworkSettings() {
+        const payload = {
+            mode: document.getElementById('set-mode').value,
+            server_ip_demo: document.getElementById('set-ip-demo').value,
+            server_ip_production: document.getElementById('set-ip-production').value
+        };
+        saveSettings(payload, true);
+    }
+
+    function saveSettings(payload, isNetwork = false) {
+        fetch('/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(r => r.json())
+        .then(data => {
+            showToast('설정이 저장되었습니다');
+            if (data.needs_restart || isNetwork) {
+                document.getElementById('restart-notice').style.display = 'block';
+            }
+        })
+        .catch(() => showToast('저장 실패', true));
+    }
+
+    function showToast(msg, isError = false) {
+        const toast = document.getElementById('settingsToast');
+        toast.textContent = isError ? `❌ ${msg}` : `✅ ${msg}`;
+        toast.className = `settings-toast${isError ? ' error' : ''}`;
+        toast.style.display = 'block';
+        setTimeout(() => toast.style.display = 'none', 3000);
+    }
 
     // UI 함수
     function updatePacketStats(stats) {

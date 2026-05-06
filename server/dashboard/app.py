@@ -1,9 +1,11 @@
 # server/dashboard/app.py
 
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO
 import datetime
 import threading
+import os
+from dotenv import load_dotenv, set_key
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -115,6 +117,52 @@ def health():
         "pair_count": state["pair_count"],
         "fall_count": state["fall_count"],
         "packet_stats": state["packet_stats"]
+    })
+
+ENV_PATH = os.path.join(os.path.dirname(__file__), "..", ".env")
+
+@app.route("/settings", methods=["GET"])
+def get_settings():
+    load_dotenv(ENV_PATH, override=True)
+    return jsonify({
+        "receiver": os.getenv("SOLAPI_RECEIVER", ""),
+        "sender": os.getenv("SOLAPI_SENDER", ""),
+        "sms_enabled": os.getenv("SMS_ENABLED", "true"),
+        "cooldown_sec": os.getenv("COOLDOWN_SEC", "30"),
+        "mode": os.getenv("MODE", "demo"),
+        "server_ip_demo": os.getenv("SERVER_IP_DEMO", ""),
+        "server_ip_production": os.getenv("SERVER_IP_PRODUCTION", "")
+    })
+
+@app.route("/settings", methods=["POST"])
+def update_settings():
+    data = request.get_json()
+
+    if "receiver" in data:
+        set_key(ENV_PATH, "SOLAPI_RECEIVER", data["receiver"])
+    if "sms_enabled" in data:
+        set_key(ENV_PATH, "SMS_ENABLED", str(data["sms_enabled"]).lower())
+    if "cooldown_sec" in data:
+        set_key(ENV_PATH, "COOLDOWN_SEC", str(data["cooldown_sec"]))
+    if "mode" in data:
+        set_key(ENV_PATH, "MODE", data["mode"])
+    if "server_ip_demo" in data:
+        set_key(ENV_PATH, "SERVER_IP_DEMO", data["server_ip_demo"])
+    if "server_ip_production" in data:
+        set_key(ENV_PATH, "SERVER_IP_PRODUCTION", data["server_ip_production"])
+
+    # 변경된 값 즉시 로드
+    load_dotenv(ENV_PATH, override=True)
+
+    # 재시작 필요 없는 값 즉시 반영
+    from notification.sms import reload_config
+    reload_config()
+
+    needs_restart = "mode" in data or "server_ip_demo" in data or "server_ip_production" in data
+
+    return jsonify({
+        "status": "ok",
+        "needs_restart": needs_restart
     })
 
 # -----------------------------------------------
