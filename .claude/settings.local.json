@@ -26,7 +26,27 @@
       "Bash(git commit -m ' *)",
       "Bash(python -c \"import numpy as np; d=np.load\\('model/pretrained/checkpoints/dataset_cache.npz'\\); X,y,s=d['X'],d['y'],d['subject']; print\\(f'X={X.shape} y={y.shape} subjects={sorted\\(set\\(s.tolist\\(\\)\\)\\)}'\\); [print\\(f'  class {i}: {\\(y==i\\).sum\\(\\)}'\\) for i in range\\(int\\(y.max\\(\\)\\)+1\\)]\")",
       "Bash(python model/pretrained/train.py --help)",
-      "Bash(git config *)"
+      "Bash(git config *)",
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Bash(Select-String -Pattern \"ai-workspace|wifi-csi\")",
+      "Bash(git ls-remote *)",
+      "Bash(where gh *)",
+      "Bash(gh --version)",
+      "Bash(cd /tmp/ai-ws-test && cat README.md && echo \"---PROJECTS---\" && ls -la projects/ && echo \"---COMMON---\" && ls -la common/)",
+      "Bash(cd /tmp/ai-ws-test && find . -path ./.git -prune -o -type f -print 2>&1 | head -50)",
+      "Read(//c/Project/LastProject/**)",
+      "Bash(git clone *)",
+      "Bash(git -C \"C:/Project/LastProject/ai-workspace\" status --short)",
+      "Bash(git -C \"C:/Project/LastProject/ai-workspace\" add README.md common/PROMPT_TEMPLATES.md projects/safesignal/STATE.md)",
+      "Bash(git -C C:/Project/LastProject/ai-workspace commit -m ' *)",
+      "Bash(git -C \"C:/Project/LastProject/ai-workspace\" push origin main)",
+      "Bash(git -C \"C:/Project/LastProject/wifi-csi-fall-detection\" check-ignore -v CLAUDE.local.md)",
+      "Bash(git -C \"C:/Project/LastProject/wifi-csi-fall-detection\" status --short)",
+      "Bash(git -C \"C:/Project/LastProject/ai-workspace\" add projects/safesignal/CLAUDE.local.template.md)",
+      "Bash(git -C \"C:/Project/LastProject/wifi-csi-fall-detection\" add .gitignore)",
+      "Bash(git -C \"C:/Project/LastProject/wifi-csi-fall-detection\" commit -m \"[설정] CLAUDE.local.md gitignore 등록\")",
+      "Bash(git -C \"C:/Project/LastProject/wifi-csi-fall-detection\" push origin feature/pretrained-model)"
     ],
     "additionalDirectories": [
       "c:\\Project\\LastProject\\wifi-csi-fall-detection\\data"
