@@ -53,11 +53,17 @@
       "PowerShell(Add-Type -AssemblyName System.IO.Compression.FileSystem; $zip = [System.IO.Compression.ZipFile]::OpenRead\\(\"$PWD\\\\esp_project.zip\"\\); foreach \\($folder in @\\('csi_rx1', 'csi_rx2', 'csi_tx'\\)\\) { \"=== esp_project/$folder ===\"; $zip.Entries | Where-Object { $_.FullName -match \"^esp_project/$folder/[^/]+/?$\" } | ForEach-Object { $_.FullName } | Sort-Object -Unique } ; $zip.Dispose\\(\\))",
       "Bash(rm -rf firmware/tx firmware/rx && ls firmware/)",
       "Bash(git rm *)",
-      "Bash(git reset *)"
+      "Bash(git reset *)",
+      "Bash(git -C C:/Project/LastProject/ai-workspace pull --ff-only)",
+      "Bash(git -C C:/Project/LastProject/ai-workspace status)",
+      "Bash(git -C C:/Project/LastProject/ai-workspace diff projects/safesignal/STATE.md)",
+      "Bash(git -C C:/Project/LastProject/ai-workspace add projects/safesignal/STATE.md)",
+      "Bash(git -C C:/Project/LastProject/ai-workspace push)"
     ],
     "additionalDirectories": [
       "c:\\Project\\LastProject\\wifi-csi-fall-detection\\data",
-      "C:\\Project\\LastProject\\wifi-csi-fall-detection\\firmware\\tx"
+      "C:\\Project\\LastProject\\wifi-csi-fall-detection\\firmware\\tx",
+      "C:\\Project\\LastProject\\ai-workspace\\projects\\safesignal"
     ]
   }
 }
