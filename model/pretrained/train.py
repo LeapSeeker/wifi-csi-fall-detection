@@ -348,6 +348,11 @@ def train(
             f"\nWARN: 모든 에폭에서 recall < BEST_RECALL_MIN({BEST_RECALL_MIN}). "
             f"best.pt가 저장되지 않았습니다. 임계값을 낮추거나 학습을 더 진행하세요."
         )
+    else:
+        print(
+            f"\nbest.pt 기준: recall={best_recall_for_best:.3f} >= {BEST_RECALL_MIN}, "
+            f"fall_f1={best_f1:.3f}"
+        )
 
 
 # ── main ────────────────────────────────────────────────────────────────────
