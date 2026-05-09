@@ -13,6 +13,18 @@
 - 전원: 포터블 배터리 (3대 모두)
 - 개발 환경: ESP-IDF (C)
 
+## 디렉토리 구조
+
+```
+firmware/
+├── csi_tx/      ← 비콘 송신 (ESP-IDF 프로젝트)
+├── csi_rx1/     ← CSI 수신 #1 (device_id=0x01)
+└── csi_rx2/     ← CSI 수신 #2 (device_id=0x02)
+```
+
+각 폴더는 독립된 ESP-IDF 프로젝트 (`CMakeLists.txt` + `main/` + `sdkconfig`).
+빌드: 해당 폴더에서 `idf.py build` / `idf.py flash`. `build/` 산출물은 `.gitignore` 처리됨.
+
 ## CSI 설정
 
 | 항목 | 값 |

@@ -13,8 +13,9 @@ wifi-csi-fall-detection/
 │   └── SHARED.md              ← 파트 공통 인터페이스 정의
 ├── firmware/
 │   ├── CLAUDE.md              ← ESP32-S3 펌웨어 작업 시 참조
-│   ├── tx/
-│   └── rx/
+│   ├── csi_tx/                ← 비콘 송신 (ESP-IDF 프로젝트)
+│   ├── csi_rx1/               ← CSI 수신 #1 (ESP-IDF 프로젝트)
+│   └── csi_rx2/               ← CSI 수신 #2 (ESP-IDF 프로젝트)
 ├── model/
 │   ├── CLAUDE.md              ← AI 모델 / 전처리 / 데이터 작업 시 참조
 │   ├── pretrained/

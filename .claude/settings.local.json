@@ -46,10 +46,18 @@
       "Bash(git -C \"C:/Project/LastProject/ai-workspace\" add projects/safesignal/CLAUDE.local.template.md)",
       "Bash(git -C \"C:/Project/LastProject/wifi-csi-fall-detection\" add .gitignore)",
       "Bash(git -C \"C:/Project/LastProject/wifi-csi-fall-detection\" commit -m \"[설정] CLAUDE.local.md gitignore 등록\")",
-      "Bash(git -C \"C:/Project/LastProject/wifi-csi-fall-detection\" push origin feature/pretrained-model)"
+      "Bash(git -C \"C:/Project/LastProject/wifi-csi-fall-detection\" push origin feature/pretrained-model)",
+      "PowerShell($entries = [System.IO.Compression.ZipFile]::OpenRead\\(\"$PWD\\\\esp_project.zip\"\\).Entries; $entries | Select-Object -First 50 FullName, Length | Format-Table -AutoSize; \"Total entries: $\\($entries.Count\\)\")",
+      "PowerShell(Add-Type -AssemblyName System.IO.Compression.FileSystem; $zip = [System.IO.Compression.ZipFile]::OpenRead\\(\"$PWD\\\\esp_project.zip\"\\); $entries = $zip.Entries; \"Total entries: $\\($entries.Count\\)\"; $entries | Select-Object -First 80 -ExpandProperty FullName; $zip.Dispose\\(\\))",
+      "PowerShell(Add-Type -AssemblyName System.IO.Compression.FileSystem; $zip = [System.IO.Compression.ZipFile]::OpenRead\\(\"$PWD\\\\esp_project.zip\"\\); $topLevel = $zip.Entries | ForEach-Object { \\($_.FullName -split '/'\\)[0..1] -join '/' } | Sort-Object -Unique; $topLevel; \"---\"; \"Total size MB: $\\([math]::Round\\(\\(\\($zip.Entries | Measure-Object -Property Length -Sum\\).Sum / 1MB\\), 1\\)\\)\"; $zip.Dispose\\(\\))",
+      "PowerShell(Add-Type -AssemblyName System.IO.Compression.FileSystem; $zip = [System.IO.Compression.ZipFile]::OpenRead\\(\"$PWD\\\\esp_project.zip\"\\); foreach \\($folder in @\\('csi_rx1', 'csi_rx2', 'csi_tx'\\)\\) { \"=== esp_project/$folder ===\"; $zip.Entries | Where-Object { $_.FullName -match \"^esp_project/$folder/[^/]+/?$\" } | ForEach-Object { $_.FullName } | Sort-Object -Unique } ; $zip.Dispose\\(\\))",
+      "Bash(rm -rf firmware/tx firmware/rx && ls firmware/)",
+      "Bash(git rm *)",
+      "Bash(git reset *)"
     ],
     "additionalDirectories": [
-      "c:\\Project\\LastProject\\wifi-csi-fall-detection\\data"
+      "c:\\Project\\LastProject\\wifi-csi-fall-detection\\data",
+      "C:\\Project\\LastProject\\wifi-csi-fall-detection\\firmware\\tx"
     ]
   }
 }
