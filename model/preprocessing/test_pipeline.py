@@ -116,6 +116,33 @@ def main(csv_path: Path) -> int:
         )
         print("  tail_window 검증 통과 (잔여 0 → 추가 없음)")
 
+    # pad_short 검증: n_packets < WINDOW_SIZE 인 더미 입력 4-케이스
+    short_n = WINDOW_SIZE - 6  # 294 (Alsaify A04 C02 trial과 동일 시나리오)
+    short = np.ones((short_n, 90), dtype=np.float32)
+
+    # 케이스 1: drop_last=True, pad_short=False → empty
+    w1 = sliding_windows(short, drop_last=True, pad_short=False)
+    assert w1.shape == (0, WINDOW_SIZE, 90), f"case1 shape mismatch: {w1.shape}"
+
+    # 케이스 2: drop_last=False, pad_short=False → 1개, 뒤 6행 0
+    w2 = sliding_windows(short, drop_last=False, pad_short=False)
+    assert w2.shape == (1, WINDOW_SIZE, 90), f"case2 shape mismatch: {w2.shape}"
+    assert np.all(w2[0, :short_n] == 1.0), "case2 앞 short_n 행이 1.0이 아님"
+    assert np.all(w2[0, short_n:] == 0.0), "case2 뒤 padding이 0.0이 아님"
+
+    # 케이스 3: drop_last=True, pad_short=True → 1개, 앞 294=1.0 / 뒤 6=0.0
+    w3 = sliding_windows(short, drop_last=True, pad_short=True)
+    assert w3.shape == (1, WINDOW_SIZE, 90), f"case3 shape mismatch: {w3.shape}"
+    assert np.all(w3[0, :short_n] == 1.0), "case3 앞 short_n 행이 1.0이 아님"
+    assert np.all(w3[0, short_n:] == 0.0), "case3 뒤 padding이 0.0이 아님"
+
+    # 케이스 4: drop_last=False, pad_short=True → 케이스 3과 동일
+    w4 = sliding_windows(short, drop_last=False, pad_short=True)
+    assert w4.shape == (1, WINDOW_SIZE, 90), f"case4 shape mismatch: {w4.shape}"
+    assert np.array_equal(w4, w3), "case4가 case3과 다름 (pad_short 우선 동작 실패)"
+
+    print("  pad_short 검증 통과")
+
     # ── 5) RPCA ────────────────────────────────────────────────────────────
     _hr("5) RPCA")
     win0 = windows[0]
