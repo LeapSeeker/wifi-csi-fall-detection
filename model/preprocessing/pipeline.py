@@ -145,11 +145,15 @@ def preprocess_directory(
     window_size: int = WINDOW_SIZE,
     stride: int | None = None,
     drop_last: bool = True,
+    tail_window: bool = False,
 ) -> Iterable[PreprocessResult]:
     """디렉터리 내 CSV 순차 처리 (윈도우 단계까지). 제너레이터.
 
     대용량(피험자 20 × 활동 12 × 트라이얼 20 = 4,800파일)을 메모리에 한번에
     올리지 않도록 yield. RPCA까지 돌리려면 preprocess_directory_full.
+
+    tail_window : True면 잔여 패킷이 있을 때 amplitude[-window_size:]
+    슬라이스 윈도우 1개를 추가.
     """
     root = Path(root)
     for csv_path in sorted(root.glob(pattern)):
@@ -159,6 +163,7 @@ def preprocess_directory(
                 window_size=window_size,
                 stride=stride,
                 drop_last=drop_last,
+                tail_window=tail_window,
             )
         except Exception as e:
             print(f"[skip] {csv_path}: {e}")
