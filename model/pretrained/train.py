@@ -57,6 +57,10 @@ DEFAULT_DATA_ROOT = _PROJECT_ROOT / "data" / "alsaify-raw"
 DEFAULT_CKPT_DIR = _PROJECT_ROOT / "model" / "pretrained" / "checkpoints"
 DEFAULT_CACHE_PATH = DEFAULT_CKPT_DIR / "dataset_cache_tail_ps.npz"
 
+# best.pt 저장 기준: fall_recall이 이 값 이상인 에폭 중에서 fall_f1이 가장 높은 에폭 선택.
+# recall 단독 기준이면 오탐(FAR) 큰 모델이 best가 될 수 있어 임계값 + F1 단독 비교 방식 사용.
+BEST_RECALL_MIN: float = 0.90
+
 
 # ── 캐시 빌드 ──────────────────────────────────────────────────────────────
 def _find_csvs(data_root: Path, envs: tuple[int, ...] = LOS_ENVS) -> list[Path]:
@@ -237,7 +241,8 @@ def train(
 
     ckpt_dir.mkdir(parents=True, exist_ok=True)
     history: list[EpochMetrics] = []
-    best_recall = -1.0
+    best_f1: float = -1.0
+    best_recall_for_best: float = -1.0
 
     for epoch in range(1, epochs + 1):
         model.train()
@@ -282,11 +287,21 @@ def train(
             "classes": list(CLASSES),
         }
         torch.save(ckpt, ckpt_dir / "last.pt")
-        if m.fall_recall > best_recall:
-            best_recall = m.fall_recall
-            torch.save(ckpt, ckpt_dir / "best.pt")
-            save_metrics(m, ckpt_dir / "best_metrics.json")
-            print(f"  ↑ best fall recall {m.fall_recall:.3f} → {ckpt_dir/'best.pt'}")
+        if m.fall_recall >= BEST_RECALL_MIN:
+            if m.fall_f1 > best_f1:
+                best_f1 = m.fall_f1
+                best_recall_for_best = m.fall_recall
+                torch.save(ckpt, ckpt_dir / "best.pt")
+                save_metrics(m, ckpt_dir / "best_metrics.json")
+                print(
+                    f"  ↑ best (recall={m.fall_recall:.3f} >= {BEST_RECALL_MIN}, "
+                    f"f1={m.fall_f1:.3f}) → best.pt"
+                )
+        else:
+            print(
+                f"  recall={m.fall_recall:.3f} < {BEST_RECALL_MIN} "
+                f"(임계값 미달, best.pt 갱신 안 함)"
+            )
 
     (ckpt_dir / "history.json").write_text(
         json.dumps([asdict(em) for em in history], indent=2)
@@ -295,6 +310,12 @@ def train(
     save_metrics(m, ckpt_dir / "final_metrics.json")
     print(f"\nhistory saved: {ckpt_dir/'history.json'}")
     print(format_report(m, header="\n[Final Validation Report]"))
+
+    if best_f1 < 0:
+        print(
+            f"\nWARN: 모든 에폭에서 recall < BEST_RECALL_MIN({BEST_RECALL_MIN}). "
+            f"best.pt가 저장되지 않았습니다. 임계값을 낮추거나 학습을 더 진행하세요."
+        )
 
 
 # ── main ────────────────────────────────────────────────────────────────────
