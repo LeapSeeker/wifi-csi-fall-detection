@@ -105,6 +105,9 @@ def status():
 @app.route("/trigger_fall", methods=["POST"])
 def trigger_fall():
     update_fall()
+    # main.py의 on_fall_detected 호출
+    from main import on_fall_detected
+    on_fall_detected()
     return jsonify({"status": "ok"})
 
 @app.route("/health")
@@ -118,6 +121,10 @@ def health():
         "fall_count": state["fall_count"],
         "packet_stats": state["packet_stats"]
     })
+
+@app.route("/guardian")
+def guardian():
+    return render_template("guardian.html")
 
 ENV_PATH = os.path.join(os.path.dirname(__file__), "..", ".env")
 
