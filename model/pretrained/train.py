@@ -37,7 +37,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 
-from model.preprocessing import parse_alsaify_filename, preprocess_files_full
+from model.preprocessing import WINDOW_SIZE, parse_alsaify_filename, preprocess_files_full
 from model.pretrained.metrics import compute_metrics, format_report, save_metrics
 from model.pretrained.model import CLASSES, CNNGRUAttention, count_parameters
 
@@ -60,6 +60,38 @@ DEFAULT_CACHE_PATH = DEFAULT_CKPT_DIR / "dataset_cache_tail_ps.npz"
 # best.pt 저장 기준: fall_recall이 이 값 이상인 에폭 중에서 fall_f1이 가장 높은 에폭 선택.
 # recall 단독 기준이면 오탐(FAR) 큰 모델이 best가 될 수 있어 임계값 + F1 단독 비교 방식 사용.
 BEST_RECALL_MIN: float = 0.90
+
+# 캐시 빌드에 사용할 슬라이딩 윈도우 / tail 보정 정책. 파일명에 그대로 박혀
+# 파라미터가 바뀌면 새 캐시가 자동 생성된다.
+CACHE_WINDOW_SIZE: int = WINDOW_SIZE  # 300 패킷 (3s @100Hz, D-004)
+CACHE_STRIDE: int | None = None       # None → window_size (=비중첩)
+CACHE_TAIL_WINDOW: bool = True
+CACHE_PAD_SHORT: bool = True
+
+
+def _make_cache_path(
+    cache_dir: Path,
+    envs: list[int],
+    window_size: int,
+    stride: int | None,
+    tail_window: bool,
+    pad_short: bool,
+) -> Path:
+    """전처리 파라미터를 파일명에 직접 표기한 캐시 경로 생성.
+
+    파라미터가 동일하면 기존 캐시를 자동 재사용, 하나라도 다르면 새 캐시가
+    생긴다. 형식: dataset_cache_e{envs}_w{ws}_s{stride}[_tail][_ps].npz.
+    stride=None이면 파일명에는 window_size와 동일한 값으로 표기한다.
+    """
+    env_str = "".join(str(e) for e in sorted(envs))
+    s = stride if stride is not None else window_size
+    flags: list[str] = []
+    if tail_window:
+        flags.append("tail")
+    if pad_short:
+        flags.append("ps")
+    flag_str = ("_" + "_".join(flags)) if flags else ""
+    return cache_dir / f"dataset_cache_e{env_str}_w{window_size}_s{s}{flag_str}.npz"
 
 
 # ── 캐시 빌드 ──────────────────────────────────────────────────────────────
@@ -329,9 +361,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--val_ratio", type=float, default=0.2)
     p.add_argument("--data_root", type=Path, default=DEFAULT_DATA_ROOT)
     p.add_argument("--cache_path", type=Path, default=None,
-                   help="기본: checkpoints/dataset_cache[_e<envs>]_tail_ps.npz "
-                        "(envs!=(1,2)이면 자동 접미사, _tail_ps는 "
-                        "tail_window=True + pad_short=True 캐시 표시)")
+                   help="기본: checkpoints/dataset_cache_e<envs>_w<ws>_s<stride>"
+                        "[_tail][_ps].npz. 전처리 파라미터(window/stride/"
+                        "tail_window/pad_short)가 그대로 파일명에 박혀 파라미터가 "
+                        "바뀌면 자동으로 새 캐시가 생성된다.")
     p.add_argument("--ckpt_dir", type=Path, default=DEFAULT_CKPT_DIR)
     p.add_argument("--envs", type=int, nargs="+", default=list(LOS_ENVS),
                    choices=[1, 2, 3],
@@ -359,8 +392,14 @@ def main() -> int:
 
     envs = tuple(sorted(set(args.envs)))
     if args.cache_path is None:
-        suffix = "" if envs == LOS_ENVS else "_e" + "".join(str(e) for e in envs)
-        args.cache_path = DEFAULT_CKPT_DIR / f"dataset_cache{suffix}_tail_ps.npz"
+        args.cache_path = _make_cache_path(
+            DEFAULT_CKPT_DIR,
+            list(envs),
+            window_size=CACHE_WINDOW_SIZE,
+            stride=CACHE_STRIDE,
+            tail_window=CACHE_TAIL_WINDOW,
+            pad_short=CACHE_PAD_SHORT,
+        )
 
     if args.rebuild_cache or not args.cache_path.exists():
         build_cache(args.data_root, args.cache_path, n_jobs=args.n_jobs, envs=envs)
