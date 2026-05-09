@@ -58,7 +58,15 @@
       "Bash(git -C C:/Project/LastProject/ai-workspace status)",
       "Bash(git -C C:/Project/LastProject/ai-workspace diff projects/safesignal/STATE.md)",
       "Bash(git -C C:/Project/LastProject/ai-workspace add projects/safesignal/STATE.md)",
-      "Bash(git -C C:/Project/LastProject/ai-workspace push)"
+      "Bash(git -C C:/Project/LastProject/ai-workspace push)",
+      "Bash(git -C C:/Project/LastProject/ai-workspace status --short)",
+      "Bash(git -C c:/Project/LastProject/wifi-csi-fall-detection status --short)",
+      "Bash(git -C c:/Project/LastProject/wifi-csi-fall-detection status)",
+      "Bash(git -C c:/Project/LastProject/wifi-csi-fall-detection diff .claude/settings.local.json)",
+      "Bash(git -C c:/Project/LastProject/wifi-csi-fall-detection log -n 5 --oneline)",
+      "Bash(git -C c:/Project/LastProject/wifi-csi-fall-detection add model/preprocessing/window.py model/preprocessing/pipeline.py model/preprocessing/test_pipeline.py model/pretrained/train.py)",
+      "Bash(git -C c:/Project/LastProject/wifi-csi-fall-detection commit -m ' *)",
+      "Bash(git -C c:/Project/LastProject/wifi-csi-fall-detection add .claude/settings.local.json)"
     ],
     "additionalDirectories": [
       "c:\\Project\\LastProject\\wifi-csi-fall-detection\\data",
