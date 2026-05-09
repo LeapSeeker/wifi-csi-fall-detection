@@ -55,7 +55,6 @@ LOS_ENVS: tuple[int, ...] = (1, 2)  # E3(NLOS) 제외
 
 DEFAULT_DATA_ROOT = _PROJECT_ROOT / "data" / "alsaify-raw"
 DEFAULT_CKPT_DIR = _PROJECT_ROOT / "model" / "pretrained" / "checkpoints"
-DEFAULT_CACHE_PATH = DEFAULT_CKPT_DIR / "dataset_cache_tail_ps.npz"
 
 # best.pt 저장 기준: fall_recall이 이 값 이상인 에폭 중에서 fall_f1이 가장 높은 에폭 선택.
 # recall 단독 기준이면 오탐(FAR) 큰 모델이 best가 될 수 있어 임계값 + F1 단독 비교 방식 사용.
@@ -127,6 +126,10 @@ def build_cache(
     cache_path: Path,
     n_jobs: int,
     envs: tuple[int, ...] = LOS_ENVS,
+    window_size: int = CACHE_WINDOW_SIZE,
+    stride: int | None = CACHE_STRIDE,
+    tail_window: bool = CACHE_TAIL_WINDOW,
+    pad_short: bool = CACHE_PAD_SHORT,
 ) -> None:
     csvs = _find_csvs(data_root, envs=envs)
     if not csvs:
@@ -139,11 +142,21 @@ def build_cache(
 
     # n_jobs 관례: -1 → cpu_count()-1 (None으로 변환)
     n_workers = None if n_jobs <= 0 else n_jobs
-    print(f"전처리 시작 (CSV 1개당 ~2초, n_workers={n_workers or 'auto'})... → {cache_path}")
+    s_disp = stride if stride is not None else window_size
+    print(
+        f"전처리 시작 (CSV 1개당 ~2초, n_workers={n_workers or 'auto'}, "
+        f"window={window_size} stride={s_disp} tail={tail_window} ps={pad_short})"
+        f"... → {cache_path}"
+    )
 
     t0 = time.time()
     results = preprocess_files_full(
-        csvs, n_workers=n_workers, tail_window=True, pad_short=True
+        csvs,
+        n_workers=n_workers,
+        window_size=window_size,
+        stride=stride,
+        tail_window=tail_window,
+        pad_short=pad_short,
     )
     print(f"전처리 완료 [{time.time() - t0:.1f}s]")
 
@@ -407,7 +420,16 @@ def main() -> int:
         )
 
     if args.rebuild_cache or not args.cache_path.exists():
-        build_cache(args.data_root, args.cache_path, n_jobs=args.n_jobs, envs=envs)
+        build_cache(
+            args.data_root,
+            args.cache_path,
+            n_jobs=args.n_jobs,
+            envs=envs,
+            window_size=CACHE_WINDOW_SIZE,
+            stride=CACHE_STRIDE,
+            tail_window=CACHE_TAIL_WINDOW,
+            pad_short=CACHE_PAD_SHORT,
+        )
     else:
         print(f"기존 캐시 사용: {args.cache_path}  (--rebuild_cache로 재빌드)")
 
