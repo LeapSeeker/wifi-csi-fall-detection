@@ -11,6 +11,7 @@ def sliding_windows(
     window_size: int = WINDOW_SIZE,
     stride: int | None = None,
     drop_last: bool = True,
+    tail_window: bool = False,
 ) -> np.ndarray:
     """시간 축을 따라 윈도우 분절.
 
@@ -23,6 +24,12 @@ def sliding_windows(
         없으면 window_size (=비중첩). 100이면 200패킷 중첩.
     drop_last : bool
         마지막 잔여 구간을 버림. False면 0 패딩.
+    tail_window : bool
+        True면 마지막 정방향 윈도우 이후 잔여 패킷이 있을 때
+        amplitude[-window_size:] 슬라이스를 윈도우 1개 추가한다.
+        잔여가 0이면 아무것도 추가하지 않는다. drop_last=False와
+        동시에 True면 tail_window가 우선하여 zero-padding 대신
+        overlap 윈도우를 추가한다. 기본값은 False.
 
     Returns
     -------
@@ -48,8 +55,12 @@ def sliding_windows(
     starts = np.arange(n_windows) * stride
     out = np.stack([amplitude[s : s + window_size] for s in starts], axis=0)
 
-    if not drop_last:
-        last_end = starts[-1] + window_size
+    last_end = starts[-1] + window_size
+    if tail_window:
+        if last_end < n_packets:
+            tail = amplitude[-window_size:]
+            out = np.concatenate([out, tail[None, ...]], axis=0)
+    elif not drop_last:
         if last_end < n_packets:
             tail = np.zeros((window_size, n_sc), dtype=amplitude.dtype)
             remain = n_packets - last_end

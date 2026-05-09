@@ -95,6 +95,27 @@ def main(csv_path: Path) -> int:
         return 1
     assert windows.shape[1:] == (WINDOW_SIZE, 90)
 
+    # tail_window 검증: 잔여 패킷이 있을 때 윈도우 1개가 더 추가되는지
+    windows_tail = sliding_windows(ds, tail_window=True)
+    print(f"  tail_window=True → n_windows={windows_tail.shape[0]} "
+          f"(False: {windows.shape[0]})")
+    if ds.shape[0] % WINDOW_SIZE != 0:
+        assert windows_tail.shape[0] == windows.shape[0] + 1, (
+            f"tail_window=True가 윈도우 1개를 추가해야 함. "
+            f"got False={windows.shape[0]} True={windows_tail.shape[0]}"
+        )
+        # 추가된 마지막 윈도우는 amplitude[-WINDOW_SIZE:]와 일치해야 함
+        assert np.array_equal(windows_tail[-1], ds[-WINDOW_SIZE:]), (
+            "tail_window 추가 윈도우가 amplitude[-W:]와 다름"
+        )
+        print("  tail_window 검증 통과")
+    else:
+        assert windows_tail.shape[0] == windows.shape[0], (
+            f"잔여 0인데 윈도우 추가됨. False={windows.shape[0]} "
+            f"True={windows_tail.shape[0]}"
+        )
+        print("  tail_window 검증 통과 (잔여 0 → 추가 없음)")
+
     # ── 5) RPCA ────────────────────────────────────────────────────────────
     _hr("5) RPCA")
     win0 = windows[0]

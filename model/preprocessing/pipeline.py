@@ -46,8 +46,13 @@ def preprocess_file(
     window_size: int = WINDOW_SIZE,
     stride: int | None = None,
     drop_last: bool = True,
+    tail_window: bool = False,
 ) -> PreprocessResult:
-    """CSV → 윈도우 텐서. RPCA 이전 단계까지."""
+    """CSV → 윈도우 텐서. RPCA 이전 단계까지.
+
+    tail_window : True면 슬라이딩 후 잔여 패킷이 있을 때
+    amplitude[-window_size:] 슬라이스 윈도우 1개를 추가한다.
+    """
     path = Path(path)
     meta = parse_alsaify_filename(path)
 
@@ -59,6 +64,7 @@ def preprocess_file(
         window_size=window_size,
         stride=stride,
         drop_last=drop_last,
+        tail_window=tail_window,
     )
     return PreprocessResult(windows=windows, meta=meta)
 
@@ -111,12 +117,21 @@ def preprocess_file_full(
     window_size: int = WINDOW_SIZE,
     stride: int | None = None,
     drop_last: bool = True,
+    tail_window: bool = False,
     rpca_max_iter: int = DEFAULT_MAX_ITER,
     rpca_tol: float | None = None,
 ) -> ModelInputResult:
-    """단일 CSV → 모델 입력 텐서 (n_windows, 1, 28, 20)."""
+    """단일 CSV → 모델 입력 텐서 (n_windows, 1, 28, 20).
+
+    tail_window : True면 슬라이딩 후 잔여 패킷이 있을 때
+    amplitude[-window_size:] 슬라이스 윈도우 1개를 추가한다.
+    """
     pre = preprocess_file(
-        path, window_size=window_size, stride=stride, drop_last=drop_last
+        path,
+        window_size=window_size,
+        stride=stride,
+        drop_last=drop_last,
+        tail_window=tail_window,
     )
     inputs = windows_to_model_input(
         pre.windows, rpca_max_iter=rpca_max_iter, rpca_tol=rpca_tol
@@ -152,7 +167,7 @@ def preprocess_directory(
 # ─── 병렬 풀 파이프라인 (RPCA 포함) ────────────────────────────────────────
 
 def _worker_full(
-    args: tuple[str, int, int | None, bool, int, float | None],
+    args: tuple[str, int, int | None, bool, bool, int, float | None],
 ) -> tuple[str, ModelInputResult | None, str | None]:
     """ProcessPoolExecutor 워커. 모듈 최상위에 있어야 picklable.
 
@@ -160,13 +175,14 @@ def _worker_full(
     -------
     (path, result | None, error_msg | None)
     """
-    path, window_size, stride, drop_last, rpca_max_iter, rpca_tol = args
+    path, window_size, stride, drop_last, tail_window, rpca_max_iter, rpca_tol = args
     try:
         res = preprocess_file_full(
             path,
             window_size=window_size,
             stride=stride,
             drop_last=drop_last,
+            tail_window=tail_window,
             rpca_max_iter=rpca_max_iter,
             rpca_tol=rpca_tol,
         )
@@ -181,6 +197,7 @@ def preprocess_files_full(
     window_size: int = WINDOW_SIZE,
     stride: int | None = None,
     drop_last: bool = True,
+    tail_window: bool = False,
     rpca_max_iter: int = DEFAULT_MAX_ITER,
     rpca_tol: float | None = None,
     show_progress: bool = True,
@@ -197,8 +214,9 @@ def preprocess_files_full(
     n_workers : int | None
         워커 프로세스 수. None → ``cpu_count()-1`` (최소 1).
         ≤1이면 단일 프로세스 (디버깅 / 작은 작업).
-    window_size, stride, drop_last
-        sliding_windows 파라미터.
+    window_size, stride, drop_last, tail_window
+        sliding_windows 파라미터. tail_window=True면 잔여 패킷이
+        있을 때 amplitude[-window_size:] 슬라이스 윈도우 1개를 추가.
     rpca_max_iter, rpca_tol
         RPCA 파라미터.
     show_progress : bool
@@ -223,7 +241,7 @@ def preprocess_files_full(
         n_workers = max(1, mp.cpu_count() - 1)
 
     args_list = [
-        (str(p), window_size, stride, drop_last, rpca_max_iter, rpca_tol)
+        (str(p), window_size, stride, drop_last, tail_window, rpca_max_iter, rpca_tol)
         for p in paths
     ]
     results: list[ModelInputResult] = []
@@ -269,6 +287,7 @@ def preprocess_directory_full(
     window_size: int = WINDOW_SIZE,
     stride: int | None = None,
     drop_last: bool = True,
+    tail_window: bool = False,
     rpca_max_iter: int = DEFAULT_MAX_ITER,
     rpca_tol: float | None = None,
     show_progress: bool = True,
@@ -276,6 +295,8 @@ def preprocess_directory_full(
     """``root``를 ``pattern``으로 글로브 후 ``preprocess_files_full`` 호출.
 
     필터링이 더 필요하면 호출자가 직접 글로브 후 ``preprocess_files_full``.
+    tail_window : True면 잔여 패킷이 있을 때 amplitude[-window_size:]
+    슬라이스 윈도우 1개를 추가.
     """
     paths = sorted(Path(root).glob(pattern))
     return preprocess_files_full(
@@ -284,6 +305,7 @@ def preprocess_directory_full(
         window_size=window_size,
         stride=stride,
         drop_last=drop_last,
+        tail_window=tail_window,
         rpca_max_iter=rpca_max_iter,
         rpca_tol=rpca_tol,
         show_progress=show_progress,

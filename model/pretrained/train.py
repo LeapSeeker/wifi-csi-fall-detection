@@ -55,7 +55,7 @@ LOS_ENVS: tuple[int, ...] = (1, 2)  # E3(NLOS) 제외
 
 DEFAULT_DATA_ROOT = _PROJECT_ROOT / "data" / "alsaify-raw"
 DEFAULT_CKPT_DIR = _PROJECT_ROOT / "model" / "pretrained" / "checkpoints"
-DEFAULT_CACHE_PATH = DEFAULT_CKPT_DIR / "dataset_cache.npz"
+DEFAULT_CACHE_PATH = DEFAULT_CKPT_DIR / "dataset_cache_tail.npz"
 
 
 # ── 캐시 빌드 ──────────────────────────────────────────────────────────────
@@ -106,7 +106,7 @@ def build_cache(
     print(f"전처리 시작 (CSV 1개당 ~2초, n_workers={n_workers or 'auto'})... → {cache_path}")
 
     t0 = time.time()
-    results = preprocess_files_full(csvs, n_workers=n_workers)
+    results = preprocess_files_full(csvs, n_workers=n_workers, tail_window=True)
     print(f"전처리 완료 [{time.time() - t0:.1f}s]")
 
     Xs, ys, subs = [], [], []
@@ -306,8 +306,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--val_ratio", type=float, default=0.2)
     p.add_argument("--data_root", type=Path, default=DEFAULT_DATA_ROOT)
     p.add_argument("--cache_path", type=Path, default=None,
-                   help="기본: checkpoints/dataset_cache[_e<envs>].npz "
-                        "(envs!=(1,2)이면 자동 접미사)")
+                   help="기본: checkpoints/dataset_cache[_e<envs>]_tail.npz "
+                        "(envs!=(1,2)이면 자동 접미사, _tail은 tail_window=True 캐시 표시)")
     p.add_argument("--ckpt_dir", type=Path, default=DEFAULT_CKPT_DIR)
     p.add_argument("--envs", type=int, nargs="+", default=list(LOS_ENVS),
                    choices=[1, 2, 3],
@@ -336,7 +336,7 @@ def main() -> int:
     envs = tuple(sorted(set(args.envs)))
     if args.cache_path is None:
         suffix = "" if envs == LOS_ENVS else "_e" + "".join(str(e) for e in envs)
-        args.cache_path = DEFAULT_CKPT_DIR / f"dataset_cache{suffix}.npz"
+        args.cache_path = DEFAULT_CKPT_DIR / f"dataset_cache{suffix}_tail.npz"
 
     if args.rebuild_cache or not args.cache_path.exists():
         build_cache(args.data_root, args.cache_path, n_jobs=args.n_jobs, envs=envs)
