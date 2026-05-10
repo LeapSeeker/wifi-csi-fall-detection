@@ -32,5 +32,8 @@ WS_PORT = 8765
 PAIRING_TIMEOUT = 0.5
 BUFFER_MAX_SIZE = 50
 
-# 서브캐리어 수
-SUBCARRIER_COUNT = 64
+# 서브캐리어 수 (D-007: Rx 단일 패킷 LLTF 52)
+SUBCARRIER_COUNT = 52
+
+# Rx1+Rx2 concat 입력 서브캐리어 수 (D-013: 추론 입력 (300, 104))
+SUBCARRIER_COUNT_CONCAT = 104

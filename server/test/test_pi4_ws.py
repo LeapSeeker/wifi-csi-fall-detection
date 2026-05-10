@@ -20,8 +20,20 @@ async def run():
             async for message in ws:
                 print(f"[PI4 TEST] 서버로부터 수신: {message}")
 
-                if message == "FALL_DETECTED":
-                    print("[PI4 TEST] ⚠️ 낙상 감지 알림 수신!")
+                try:
+                    data = json.loads(message)
+                except json.JSONDecodeError:
+                    print("[PI4 TEST] JSON 파싱 실패 - 메시지 무시")
+                    continue
+
+                if data.get("event") == "fall_detected" and data.get("label") == "fall":
+                    confidence = data.get("confidence", 0.0)
+                    seq_num = data.get("seq_num", 0)
+                    timestamp_us = data.get("timestamp_us", 0)
+                    print(
+                        f"[PI4 TEST] ⚠️ 낙상 감지 알림 수신! "
+                        f"confidence={confidence:.3f} seq={seq_num} ts={timestamp_us}"
+                    )
                     print("[PI4 TEST] → 음성 안내 재생 (시뮬레이션)")
                     print("[PI4 TEST] → 경보 취소 버튼 대기 중...")
 
