@@ -33,3 +33,7 @@ CLAUDE.local.md
 # 사전학습 데이터셋 (폴더는 보존, 내용물만 제외)
 data/alsaify-raw/*
 !data/alsaify-raw/.gitkeep
+
+# 샘플 데이터 (테스트용 zip 등, 폴더는 보존)
+data/sample-data/*
+!data/sample-data/.gitkeep

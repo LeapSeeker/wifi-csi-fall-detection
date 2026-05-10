@@ -14,7 +14,7 @@ train.py 사용 패턴:
     val_loss, val_acc, y_true, y_pred = evaluate(...)
     m = compute_metrics(y_true, y_pred, classes=list(CLASSES))
     print(format_report(m))
-    if m.fall_recall > best_recall: ...  # checkpoint
+    if m.fall_recall >= BEST_RECALL_MIN and m.fall_f1 > best_f1: ...  # checkpoint
     save_metrics(m, ckpt_dir / "final_metrics.json")
 """
 from __future__ import annotations

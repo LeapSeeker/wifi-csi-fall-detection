@@ -31,7 +31,7 @@ python -m model.pretrained.train --epochs 30 --batch_size 32 --num_workers 0
 
 학습 결과물 위치
 model/pretrained/checkpoints/
-├── best.pt           # fall recall 기준 최고 모델
+├── best.pt           # recall 임계값 통과 epoch 중 fall F1 최고 모델
 ├── last.pt           # 마지막 epoch 모델
 ├── best_metrics.json
 ├── final_metrics.json
