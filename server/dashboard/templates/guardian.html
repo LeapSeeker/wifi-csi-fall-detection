@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0d1117">
+    <title>낙상 감지 알림</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, 'Segoe UI', sans-serif;
+            background: #0d1117; color: #e6edf3;
+            min-height: 100vh; max-width: 480px; margin: 0 auto;
+        }
+
+        /* 헤더 */
+        header {
+            background: #161b22; padding: 20px 20px 16px;
+            border-bottom: 1px solid #21262d;
+            position: sticky; top: 0; z-index: 100;
+        }
+        header h1 { font-size: 20px; font-weight: 700; color: #e6edf3; }
+        header p { font-size: 13px; color: #8b949e; margin-top: 4px; }
+        .status-bar {
+            display: flex; align-items: center; gap: 8px;
+            margin-top: 12px;
+        }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #ff4d4d; }
+        .status-dot.on { background: #3fb950; box-shadow: 0 0 6px #3fb950; animation: blink 2s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .status-text { font-size: 13px; color: #8b949e; }
+        .status-text span { color: #e6edf3; font-weight: 600; }
+
+        /* 낙상 알림 오버레이 */
+        .fall-overlay {
+            display: none; position: fixed; inset: 0;
+            background: #ff000099; z-index: 999;
+            flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 40px;
+            animation: flashRed 0.5s infinite alternate;
+        }
+        .fall-overlay.active { display: flex; }
+        @keyframes flashRed { from { background: #ff000099; } to { background: #ff000066; } }
+        .fall-overlay .icon { font-size: 80px; margin-bottom: 20px; }
+        .fall-overlay h2 { font-size: 32px; font-weight: 800; color: white; margin-bottom: 8px; }
+        .fall-overlay p { font-size: 16px; color: #ffcccc; margin-bottom: 40px; }
+        .fall-overlay .time { font-size: 14px; color: #ffaaaa; margin-bottom: 40px; }
+        .confirm-btn {
+            background: white; color: #ff4d4d; border: none;
+            border-radius: 16px; padding: 18px 48px;
+            font-size: 18px; font-weight: 700; cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        /* 메인 */
+        .main { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+        /* 상태 카드 */
+        .status-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .status-card {
+            background: #161b22; border: 1px solid #21262d;
+            border-radius: 14px; padding: 16px;
+        }
+        .status-card .label { font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .status-card .value { font-size: 24px; font-weight: 700; color: #e6edf3; }
+        .status-card .value.red { color: #ff4d4d; }
+        .status-card .value.green { color: #3fb950; }
+        .status-card .sub { font-size: 11px; color: #8b949e; margin-top: 4px; }
+
+        /* 섹션 */
+        .section {
+            background: #161b22; border: 1px solid #21262d;
+            border-radius: 14px; overflow: hidden;
+        }
+        .section-header {
+            padding: 16px 20px; border-bottom: 1px solid #21262d;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .section-header h3 { font-size: 15px; font-weight: 600; }
+        .section-header .badge {
+            font-size: 11px; background: #21262d; color: #8b949e;
+            padding: 3px 10px; border-radius: 20px;
+        }
+        .section-body { padding: 16px 20px; }
+
+        /* 낙상 이력 */
+        .fall-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 0; border-bottom: 1px solid #21262d;
+        }
+        .fall-item:last-child { border-bottom: none; }
+        .fall-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            background: #ff4d4d22; display: flex; align-items: center;
+            justify-content: center; font-size: 20px; flex-shrink: 0;
+        }
+        .fall-info .fall-time { font-size: 14px; font-weight: 600; color: #e6edf3; }
+        .fall-info .fall-desc { font-size: 12px; color: #8b949e; margin-top: 2px; }
+
+        .empty-state {
+            text-align: center; color: #8b949e; font-size: 14px;
+            padding: 30px 0;
+        }
+
+        /* 알림 테스트 버튼 */
+        .test-btn {
+            width: 100%; background: #21262d; border: 1px solid #30363d;
+            border-radius: 12px; padding: 14px; color: #8b949e;
+            font-size: 14px; cursor: pointer; text-align: center;
+        }
+        .test-btn:active { background: #30363d; }
+
+        /* 연결 상태 배너 */
+        .offline-banner {
+            display: none; background: #da363322; border: 1px solid #da3633;
+            border-radius: 10px; padding: 12px 16px;
+            font-size: 13px; color: #f85149; text-align: center;
+        }
+        .offline-banner.show { display: block; }
+    </style>
+</head>
+<body>
+
+<!-- 낙상 감지 오버레이 -->
+<div class="fall-overlay" id="fallOverlay">
+    <div class="icon">🚨</div>
+    <h2>낙상 감지!</h2>
+    <p>어르신의 낙상이 감지되었습니다.<br>즉시 확인해주세요.</p>
+    <div class="time" id="overlayTime"></div>
+    <button class="confirm-btn" onclick="confirmFall()">확인했습니다</button>
+</div>
+
+<header>
+    <h1>🛡️ 낙상 감지 알림</h1>
+    <p>실시간 모니터링 중</p>
+    <div class="status-bar">
+        <div class="status-dot" id="connDot"></div>
+        <div class="status-text">서버 연결: <span id="connText">연결 중...</span></div>
+    </div>
+</header>
+
+<div class="main">
+
+    <!-- 오프라인 배너 -->
+    <div class="offline-banner" id="offlineBanner">
+        ⚠️ 서버와 연결이 끊겼습니다. 재연결 중...
+    </div>
+
+    <!-- 상태 카드 -->
+    <div class="status-cards">
+        <div class="status-card">
+            <div class="label">낙상 감지</div>
+            <div class="value red" id="g-fallCount">0</div>
+            <div class="sub" id="g-lastFall">감지 이력 없음</div>
+        </div>
+        <div class="status-card">
+            <div class="label">Pi4 상태</div>
+            <div class="value" id="g-rpi4Status" style="font-size:14px; margin-top:4px;">확인 중...</div>
+            <div class="sub" id="g-rpi4Sub">음성 알림 장치</div>
+        </div>
+    </div>
+
+    <!-- 낙상 감지 이력 -->
+    <div class="section">
+        <div class="section-header">
+            <h3>📋 낙상 감지 이력</h3>
+            <span class="badge" id="g-fallBadge">0건</span>
+        </div>
+        <div class="section-body" id="g-fallList">
+            <div class="empty-state">낙상 감지 이력 없음</div>
+        </div>
+    </div>
+
+    <!-- 시스템 상태 -->
+    <div class="section">
+        <div class="section-header">
+            <h3>📡 시스템 상태</h3>
+        </div>
+        <div class="section-body">
+            <div class="fall-item">
+                <div class="fall-icon">📶</div>
+                <div class="fall-info">
+                    <div class="fall-time">ESP32 센서</div>
+                    <div class="fall-desc" id="g-espStatus">패킷 수신 대기 중...</div>
+                </div>
+            </div>
+            <div class="fall-item">
+                <div class="fall-icon">🔊</div>
+                <div class="fall-info">
+                    <div class="fall-time">Pi4 음성 장치</div>
+                    <div class="fall-desc" id="g-pi4Status">연결 대기 중...</div>
+                </div>
+            </div>
+            <div class="fall-item">
+                <div class="fall-icon">💬</div>
+                <div class="fall-info">
+                    <div class="fall-time">SMS 알림</div>
+                    <div class="fall-desc" id="g-smsStatus">설정 확인 중...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 알림 테스트 -->
+    <button class="test-btn" onclick="testAlert()">🔔 알림 테스트</button>
+
+</div>
+
+<script>
+    const socket = io();
+    let fallCount = 0;
+    let fallHistory = [];
+
+    // 연결 상태
+    socket.on('connect', () => {
+        document.getElementById('connDot').className = 'status-dot on';
+        document.getElementById('connText').textContent = '연결됨';
+        document.getElementById('offlineBanner').classList.remove('show');
+        loadInitialStatus();
+    });
+
+    socket.on('disconnect', () => {
+        document.getElementById('connDot').className = 'status-dot';
+        document.getElementById('connText').textContent = '연결 끊김';
+        document.getElementById('offlineBanner').classList.add('show');
+    });
+
+    // 초기 상태 로드
+    function loadInitialStatus() {
+        fetch('/status').then(r => r.json()).then(data => {
+            fallCount = data.fall_count;
+            document.getElementById('g-fallCount').textContent = fallCount;
+            if (data.last_fall_time) {
+                document.getElementById('g-lastFall').textContent = `마지막: ${data.last_fall_time}`;
+            }
+            updateRpi4Status(data.rpi4_connected);
+            updateSmsStatus();
+        });
+    }
+
+    // 낙상 감지 이벤트
+    socket.on('fall_detected', (data) => {
+        fallCount = data.fall_count;
+        document.getElementById('g-fallCount').textContent = fallCount;
+        document.getElementById('g-lastFall').textContent = `마지막: ${data.time}`;
+        document.getElementById('g-fallBadge').textContent = `${fallCount}건`;
+
+        // 오버레이 표시
+        document.getElementById('overlayTime').textContent = `감지 시각: ${data.time}`;
+        document.getElementById('fallOverlay').classList.add('active');
+
+        // 진동 알림
+        if (navigator.vibrate) {
+            navigator.vibrate([500, 200, 500, 200, 500]);
+        }
+
+        // 소리 알림
+        playAlertSound();
+
+        // 이력 추가
+        addFallHistory(data.time, fallCount);
+    });
+
+    // RPi4 상태
+    socket.on('rpi4_status', (data) => updateRpi4Status(data.connected));
+
+    // 패킷 수신 상태
+    socket.on('pair_update', (data) => {
+        document.getElementById('g-espStatus').textContent =
+            `정상 수신 중 — 마지막: ${data.time}`;
+        document.getElementById('g-espStatus').style.color = '#3fb950';
+    });
+
+    // 낙상 확인 버튼
+    function confirmFall() {
+        document.getElementById('fallOverlay').classList.remove('active');
+        if (navigator.vibrate) navigator.vibrate(0);
+    }
+
+    // 알림 테스트
+    function testAlert() {
+        fetch('/trigger_fall', { method: 'POST' });
+    }
+
+    // 낙상 이력 추가
+    function addFallHistory(time, count) {
+        const list = document.getElementById('g-fallList');
+        if (list.querySelector('.empty-state')) list.innerHTML = '';
+
+        const item = document.createElement('div');
+        item.className = 'fall-item';
+        item.innerHTML = `
+            <div class="fall-icon">🚨</div>
+            <div class="fall-info">
+                <div class="fall-time">낙상 감지 #${count}</div>
+                <div class="fall-desc">${time} — Pi4 알림 + SMS 발송 완료</div>
+            </div>
+        `;
+        list.insertBefore(item, list.firstChild);
+    }
+
+    // RPi4 상태 업데이트
+    function updateRpi4Status(connected) {
+        const status = document.getElementById('g-rpi4Status');
+        const sub = document.getElementById('g-rpi4Sub');
+        const pi4 = document.getElementById('g-pi4Status');
+        if (connected) {
+            status.textContent = '✅ 연결됨';
+            status.style.color = '#3fb950';
+            sub.textContent = '음성 알림 활성';
+            pi4.textContent = '연결됨 — 음성 알림 준비 완료';
+            pi4.style.color = '#3fb950';
+        } else {
+            status.textContent = '❌ 미연결';
+            status.style.color = '#ff4d4d';
+            sub.textContent = '음성 알림 비활성';
+            pi4.textContent = '미연결 — 음성 알림 불가';
+            pi4.style.color = '#ff4d4d';
+        }
+    }
+
+    // SMS 상태 확인
+    function updateSmsStatus() {
+        fetch('/settings').then(r => r.json()).then(data => {
+            const smsEl = document.getElementById('g-smsStatus');
+            if (data.sms_enabled === 'true' && data.receiver) {
+                smsEl.textContent = `활성화 — ${data.receiver}`;
+                smsEl.style.color = '#3fb950';
+            } else {
+                smsEl.textContent = '비활성화 또는 번호 미설정';
+                smsEl.style.color = '#ff4d4d';
+            }
+        });
+    }
+
+    // 알림 소리
+    function playAlertSound() {
+        try {
+            const ctx = new AudioContext();
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+            oscillator.frequency.setValueAtTime(440, ctx.currentTime + 0.3);
+            oscillator.frequency.setValueAtTime(880, ctx.currentTime + 0.6);
+            gainNode.gain.setValueAtTime(0.5, ctx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.9);
+            oscillator.start(ctx.currentTime);
+            oscillator.stop(ctx.currentTime + 0.9);
+        } catch(e) {}
+    }
+</script>
+</body>
+</html>
