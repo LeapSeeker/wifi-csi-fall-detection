@@ -37,6 +37,7 @@
 #define PACKET_MAGIC        0xAB
 #define SUBCARRIER_VALID    52
 #define CSI_QUEUE_SIZE      500
+#define TX_MAC              {0x1c, 0xdb, 0xd4, 0x40, 0x4f, 0x90}
 
 /* ── 기본값 ──────────────────────────────────────────── */
 #define DEFAULT_WIFI_SSID    "coin"
@@ -54,6 +55,7 @@ static char g_wifi_pass[64]  = DEFAULT_WIFI_PASS;
 static char g_server_ip[16]  = DEFAULT_SERVER_IP;
 static int  g_server_port    = DEFAULT_SERVER_PORT;
 static int  g_wifi_channel   = DEFAULT_WIFI_CHANNEL;
+static const uint8_t TX_MAC_ADDR[6] = TX_MAC;
 
 /* ── 유효 서브캐리어 인덱스 (LLTF, Null 제거) ────────── */
 static const int VALID_IDX[SUBCARRIER_VALID] = {
@@ -196,6 +198,10 @@ static void serial_cmd_task(void *pvParameters)
 static void wifi_csi_cb(void *ctx, wifi_csi_info_t *info)
 {
     if (!info || !info->buf) return;
+    if (memcmp(info->mac, TX_MAC_ADDR, sizeof(TX_MAC_ADDR)) != 0) {
+        ESP_LOGD(TAG, "CSI filtered: non-TX MAC");
+        return;
+    }
 
     csi_packet_t pkt;
     pkt.magic     = PACKET_MAGIC;

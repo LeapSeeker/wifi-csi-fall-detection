@@ -130,7 +130,8 @@ def _run_session(recorder: SessionRecorder, activity_code: str, env: int, subjec
         ans = input("저장하시겠습니까? (Y/N): ").strip().lower()
         if ans in ("y", "yes"):
             path = recorder.save_session(buf, activity_code, env, subject)
-            print(f"  저장됨: {path}")
+            if path is not None:
+                print(f"  저장됨: {path}")
             break
         if ans in ("n", "no"):
             print("  폐기됨.")

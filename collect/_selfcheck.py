@@ -155,6 +155,10 @@ def test_trial_and_count() -> None:
         assert list(df.columns) == CSV_COLUMNS, "CSV column order mismatch"
         assert len(CSV_COLUMNS) == 107, f"expected 107 columns, got {len(CSV_COLUMNS)}"
         assert "rssi_rx1" not in df.columns and "rssi_rx2" not in df.columns
+
+        empty_path = rec.save_session([], "WALK", env=1, subject=1)
+        assert empty_path is None
+        assert rec.count_sessions("WALK", 1, 1) == 2
     print("[OK] trial increment + count_sessions + CSV columns (107, no rssi)")
 
 

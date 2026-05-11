@@ -126,7 +126,11 @@ class SessionRecorder:
         activity_code: str,
         env: int,
         subject: int,
-    ) -> Path:
+    ) -> Optional[Path]:
+        if not buf:
+            print("Session empty, file not saved.")
+            return None
+
         self._raw_dir.mkdir(parents=True, exist_ok=True)
         trial = self._next_trial(activity_code, env, subject)
         path = self._make_filename(activity_code, env, subject, trial)

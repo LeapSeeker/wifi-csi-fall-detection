@@ -43,6 +43,7 @@
 #define DEFAULT_TARGET_PORT  5000
 #define DEFAULT_WIFI_CHANNEL 6
 #define DEFAULT_HZ           100                // 기본 100Hz
+#define DEFAULT_INTERVAL_MS  (1000 / DEFAULT_HZ)
 /* ──────────────────────────────────────────────────── */
 
 static const char *TAG = "CSI_TX1";
@@ -53,8 +54,8 @@ static char g_wifi_pass[64]   = DEFAULT_WIFI_PASS;
 static char g_target_ip[16]   = DEFAULT_TARGET_IP;
 static int  g_target_port     = DEFAULT_TARGET_PORT;
 static int  g_wifi_channel    = DEFAULT_WIFI_CHANNEL;
-// 주기를 제어할 변수 추가 (기본 10ms = 100Hz)
-static int  g_send_interval_ms = 1000 / DEFAULT_HZ; 
+// 주기를 제어할 변수 (부팅 기본 10ms = 100Hz, NVS override 비활성화)
+static int  g_send_interval_ms = DEFAULT_INTERVAL_MS;
 
 /* ── TX 전송 페이로드 구조체 (8 bytes) ───────────────── */
 typedef struct {
@@ -83,7 +84,6 @@ static void nvs_save_config(void)
     nvs_set_str(h, "ip",      g_target_ip);
     nvs_set_i32(h, "port",    g_target_port);
     nvs_set_i32(h, "channel", g_wifi_channel);
-    nvs_set_i32(h, "interval", g_send_interval_ms); // 변경된 주기 저장 추가
     nvs_commit(h);
     nvs_close(h);
     ESP_LOGI(TAG, "설정 저장 완료");
@@ -102,7 +102,6 @@ static void nvs_load_config(void)
     len = sizeof(g_target_ip);  nvs_get_str(h, "ip",   g_target_ip, &len);
     nvs_get_i32(h, "port",    (int32_t*)&g_target_port);
     nvs_get_i32(h, "channel", (int32_t*)&g_wifi_channel);
-    nvs_get_i32(h, "interval", (int32_t*)&g_send_interval_ms); // 주기 로드 추가
     nvs_close(h);
     ESP_LOGI(TAG, "설정 로드 완료");
 }
@@ -159,8 +158,8 @@ static void serial_cmd_task(void *pvParameters)
                 if (hz > 0 && hz <= 500) {
                     g_send_interval_ms = 1000 / hz;
                     if (g_send_interval_ms == 0) g_send_interval_ms = 1; // 최소 1ms 방어코드
-                    nvs_save_config();
-                    printf("[OK] 전송 주기 %dHz (%dms) 설정됨 → restart 필요\n", hz, g_send_interval_ms);
+                    printf("[OK] 전송 주기 %dHz (%dms) 런타임 임시 변경됨 (재부팅 시 %dms)\n",
+                           hz, g_send_interval_ms, DEFAULT_INTERVAL_MS);
                 } else {
                     printf("[ERR] Hz 범위 초과 (1~500)\n");
                 }
@@ -301,6 +300,8 @@ void app_main(void)
     ESP_ERROR_CHECK(ret);
 
     nvs_load_config();
+    g_send_interval_ms = DEFAULT_INTERVAL_MS;
+    ESP_LOGW(TAG, "TX interval fixed to %d ms (NVS override disabled)", g_send_interval_ms);
 
     xTaskCreate(serial_cmd_task, "serial_cmd", 4096, NULL, 3, NULL);
 
