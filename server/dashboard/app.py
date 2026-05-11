@@ -1,9 +1,11 @@
 # server/dashboard/app.py
 
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO
 import datetime
 import threading
+import os
+from dotenv import load_dotenv, set_key
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -35,20 +37,20 @@ _packet_count_lock = threading.Lock()
 def update_pair(rx1, rx2):
     state["pair_count"] += 1
 
-    # 초당 패킷 수신 카운트
     now = time.time()
     with _packet_count_lock:
         _packet_count_window.append(now)
-        # 최근 1초 이내 것만 유지
         cutoff = now - 1.0
         while _packet_count_window and _packet_count_window[0] < cutoff:
             _packet_count_window.pop(0)
-        pps = len(_packet_count_window)  # packets per second
+        pps = len(_packet_count_window)
 
     record = {
         "seq": rx1["seq_num"],
         "rx1_subs": rx1["n_subcarriers"],
         "rx2_subs": rx2["n_subcarriers"],
+        "rx1_rssi": rx1["rssi"],
+        "rx2_rssi": rx2["rssi"],
         "rx1_ts": rx1["timestamp_us"],
         "rx2_ts": rx2["timestamp_us"],
         "time": datetime.datetime.now().strftime("%H:%M:%S"),
@@ -103,6 +105,9 @@ def status():
 @app.route("/trigger_fall", methods=["POST"])
 def trigger_fall():
     update_fall()
+    # main.py의 on_fall_detected 호출
+    from main import on_fall_detected
+    on_fall_detected()
     return jsonify({"status": "ok"})
 
 @app.route("/health")
@@ -115,6 +120,56 @@ def health():
         "pair_count": state["pair_count"],
         "fall_count": state["fall_count"],
         "packet_stats": state["packet_stats"]
+    })
+
+@app.route("/guardian")
+def guardian():
+    return render_template("guardian.html")
+
+ENV_PATH = os.path.join(os.path.dirname(__file__), "..", ".env")
+
+@app.route("/settings", methods=["GET"])
+def get_settings():
+    load_dotenv(ENV_PATH, override=True)
+    return jsonify({
+        "receiver": os.getenv("SOLAPI_RECEIVER", ""),
+        "sender": os.getenv("SOLAPI_SENDER", ""),
+        "sms_enabled": os.getenv("SMS_ENABLED", "true"),
+        "cooldown_sec": os.getenv("COOLDOWN_SEC", "30"),
+        "mode": os.getenv("MODE", "demo"),
+        "server_ip_demo": os.getenv("SERVER_IP_DEMO", ""),
+        "server_ip_production": os.getenv("SERVER_IP_PRODUCTION", "")
+    })
+
+@app.route("/settings", methods=["POST"])
+def update_settings():
+    data = request.get_json()
+
+    if "receiver" in data:
+        set_key(ENV_PATH, "SOLAPI_RECEIVER", data["receiver"])
+    if "sms_enabled" in data:
+        set_key(ENV_PATH, "SMS_ENABLED", str(data["sms_enabled"]).lower())
+    if "cooldown_sec" in data:
+        set_key(ENV_PATH, "COOLDOWN_SEC", str(data["cooldown_sec"]))
+    if "mode" in data:
+        set_key(ENV_PATH, "MODE", data["mode"])
+    if "server_ip_demo" in data:
+        set_key(ENV_PATH, "SERVER_IP_DEMO", data["server_ip_demo"])
+    if "server_ip_production" in data:
+        set_key(ENV_PATH, "SERVER_IP_PRODUCTION", data["server_ip_production"])
+
+    # 변경된 값 즉시 로드
+    load_dotenv(ENV_PATH, override=True)
+
+    # 재시작 필요 없는 값 즉시 반영
+    from notification.sms import reload_config
+    reload_config()
+
+    needs_restart = "mode" in data or "server_ip_demo" in data or "server_ip_production" in data
+
+    return jsonify({
+        "status": "ok",
+        "needs_restart": needs_restart
     })
 
 # -----------------------------------------------
