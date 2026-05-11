@@ -1,6 +1,7 @@
 # server/main.py
 
 import multiprocessing
+import sys
 import time
 import threading
 
@@ -134,7 +135,11 @@ def main():
     inference_worker.start()
     log_info("InferenceWorker 시작 완료")
 
-    start_receivers(callback=on_packet_received)
+    try:
+        start_receivers(callback=on_packet_received)
+    except RuntimeError as e:
+        log_warn(str(e))
+        return 1
     log_info("UDP 수신 시작 완료")
 
     threading.Thread(target=cleanup_loop, daemon=True).start()
@@ -150,4 +155,4 @@ def main():
 # -----------------------------------------------
 if __name__ == "__main__":
     multiprocessing.freeze_support()
-    main()
+    sys.exit(main() or 0)

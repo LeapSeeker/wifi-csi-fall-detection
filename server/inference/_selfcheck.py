@@ -11,6 +11,7 @@ torch / model checkpoint / RPCA 없이 동작해야 한다. 즉:
 """
 from __future__ import annotations
 
+import socket
 import struct
 import sys
 from pathlib import Path
@@ -40,8 +41,14 @@ from receiver.udp_receiver import (
     MAGIC_BYTE,
     PACKET_SIZE,
     parse_packet,
+    start_receivers,
 )
 from config.settings import DEVICE_ID_RX1, DEVICE_ID_RX2, SUBCARRIER_COUNT
+from utils.pairing import (
+    PAIR_EXPIRE_US,
+    PAIR_TOLERANCE_US,
+    PairingBuffer,
+)
 
 from inference.buffer import SlidingWindowBuffer  # noqa: E402
 from inference.config import (
@@ -88,20 +95,29 @@ def check_packet_parsing() -> bool:
     raw_rx2 = _build_packet(device_id=DEVICE_ID_RX2)
     assert parse_packet(raw_rx2) is not None
 
-    # 크기 부족
-    assert parse_packet(raw[:-1]) is None, "크기 부족 None 미반환"
+    # 크기 부족 (223B)
+    assert parse_packet(raw[:-1]) is None, "223B None 미반환"
     assert parse_packet(b"") is None
     assert parse_packet(b"\x00" * (HEADER_SIZE - 1)) is None
+
+    # 크기 초과 (225B) — strict 224B check
+    raw_too_big = raw + b"\x00"
+    assert len(raw_too_big) == PACKET_SIZE + 1
+    assert parse_packet(raw_too_big) is None, "225B None 미반환 (strict 224B 위반)"
 
     # magic 불일치
     bad_magic = _build_packet(magic=0x00)
     assert parse_packet(bad_magic) is None, "magic 불일치 None 미반환"
 
-    # device_id 불일치
+    # device_id 불일치 — 0x99 (정의되지 않은 값)
     bad_dev = _build_packet(device_id=0x99)
     assert parse_packet(bad_dev) is None, "잘못된 device_id None 미반환"
 
-    print("  [1] packet parsing OK")
+    # device_id = 0x00 (Tx) 도 거부되어야 한다
+    tx_dev = _build_packet(device_id=0x00)
+    assert parse_packet(tx_dev) is None, "Tx(0x00) device_id None 미반환"
+
+    print("  [1] packet parsing OK (strict 224B)")
     return True
 
 
@@ -197,12 +213,136 @@ def check_worker_queue() -> bool:
     return True
 
 
+# -----------------------------------------------------------------
+# 5) PairingBuffer timestamp 기반 페어링
+# -----------------------------------------------------------------
+def _mk_pkt(device_id: int, ts_us: int, seq: int = 0, rssi: int = -50) -> dict:
+    return {
+        "device_id": device_id,
+        "rssi": rssi,
+        "seq_num": seq,
+        "timestamp_us": ts_us,
+        "n_subcarriers": SUBCARRIER_COUNT,
+        "amplitudes": [0.5] * SUBCARRIER_COUNT,
+    }
+
+
+def check_pairing_buffer() -> bool:
+    # 5-1) Rx1 → Rx2 (30ms 차이) → pair 성공
+    pairs: list = []
+    buf = PairingBuffer(on_paired=lambda r1, r2: pairs.append((r1, r2)))
+    buf.add(_mk_pkt(DEVICE_ID_RX1, ts_us=1_000_000))
+    buf.add(_mk_pkt(DEVICE_ID_RX2, ts_us=1_030_000))
+    assert len(pairs) == 1, f"30ms 차이 pair 실패: {len(pairs)}"
+    rx1, rx2 = pairs[0]
+    assert rx1["device_id"] == DEVICE_ID_RX1, "콜백 첫 인자 != Rx1"
+    assert rx2["device_id"] == DEVICE_ID_RX2, "콜백 둘째 인자 != Rx2"
+
+    # 5-2) tolerance 초과 (60.001ms) → pair 실패
+    pairs.clear()
+    buf2 = PairingBuffer(on_paired=lambda r1, r2: pairs.append((r1, r2)))
+    buf2.add(_mk_pkt(DEVICE_ID_RX1, ts_us=2_000_000))
+    buf2.add(_mk_pkt(DEVICE_ID_RX2, ts_us=2_060_001))
+    assert len(pairs) == 0, f"50ms 초과인데 pair 됨: {len(pairs)}"
+    # 두 버퍼 모두 잔여 1개
+    assert len(buf2._buf_rx1) == 1
+    assert len(buf2._buf_rx2) == 1
+
+    # 5-3) Rx2 먼저 → Rx1 나중 (20ms 차) → pair 성공, 순서 (rx1, rx2)
+    pairs.clear()
+    buf3 = PairingBuffer(on_paired=lambda r1, r2: pairs.append((r1, r2)))
+    buf3.add(_mk_pkt(DEVICE_ID_RX2, ts_us=3_000_000, seq=10))
+    buf3.add(_mk_pkt(DEVICE_ID_RX1, ts_us=3_020_000, seq=20))
+    assert len(pairs) == 1, "역순 pair 실패"
+    rx1, rx2 = pairs[0]
+    assert rx1["device_id"] == DEVICE_ID_RX1, "역순 콜백 첫 인자 != Rx1"
+    assert rx2["device_id"] == DEVICE_ID_RX2, "역순 콜백 둘째 인자 != Rx2"
+    assert rx1["seq_num"] == 20 and rx2["seq_num"] == 10, "역순 packet body 어긋남"
+
+    # 5-4) cleanup_expired — _latest_ts_us 기준 PAIR_EXPIRE_US 초과 제거
+    buf4 = PairingBuffer(on_paired=lambda r1, r2: None)
+    buf4.add(_mk_pkt(DEVICE_ID_RX1, ts_us=10_000_000))      # 오래된 packet
+    buf4.add(_mk_pkt(DEVICE_ID_RX1, ts_us=10_000_000 + PAIR_EXPIRE_US + 1))  # 최신
+    # 두 packet 모두 Rx1이므로 pair 안 됨 → 둘 다 _buf_rx1 잔존
+    assert len(buf4._buf_rx1) == 2
+    buf4.cleanup_expired()
+    # 오래된 한 개만 제거되어야 함
+    assert len(buf4._buf_rx1) == 1, (
+        f"cleanup 후 잔여 {len(buf4._buf_rx1)} (기대 1)"
+    )
+
+    # cleanup 빈 상태 — _latest_ts_us == 0이면 즉시 반환
+    buf_empty = PairingBuffer(on_paired=lambda r1, r2: None)
+    buf_empty.cleanup_expired()  # 예외 없음
+
+    # 5-5) 버퍼 cap 초과 → 오래된 패킷부터 제거
+    from config.settings import BUFFER_MAX_SIZE
+    buf5 = PairingBuffer(on_paired=lambda r1, r2: None)
+    # tolerance 멀리 떨어진 Rx1 패킷을 BUFFER_MAX_SIZE+5개 add → pair 없이 누적
+    base = 100_000_000
+    for i in range(BUFFER_MAX_SIZE + 5):
+        # 각 패킷 사이 PAIR_TOLERANCE_US*4 간격 → 절대 self-pair X
+        buf5.add(_mk_pkt(DEVICE_ID_RX1, ts_us=base + i * PAIR_TOLERANCE_US * 4, seq=i))
+    assert len(buf5._buf_rx1) == BUFFER_MAX_SIZE, (
+        f"cap 초과 후 길이 {len(buf5._buf_rx1)} != {BUFFER_MAX_SIZE}"
+    )
+    # 가장 오래된 패킷(seq=0..4) 제거되고 최신 5개 유지
+    seq_remaining = [p["seq_num"] for p in buf5._buf_rx1]
+    assert seq_remaining[0] == 5, f"oldest packet 미제거: head seq={seq_remaining[0]}"
+    assert seq_remaining[-1] == BUFFER_MAX_SIZE + 4
+
+    # 5-6) device_id 잘못된 packet은 무시
+    buf6 = PairingBuffer(on_paired=lambda r1, r2: pairs.append((r1, r2)))
+    pairs.clear()
+    buf6.add(_mk_pkt(0x99, ts_us=1))
+    buf6.add(_mk_pkt(0x00, ts_us=2))
+    assert len(buf6._buf_rx1) == 0 and len(buf6._buf_rx2) == 0
+    assert len(pairs) == 0
+
+    print("  [5] PairingBuffer timestamp 기반 페어링 OK")
+    return True
+
+
+# -----------------------------------------------------------------
+# 6) UDP bind 실패 시 RuntimeError
+# -----------------------------------------------------------------
+def check_udp_bind_failure() -> bool:
+    # ephemeral port 할당 (("0.0.0.0", 0)) → 그 포트 점유 후 start_receivers 호출
+    blocker = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    blocker.bind(("0.0.0.0", 0))
+    occupied_port = blocker.getsockname()[1]
+
+    try:
+        try:
+            start_receivers(callback=lambda p: None, port=occupied_port)
+        except RuntimeError as e:
+            msg = str(e)
+            assert str(occupied_port) in msg, (
+                f"에러 메시지에 포트 번호 없음: {msg}"
+            )
+            assert "바인드" in msg or "bind" in msg.lower(), (
+                f"에러 메시지에 bind 표현 없음: {msg}"
+            )
+            # 원본 예외 chain 확인
+            assert isinstance(e.__cause__, OSError), (
+                f"raise ... from OSError 미적용: __cause__={type(e.__cause__)}"
+            )
+            print(f"  [6] UDP bind RuntimeError OK (port={occupied_port})")
+            return True
+        else:
+            raise AssertionError("점유된 포트에 start_receivers가 RuntimeError 미발생")
+    finally:
+        blocker.close()
+
+
 def main() -> int:
-    print("== server/inference self-check ==")
+    print("== server self-check ==")
     check_packet_parsing()
     check_buffer()
     check_model_path()
     check_worker_queue()
+    check_pairing_buffer()
+    check_udp_bind_failure()
     print("ALL_OK")
     return 0
 

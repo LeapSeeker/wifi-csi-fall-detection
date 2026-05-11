@@ -26,7 +26,8 @@ _VALID_DEVICE_IDS = (DEVICE_ID_RX1, DEVICE_ID_RX2)
 
 
 def parse_packet(raw: bytes) -> Optional[dict]:
-    if len(raw) < PACKET_SIZE:
+    # D-007 패킷은 정확히 224B. 초과/부족 모두 거부 — 길이 mismatch는 펌웨어/네트워크 이상 신호.
+    if len(raw) != PACKET_SIZE:
         return None
     try:
         magic, device_id, rssi, _reserved, seq_num, timestamp_us = struct.unpack_from(
@@ -55,10 +56,24 @@ def parse_packet(raw: bytes) -> Optional[dict]:
     }
 
 
-def start_receivers(callback):
+def start_receivers(callback, port: Optional[int] = None):
+    """UDP 수신 daemon thread 시작.
+
+    bind 실패 시 RuntimeError 발생 (raw OSError traceback 노출 방지).
+    호출 측은 RuntimeError를 잡아 사용자 친화적 메시지를 로그한다.
+    """
+    bind_port = UDP_PORT if port is None else port
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind((UDP_HOST, UDP_PORT))
-    print(f"[UDP] 포트 {UDP_PORT} 수신 대기 중... (RX1/RX2 통합)")
+    try:
+        sock.bind((UDP_HOST, bind_port))
+    except OSError as e:
+        sock.close()
+        raise RuntimeError(
+            f"UDP 포트 {bind_port}에 바인드할 수 없습니다. "
+            "collect 프로그램, 기존 서버 프로세스, "
+            "또는 다른 수신기가 이미 실행 중인지 확인하세요."
+        ) from e
+    print(f"[UDP] 포트 {bind_port} 수신 대기 중... (RX1/RX2 통합)")
 
     def listen():
         while True:
