@@ -122,7 +122,20 @@ def _run_session(recorder: SessionRecorder, activity_code: str, env: int, subjec
     # 결과 출력
     n_pairs = len(buf)
     loss = recorder.calculate_loss_rate(buf)
-    print(f"  → 수집 패킷 페어 수: {n_pairs}, 손실률: {loss*100:.1f}%")
+    duration_s = 0.0
+    pair_rate = 0.0
+    if n_pairs >= 2:
+        ts_vals = [row["timestamp_us"] for row in buf]
+        duration_s = (max(ts_vals) - min(ts_vals)) / 1e6
+        if duration_s > 0:
+            pair_rate = n_pairs / duration_s
+    capture_ratio = pair_rate / 100.0
+    print(
+        f"  → 페어 수: {n_pairs}, duration: {duration_s:.2f}s, "
+        f"실측 rate: {pair_rate:.1f} Hz "
+        f"(target≈100, capture_ratio={capture_ratio:.2f}), "
+        f"손실률: {loss*100:.1f}%"
+    )
     if loss > 0.05:
         print(f"  [경고] 패킷 손실률 {loss*100:.1f}% — 저장 여부를 신중히 결정하세요.")
 
