@@ -4,3 +4,11 @@ python-dotenv
 flask
 flask-socketio
 websockets
+pandas
+torch
+torchvision
+torchaudio
+scipy
+scikit-learn
+matplotlib
+tqdm
