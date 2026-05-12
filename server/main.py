@@ -15,6 +15,7 @@ from dashboard.app import start_dashboard, update_pair, update_fall, update_rpi4
 from logger.log_manager import log_info, log_warn, log_pair, log_fall, get_log_filepath
 from logger.fall_history import save_fall
 from inference.worker import InferenceWorker
+from collect_manager import CollectManager
 
 # -----------------------------------------------
 # 전역 핸들 (Windows multiprocessing 안전: top-level에는 인스턴스 X)
@@ -24,6 +25,7 @@ fall_cooldown: FallCooldown = None
 packet_monitor: PacketMonitor = None
 pairing_buffer: PairingBuffer = None
 inference_worker: InferenceWorker = None
+collect_manager: CollectManager = None
 fall_count: int = 0
 last_fall_pair = {"rx1": None, "rx2": None}
 
@@ -38,7 +40,7 @@ def on_fall_detected(
     global fall_count
 
     if rpi_connection is None or fall_cooldown is None:
-        return  # 초기화 전 콜백 호출 방어
+        return
 
     if not fall_cooldown.is_allowed():
         log_warn("낙상 감지됐지만 쿨다운 중 — 알림 생략")
@@ -58,7 +60,7 @@ def on_fall_detected(
         save_fall(fall_count, last_fall_pair["rx1"], last_fall_pair["rx2"])
 
 # -----------------------------------------------
-# 페어링 완료 시 호출되는 콜백 → InferenceWorker로 비동기 전달
+# 페어링 완료 시 호출되는 콜백
 # -----------------------------------------------
 def on_paired(rx1, rx2):
     last_fall_pair["rx1"] = rx1
@@ -66,7 +68,12 @@ def on_paired(rx1, rx2):
     log_pair(rx1, rx2)
     update_pair(rx1, rx2)
 
-    if inference_worker is not None:
+    # 수집 모드: collect_manager로 전달
+    if collect_manager is not None and collect_manager.is_recording:
+        collect_manager.add_pair(rx1, rx2)
+
+    # 추론: 수집 중이 아닐 때만 실행
+    if inference_worker is not None and (collect_manager is None or not collect_manager.is_recording):
         inference_worker.put(rx1, rx2)
 
 # -----------------------------------------------
@@ -118,13 +125,14 @@ def result_loop():
 
 
 def main():
-    global rpi_connection, fall_cooldown, packet_monitor, pairing_buffer, inference_worker
+    global rpi_connection, fall_cooldown, packet_monitor, pairing_buffer, inference_worker, collect_manager
 
     rpi_connection = RPiConnection(on_status_change=update_rpi4_status)
     fall_cooldown = FallCooldown(cooldown_sec=30)
     packet_monitor = PacketMonitor()
     pairing_buffer = PairingBuffer(on_paired=on_paired)
     inference_worker = InferenceWorker()
+    collect_manager = CollectManager()
 
     log_info("서버 시작")
     log_info(f"로그 파일: {get_log_filepath()}")
@@ -147,7 +155,7 @@ def main():
     threading.Thread(target=result_loop, daemon=True).start()
 
     log_info("대시보드: http://localhost:8080")
-    start_dashboard()
+    start_dashboard(on_fall_detected=on_fall_detected, collect_manager=collect_manager)
 
 
 # -----------------------------------------------

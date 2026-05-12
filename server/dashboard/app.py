@@ -26,11 +26,16 @@ state = {
 }
 
 # -----------------------------------------------
+# 콜백 / 매니저 저장 (main.py에서 주입)
+# -----------------------------------------------
+_fall_callback = None
+_collect_manager = None
+
+# -----------------------------------------------
 # 상태 업데이트 함수
 # -----------------------------------------------
 import time
 
-# 초당 패킷 카운터
 _packet_count_window = []
 _packet_count_lock = threading.Lock()
 
@@ -59,6 +64,10 @@ def update_pair(rx1, rx2):
     state["recent_pairs"].insert(0, record)
     state["recent_pairs"] = state["recent_pairs"][:10]
     socketio.emit("pair_update", record)
+
+    # 수집 중이면 수집 카운트 업데이트 emit
+    if _collect_manager is not None and _collect_manager.is_recording:
+        socketio.emit("collect_pair_count", {"count": _collect_manager.pair_count})
 
 def update_fall():
     state["fall_count"] += 1
@@ -92,7 +101,7 @@ def update_packet_stats(stats: dict):
     socketio.emit("packet_stats", stats)
 
 # -----------------------------------------------
-# 라우트
+# 라우트 — 대시보드
 # -----------------------------------------------
 @app.route("/")
 def index():
@@ -105,9 +114,8 @@ def status():
 @app.route("/trigger_fall", methods=["POST"])
 def trigger_fall():
     update_fall()
-    # main.py의 on_fall_detected 호출
-    from main import on_fall_detected
-    on_fall_detected()
+    if _fall_callback:
+        _fall_callback()
     return jsonify({"status": "ok"})
 
 @app.route("/health")
@@ -126,6 +134,67 @@ def health():
 def guardian():
     return render_template("guardian.html")
 
+# -----------------------------------------------
+# 라우트 — 데이터 수집
+# -----------------------------------------------
+@app.route("/collect/status")
+def collect_status():
+    if _collect_manager is None:
+        return jsonify({"error": "CollectManager 없음"}), 500
+    return jsonify(_collect_manager.get_status())
+
+@app.route("/collect/start", methods=["POST"])
+def collect_start():
+    if _collect_manager is None:
+        return jsonify({"ok": False, "error": "CollectManager 없음"}), 500
+    data = request.get_json()
+    activity_code = data.get("activity_code")
+    env = int(data.get("env", 1))
+    subject = int(data.get("subject", 1))
+    if not activity_code:
+        return jsonify({"ok": False, "error": "activity_code 필요"}), 400
+    result = _collect_manager.start_session(activity_code, env, subject)
+    if result["ok"]:
+        socketio.emit("collect_started", result)
+    return jsonify(result)
+
+@app.route("/collect/stop", methods=["POST"])
+def collect_stop():
+    if _collect_manager is None:
+        return jsonify({"ok": False, "error": "CollectManager 없음"}), 500
+    data = request.get_json() or {}
+    save = data.get("save", True)
+    result = _collect_manager.stop_session(save=save)
+    if result["ok"]:
+        socketio.emit("collect_stopped", result)
+    return jsonify(result)
+
+@app.route("/collect/counts")
+def collect_counts():
+    if _collect_manager is None:
+        return jsonify({"error": "CollectManager 없음"}), 500
+    env = int(request.args.get("env", 1))
+    subject = int(request.args.get("subject", 1))
+    return jsonify(_collect_manager.get_session_counts(env, subject))
+
+@app.route("/collect/labels")
+def collect_labels():
+    from collect.labels import ACTIVITY_INFO, ACTIVITY_ORDER
+    labels = []
+    for code in ACTIVITY_ORDER:
+        info = ACTIVITY_INFO[code]
+        labels.append({
+            "code": code,
+            "display": info["display"],
+            "target": info["target"],
+            "duration": sum(s["duration"] for s in info.get("stages", [])) or info.get("duration", 0),
+            "class_idx": info["class_idx"],
+        })
+    return jsonify(labels)
+
+# -----------------------------------------------
+# 라우트 — 설정
+# -----------------------------------------------
 ENV_PATH = os.path.join(os.path.dirname(__file__), "..", ".env")
 
 @app.route("/settings", methods=["GET"])
@@ -158,10 +227,8 @@ def update_settings():
     if "server_ip_production" in data:
         set_key(ENV_PATH, "SERVER_IP_PRODUCTION", data["server_ip_production"])
 
-    # 변경된 값 즉시 로드
     load_dotenv(ENV_PATH, override=True)
 
-    # 재시작 필요 없는 값 즉시 반영
     from notification.sms import reload_config
     reload_config()
 
@@ -175,5 +242,8 @@ def update_settings():
 # -----------------------------------------------
 # 대시보드 실행
 # -----------------------------------------------
-def start_dashboard():
+def start_dashboard(on_fall_detected=None, collect_manager=None):
+    global _fall_callback, _collect_manager
+    _fall_callback = on_fall_detected
+    _collect_manager = collect_manager
     socketio.run(app, host="0.0.0.0", port=8080, debug=False)

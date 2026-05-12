@@ -20,7 +20,6 @@
         header .uptime { font-size: 13px; color: #8b949e; }
         header .uptime span { color: #58a6ff; font-weight: 600; }
 
-        /* 탭 메뉴 */
         .tab-bar {
             background: #0d1117; border-bottom: 1px solid #21262d;
             padding: 0 30px; display: flex; gap: 4px;
@@ -57,6 +56,7 @@
         .card.blue .val { color: #58a6ff; }
         .card.red .val { color: #ff4d4d; }
         .card.yellow .val { color: #d29922; }
+        .card.green .val { color: #3fb950; }
 
         .rpi-status { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
         .dot { width: 10px; height: 10px; border-radius: 50%; background: #ff4d4d; }
@@ -153,13 +153,126 @@
             color: #d29922; margin-top: 16px;
         }
 
-        /* 낙상 트리거 버튼 */
         .trigger-btn {
             background: #da3633; border: none; border-radius: 6px;
             padding: 10px 20px; color: white; font-size: 13px;
             font-weight: 600; cursor: pointer; transition: background 0.2s;
         }
         .trigger-btn:hover { background: #f85149; }
+
+        /* 수집 탭 스타일 */
+        .collect-layout { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
+
+        .collect-control {
+            background: #0d1117; border: 1px solid #21262d;
+            border-radius: 10px; padding: 24px; display: flex; flex-direction: column; gap: 16px;
+        }
+        .collect-control h3 {
+            font-size: 13px; font-weight: 600; color: #e6edf3;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            padding-bottom: 12px; border-bottom: 1px solid #21262d;
+        }
+
+        .collect-status-banner {
+            border-radius: 8px; padding: 14px 16px;
+            font-size: 13px; font-weight: 600; text-align: center;
+            background: #21262d; color: #8b949e;
+            transition: all 0.3s;
+        }
+        .collect-status-banner.recording {
+            background: #3fb95022; border: 1px solid #3fb950;
+            color: #3fb950; animation: pulse 1.5s infinite;
+        }
+
+        .collect-counter {
+            text-align: center; padding: 16px;
+            background: #161b22; border-radius: 8px;
+        }
+        .collect-counter .count-val {
+            font-size: 48px; font-weight: 700; color: #3fb950;
+        }
+        .collect-counter .count-label {
+            font-size: 12px; color: #8b949e; margin-top: 4px;
+        }
+
+        .collect-btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .collect-start-btn {
+            background: #238636; border: none; border-radius: 6px;
+            padding: 12px; color: white; font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: background 0.2s;
+        }
+        .collect-start-btn:hover { background: #2ea043; }
+        .collect-start-btn:disabled { background: #21262d; color: #8b949e; cursor: not-allowed; }
+
+        .collect-save-btn {
+            background: #1f6feb; border: none; border-radius: 6px;
+            padding: 12px; color: white; font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: background 0.2s;
+        }
+        .collect-save-btn:hover { background: #388bfd; }
+        .collect-save-btn:disabled { background: #21262d; color: #8b949e; cursor: not-allowed; }
+
+        .collect-discard-btn {
+            background: #21262d; border: 1px solid #30363d; border-radius: 6px;
+            padding: 12px; color: #8b949e; font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; grid-column: span 2;
+        }
+        .collect-discard-btn:hover { background: #da363322; border-color: #da3633; color: #ff4d4d; }
+        .collect-discard-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .activity-table-wrap {
+            background: #0d1117; border: 1px solid #21262d;
+            border-radius: 10px; overflow: hidden;
+        }
+        .activity-table-header {
+            padding: 14px 20px; border-bottom: 1px solid #21262d;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .activity-table-header h3 {
+            font-size: 13px; font-weight: 600; color: #e6edf3;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .env-subject-row { display: flex; gap: 10px; align-items: center; }
+        .env-subject-row input {
+            width: 70px; background: #161b22; border: 1px solid #30363d;
+            border-radius: 6px; padding: 6px 10px; color: #e6edf3;
+            font-size: 13px; outline: none; text-align: center;
+        }
+        .env-subject-row input:focus { border-color: #58a6ff; }
+        .env-subject-row label { font-size: 12px; color: #8b949e; }
+        .reload-btn {
+            background: #21262d; border: 1px solid #30363d; border-radius: 6px;
+            padding: 6px 12px; color: #8b949e; font-size: 12px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .reload-btn:hover { border-color: #58a6ff; color: #58a6ff; }
+
+        .activity-row { cursor: pointer; transition: background 0.15s; }
+        .activity-row:hover td { background: #161b22; }
+        .activity-row.selected td { background: #1f6feb22; }
+        .activity-row.selected td:first-child { border-left: 3px solid #58a6ff; }
+
+        .progress-bar-wrap { width: 100px; background: #21262d; border-radius: 4px; height: 5px; display: inline-block; vertical-align: middle; margin-right: 6px; }
+        .progress-bar { height: 100%; border-radius: 4px; background: #3fb950; transition: width 0.3s; }
+        .progress-bar.done { background: #58a6ff; }
+
+        .collect-log {
+            background: #0d1117; border: 1px solid #21262d;
+            border-radius: 10px; overflow: hidden; margin-top: 0;
+        }
+        .collect-log-header {
+            padding: 14px 20px; border-bottom: 1px solid #21262d;
+            font-size: 13px; font-weight: 600; color: #e6edf3;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .collect-log-body {
+            padding: 12px 16px; max-height: 180px; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 6px;
+        }
+        .log-item { font-size: 12px; color: #8b949e; }
+        .log-item.ok { color: #3fb950; }
+        .log-item.warn { color: #d29922; }
+        .log-item.err { color: #ff4d4d; }
     </style>
 </head>
 <body>
@@ -176,10 +289,10 @@
     ⚠️ FALL DETECTED — 보호자 SMS 발송 완료
 </div>
 
-<!-- 탭 메뉴 -->
 <div class="tab-bar">
-    <button class="tab-btn active" onclick="switchTab('dashboard')">📊 대시보드</button>
-    <button class="tab-btn" onclick="switchTab('settings')">⚙️ 설정</button>
+    <button class="tab-btn active" onclick="switchTab('dashboard', this)">📊 대시보드</button>
+    <button class="tab-btn" onclick="switchTab('collect', this)">📦 데이터 수집</button>
+    <button class="tab-btn" onclick="switchTab('settings', this)">⚙️ 설정</button>
 </div>
 
 <!-- 대시보드 탭 -->
@@ -212,12 +325,10 @@
         </div>
     </div>
 
-    <!-- 낙상 트리거 버튼 -->
     <div style="display:flex; justify-content:flex-end;">
         <button class="trigger-btn" onclick="triggerFall()">⚠️ 낙상 감지 시뮬레이션</button>
     </div>
 
-    <!-- 패킷 손실률 -->
     <div class="content-row">
         <div class="panel">
             <div class="panel-header">
@@ -251,7 +362,6 @@
         </div>
     </div>
 
-    <!-- 페어링 기록 + 낙상 타임라인 -->
     <div class="content-row">
         <div class="panel">
             <div class="panel-header">
@@ -262,12 +372,8 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>시간</th>
-                            <th>SEQ</th>
-                            <th>RX1 RSSI</th>
-                            <th>RX2 RSSI</th>
-                            <th>RX1 서브캐리어</th>
-                            <th>RX2 서브캐리어</th>
+                            <th>시간</th><th>SEQ</th><th>RX1 RSSI</th>
+                            <th>RX2 RSSI</th><th>RX1 서브캐리어</th><th>RX2 서브캐리어</th>
                         </tr>
                     </thead>
                     <tbody id="pairTable">
@@ -276,7 +382,6 @@
                 </table>
             </div>
         </div>
-
         <div class="panel">
             <div class="panel-header">
                 <h3>낙상 감지 타임라인</h3>
@@ -290,32 +395,24 @@
         </div>
     </div>
 
-    <!-- 차트 -->
     <div class="content-row">
         <div class="panel">
             <div class="panel-header"><h3>RSSI 실시간 차트</h3></div>
-            <div class="panel-body">
-                <div class="chart-wrap"><canvas id="rssiChart"></canvas></div>
-            </div>
+            <div class="panel-body"><div class="chart-wrap"><canvas id="rssiChart"></canvas></div></div>
         </div>
         <div class="panel">
             <div class="panel-header">
                 <h3>초당 패킷 수신 (PPS)</h3>
                 <span class="badge" id="ppsBadge">0 pps</span>
             </div>
-            <div class="panel-body">
-                <div class="chart-wrap"><canvas id="ppsChart"></canvas></div>
-            </div>
+            <div class="panel-body"><div class="chart-wrap"><canvas id="ppsChart"></canvas></div></div>
         </div>
     </div>
 
-    <!-- 서브캐리어 차트 + 시스템 정보 -->
     <div class="content-row">
         <div class="panel">
             <div class="panel-header"><h3>서브캐리어 수 실시간 차트</h3></div>
-            <div class="panel-body">
-                <div class="chart-wrap"><canvas id="subChart"></canvas></div>
-            </div>
+            <div class="panel-body"><div class="chart-wrap"><canvas id="subChart"></canvas></div></div>
         </div>
         <div class="panel">
             <div class="panel-header"><h3>시스템 정보</h3></div>
@@ -337,13 +434,91 @@
 </div>
 </div>
 
+<!-- 데이터 수집 탭 -->
+<div id="tab-collect" class="tab-content">
+<div class="main">
+
+    <div class="collect-layout">
+
+        <!-- 왼쪽: 수집 컨트롤 -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="collect-control">
+                <h3>🎙️ 수집 컨트롤</h3>
+
+                <div class="collect-status-banner" id="collectStatusBanner">
+                    대기 중 — 활동을 선택하고 시작하세요
+                </div>
+
+                <div class="collect-counter">
+                    <div class="count-val" id="collectPairCount">0</div>
+                    <div class="count-label">수집된 페어 수</div>
+                </div>
+
+                <div style="font-size:12px; color:#8b949e;">
+                    선택된 활동: <span id="selectedActivityLabel" style="color:#e6edf3; font-weight:600;">없음</span>
+                </div>
+
+                <div class="collect-btn-row">
+                    <button class="collect-start-btn" id="collectStartBtn" onclick="collectStart()" disabled>
+                        ▶ 수집 시작
+                    </button>
+                    <button class="collect-save-btn" id="collectSaveBtn" onclick="collectStop(true)" disabled>
+                        💾 저장
+                    </button>
+                    <button class="collect-discard-btn" id="collectDiscardBtn" onclick="collectStop(false)" disabled>
+                        🗑 폐기
+                    </button>
+                </div>
+            </div>
+
+            <div class="collect-log">
+                <div class="collect-log-header">📋 수집 로그</div>
+                <div class="collect-log-body" id="collectLogBody">
+                    <div class="log-item">서버 연결 대기 중...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 오른쪽: 활동 테이블 -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="activity-table-wrap">
+                <div class="activity-table-header">
+                    <h3>활동 코드 현황</h3>
+                    <div class="env-subject-row">
+                        <label>E</label>
+                        <input type="number" id="envInput" value="1" min="1" max="9">
+                        <label>S</label>
+                        <input type="number" id="subjectInput" value="1" min="1" max="99">
+                        <button class="reload-btn" onclick="loadActivityCounts()">🔄 새로고침</button>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>활동</th>
+                            <th>클래스</th>
+                            <th>시간</th>
+                            <th>완료/목표</th>
+                            <th>진행률</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activityTable">
+                        <tr><td colspan="6" class="empty-state">로딩 중...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+</div>
+
 <!-- 설정 탭 -->
 <div id="tab-settings" class="tab-content">
 <div class="main">
-
     <div class="settings-grid">
-
-        <!-- 알림 설정 -->
         <div class="settings-section">
             <h3>📱 알림 설정</h3>
             <div class="form-group">
@@ -366,8 +541,6 @@
             </div>
             <button class="save-btn" onclick="saveNotificationSettings()">저장</button>
         </div>
-
-        <!-- 네트워크 설정 -->
         <div class="settings-section">
             <h3>🌐 네트워크 설정</h3>
             <div class="form-group">
@@ -390,29 +563,26 @@
                 ⚠️ 네트워크 설정 변경은 서버 재시작 후 적용됩니다.
             </div>
         </div>
-
     </div>
-
 </div>
 </div>
 
-<!-- 저장 완료 토스트 -->
 <div class="settings-toast" id="settingsToast"></div>
 
 <script>
     const socket = io();
 
-    // 탭 전환
-    function switchTab(tab) {
+    // ── 탭 전환 ──────────────────────────────────────────
+    function switchTab(tab, btn) {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(`tab-${tab}`).classList.add('active');
-        event.target.classList.add('active');
-
+        btn.classList.add('active');
         if (tab === 'settings') loadSettings();
+        if (tab === 'collect') { loadActivityLabels(); loadActivityCounts(); }
     }
 
-    // 가동 시간
+    // ── 가동 시간 ─────────────────────────────────────────
     let startTime = Date.now();
     setInterval(() => {
         const e = Math.floor((Date.now() - startTime) / 1000);
@@ -422,7 +592,7 @@
         document.getElementById('uptime').textContent = `${h}:${m}:${s}`;
     }, 1000);
 
-    // 마지막 패킷 수신
+    // ── 마지막 패킷 수신 ──────────────────────────────────
     let lastPacketTime = null;
     setInterval(() => {
         if (!lastPacketTime) return;
@@ -430,67 +600,47 @@
             Math.floor((Date.now() - lastPacketTime) / 1000);
     }, 1000);
 
-    // RSSI 차트
-    const rssiCtx = document.getElementById('rssiChart').getContext('2d');
-    const rssiChart = new Chart(rssiCtx, {
+    // ── 차트 ─────────────────────────────────────────────
+    const rssiChart = new Chart(document.getElementById('rssiChart').getContext('2d'), {
         type: 'line',
-        data: {
-            labels: [],
-            datasets: [
-                { label: 'RX1 RSSI', data: [], borderColor: '#58a6ff', backgroundColor: '#58a6ff22', tension: 0.4, pointRadius: 2, fill: true },
-                { label: 'RX2 RSSI', data: [], borderColor: '#3fb950', backgroundColor: '#3fb95022', tension: 0.4, pointRadius: 2, fill: true }
-            ]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false, animation: false,
+        data: { labels: [], datasets: [
+            { label: 'RX1 RSSI', data: [], borderColor: '#58a6ff', backgroundColor: '#58a6ff22', tension: 0.4, pointRadius: 2, fill: true },
+            { label: 'RX2 RSSI', data: [], borderColor: '#3fb950', backgroundColor: '#3fb95022', tension: 0.4, pointRadius: 2, fill: true }
+        ]},
+        options: { responsive: true, maintainAspectRatio: false, animation: false,
             plugins: { legend: { labels: { color: '#8b949e', font: { size: 11 } } } },
             scales: {
                 x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } },
                 y: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' }, min: -90, max: -20 }
-            }
-        }
+            }}
     });
 
-    // PPS 차트
-    const ppsCtx = document.getElementById('ppsChart').getContext('2d');
-    const ppsChart = new Chart(ppsCtx, {
+    const ppsChart = new Chart(document.getElementById('ppsChart').getContext('2d'), {
         type: 'bar',
-        data: {
-            labels: [],
-            datasets: [{ label: 'PPS', data: [], backgroundColor: '#58a6ff44', borderColor: '#58a6ff', borderWidth: 1 }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false, animation: false,
+        data: { labels: [], datasets: [{ label: 'PPS', data: [], backgroundColor: '#58a6ff44', borderColor: '#58a6ff', borderWidth: 1 }]},
+        options: { responsive: true, maintainAspectRatio: false, animation: false,
             plugins: { legend: { display: false } },
             scales: {
                 x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } },
                 y: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' }, min: 0, max: 20 }
-            }
-        }
+            }}
     });
 
-    // 서브캐리어 차트
-    const subCtx = document.getElementById('subChart').getContext('2d');
-    const subChart = new Chart(subCtx, {
+    const subChart = new Chart(document.getElementById('subChart').getContext('2d'), {
         type: 'line',
-        data: {
-            labels: [],
-            datasets: [
-                { label: 'RX1', data: [], borderColor: '#58a6ff', backgroundColor: '#58a6ff22', tension: 0.4, pointRadius: 2, fill: true },
-                { label: 'RX2', data: [], borderColor: '#3fb950', backgroundColor: '#3fb95022', tension: 0.4, pointRadius: 2, fill: true }
-            ]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false, animation: false,
+        data: { labels: [], datasets: [
+            { label: 'RX1', data: [], borderColor: '#58a6ff', backgroundColor: '#58a6ff22', tension: 0.4, pointRadius: 2, fill: true },
+            { label: 'RX2', data: [], borderColor: '#3fb950', backgroundColor: '#3fb95022', tension: 0.4, pointRadius: 2, fill: true }
+        ]},
+        options: { responsive: true, maintainAspectRatio: false, animation: false,
             plugins: { legend: { labels: { color: '#8b949e', font: { size: 11 } } } },
             scales: {
                 x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } },
                 y: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' }, min: 0, max: 64 }
-            }
-        }
+            }}
     });
 
-    // 초기 상태
+    // ── 초기 상태 로드 ────────────────────────────────────
     fetch('/status').then(r => r.json()).then(data => {
         document.getElementById('pairCount').textContent = data.pair_count;
         document.getElementById('fallCount').textContent = data.fall_count;
@@ -501,7 +651,7 @@
         updatePacketStats(data.packet_stats);
     });
 
-    // 소켓 이벤트
+    // ── 소켓 이벤트 ──────────────────────────────────────
     socket.on('pair_update', (data) => {
         const count = parseInt(document.getElementById('pairCount').textContent) + 1;
         document.getElementById('pairCount').textContent = count;
@@ -512,28 +662,19 @@
         rssiChart.data.labels.push(data.time);
         rssiChart.data.datasets[0].data.push(data.rx1_rssi);
         rssiChart.data.datasets[1].data.push(data.rx2_rssi);
-        if (rssiChart.data.labels.length > 20) {
-            rssiChart.data.labels.shift();
-            rssiChart.data.datasets.forEach(d => d.data.shift());
-        }
+        if (rssiChart.data.labels.length > 20) { rssiChart.data.labels.shift(); rssiChart.data.datasets.forEach(d => d.data.shift()); }
         rssiChart.update();
 
         ppsChart.data.labels.push(data.time);
         ppsChart.data.datasets[0].data.push(data.pps);
-        if (ppsChart.data.labels.length > 20) {
-            ppsChart.data.labels.shift();
-            ppsChart.data.datasets[0].data.shift();
-        }
+        if (ppsChart.data.labels.length > 20) { ppsChart.data.labels.shift(); ppsChart.data.datasets[0].data.shift(); }
         ppsChart.update();
         document.getElementById('ppsBadge').textContent = `${data.pps} pps`;
 
         subChart.data.labels.push(data.time);
         subChart.data.datasets[0].data.push(data.rx1_subs);
         subChart.data.datasets[1].data.push(data.rx2_subs);
-        if (subChart.data.labels.length > 20) {
-            subChart.data.labels.shift();
-            subChart.data.datasets.forEach(d => d.data.shift());
-        }
+        if (subChart.data.labels.length > 20) { subChart.data.labels.shift(); subChart.data.datasets.forEach(d => d.data.shift()); }
         subChart.update();
     });
 
@@ -548,30 +689,150 @@
     });
 
     socket.on('rpi4_status', (data) => updateRpi4(data.connected, data.message));
-
     socket.on('rpi4_disconnected', (data) => {
         const banner = document.createElement('div');
-        banner.style.cssText = `
-            position: fixed; top: 60px; right: 20px;
-            background: #21262d; border: 1px solid #ff4d4d;
-            border-radius: 8px; padding: 12px 16px;
-            font-size: 13px; color: #ff4d4d; z-index: 9999;
-        `;
+        banner.style.cssText = `position:fixed;top:60px;right:20px;background:#21262d;border:1px solid #ff4d4d;border-radius:8px;padding:12px 16px;font-size:13px;color:#ff4d4d;z-index:9999;`;
         banner.textContent = `⚠️ Pi4 연결 끊김 — ${data.message}`;
         document.body.appendChild(banner);
         setTimeout(() => banner.remove(), 5000);
     });
-
     socket.on('packet_stats', (data) => updatePacketStats(data));
 
-    // 낙상 트리거
+    // 수집 소켓 이벤트
+    socket.on('collect_pair_count', (data) => {
+        document.getElementById('collectPairCount').textContent = data.count;
+    });
+    socket.on('collect_started', (data) => {
+        setCollectRecording(true, data.activity_code);
+        addCollectLog(`수집 시작: ${data.activity_code} (E${data.env} S${data.subject})`, 'ok');
+    });
+    socket.on('collect_stopped', (data) => {
+        setCollectRecording(false);
+        if (data.saved) {
+            addCollectLog(`저장 완료: ${data.message} | 페어: ${data.pair_count} | 손실률: ${data.loss_rate}%`, 'ok');
+            if (data.loss_rate > 5) addCollectLog(`경고: 패킷 손실률 ${data.loss_rate}% 초과`, 'warn');
+        } else {
+            addCollectLog(`폐기됨 (페어: ${data.pair_count})`, 'warn');
+        }
+        loadActivityCounts();
+    });
+
+    // ── 수집 탭 ──────────────────────────────────────────
+    let activityLabels = [];
+    let selectedActivity = null;
+
+    function loadActivityLabels() {
+        fetch('/collect/labels').then(r => r.json()).then(labels => {
+            activityLabels = labels;
+            renderActivityTable(labels, {});
+        });
+    }
+
+    function loadActivityCounts() {
+        const env = document.getElementById('envInput').value;
+        const subject = document.getElementById('subjectInput').value;
+        fetch(`/collect/counts?env=${env}&subject=${subject}`)
+            .then(r => r.json())
+            .then(counts => renderActivityTable(activityLabels, counts));
+    }
+
+    function renderActivityTable(labels, counts) {
+        const tbody = document.getElementById('activityTable');
+        if (!labels.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">레이블 로딩 실패</td></tr>'; return; }
+        const CLASS_NAMES = ['fall','walking','sit_stand','lying','standing','running','picking'];
+        tbody.innerHTML = labels.map((item, i) => {
+            const cnt = counts[item.code] || { done: 0, target: item.target };
+            const ratio = cnt.target > 0 ? Math.min(cnt.done / cnt.target, 1.0) : 0;
+            const pct = Math.round(ratio * 100);
+            const isDone = cnt.done >= cnt.target;
+            const isSelected = selectedActivity && selectedActivity.code === item.code;
+            return `<tr class="activity-row${isSelected ? ' selected' : ''}" onclick="selectActivity(${i})">
+                <td style="color:#8b949e">${i + 1}</td>
+                <td style="color:#e6edf3;font-weight:500">${item.display}</td>
+                <td style="color:#8b949e;font-size:11px">${CLASS_NAMES[item.class_idx] || ''}</td>
+                <td style="color:#8b949e">${item.duration}s</td>
+                <td style="color:${isDone ? '#3fb950' : '#e6edf3'}">${cnt.done} / ${cnt.target}</td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:6px">
+                        <div class="progress-bar-wrap"><div class="progress-bar${isDone ? ' done' : ''}" style="width:${pct}%"></div></div>
+                        <span style="font-size:11px;color:#8b949e">${pct}%</span>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function selectActivity(idx) {
+        selectedActivity = activityLabels[idx];
+        document.getElementById('selectedActivityLabel').textContent = selectedActivity.display;
+        document.getElementById('collectStartBtn').disabled = false;
+        loadActivityCounts();
+        addCollectLog(`활동 선택: ${selectedActivity.display} (${selectedActivity.code})`);
+    }
+
+    function collectStart() {
+        if (!selectedActivity) return;
+        const env = parseInt(document.getElementById('envInput').value);
+        const subject = parseInt(document.getElementById('subjectInput').value);
+        fetch('/collect/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ activity_code: selectedActivity.code, env, subject })
+        }).then(r => r.json()).then(data => {
+            if (!data.ok) addCollectLog(`오류: ${data.error}`, 'err');
+        });
+    }
+
+    function collectStop(save) {
+        fetch('/collect/stop', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ save })
+        }).then(r => r.json()).then(data => {
+            if (!data.ok) addCollectLog(`오류: ${data.error}`, 'err');
+        });
+    }
+
+    function setCollectRecording(recording, activityCode) {
+        const banner = document.getElementById('collectStatusBanner');
+        const startBtn = document.getElementById('collectStartBtn');
+        const saveBtn = document.getElementById('collectSaveBtn');
+        const discardBtn = document.getElementById('collectDiscardBtn');
+
+        if (recording) {
+            banner.textContent = `🔴 수집 중 — ${activityCode}`;
+            banner.className = 'collect-status-banner recording';
+            startBtn.disabled = true;
+            saveBtn.disabled = false;
+            discardBtn.disabled = false;
+            document.getElementById('collectPairCount').textContent = '0';
+        } else {
+            banner.textContent = '대기 중 — 활동을 선택하고 시작하세요';
+            banner.className = 'collect-status-banner';
+            startBtn.disabled = selectedActivity === null;
+            saveBtn.disabled = true;
+            discardBtn.disabled = true;
+        }
+    }
+
+    function addCollectLog(msg, type = '') {
+        const body = document.getElementById('collectLogBody');
+        const now = new Date().toLocaleTimeString();
+        const item = document.createElement('div');
+        item.className = `log-item ${type}`;
+        item.textContent = `[${now}] ${msg}`;
+        body.insertBefore(item, body.firstChild);
+        if (body.children.length > 30) body.removeChild(body.lastChild);
+    }
+
+    // ── 낙상 트리거 ──────────────────────────────────────
     function triggerFall() {
         fetch('/trigger_fall', { method: 'POST' })
             .then(r => r.json())
             .then(() => showToast('낙상 감지 시뮬레이션 실행됨', false));
     }
 
-    // 설정 로드
+    // ── 설정 ─────────────────────────────────────────────
     function loadSettings() {
         fetch('/settings').then(r => r.json()).then(data => {
             document.getElementById('set-receiver').value = data.receiver || '';
@@ -590,24 +851,20 @@
     }
     document.getElementById('set-sms-enabled').addEventListener('change', updateSmsToggleLabel);
 
-    // 알림 설정 저장
     function saveNotificationSettings() {
-        const payload = {
+        saveSettings({
             receiver: document.getElementById('set-receiver').value,
             sms_enabled: document.getElementById('set-sms-enabled').checked,
             cooldown_sec: document.getElementById('set-cooldown').value
-        };
-        saveSettings(payload);
+        });
     }
 
-    // 네트워크 설정 저장
     function saveNetworkSettings() {
-        const payload = {
+        saveSettings({
             mode: document.getElementById('set-mode').value,
             server_ip_demo: document.getElementById('set-ip-demo').value,
             server_ip_production: document.getElementById('set-ip-production').value
-        };
-        saveSettings(payload, true);
+        }, true);
     }
 
     function saveSettings(payload, isNetwork = false) {
@@ -615,15 +872,11 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
-        })
-        .then(r => r.json())
-        .then(data => {
+        }).then(r => r.json()).then(data => {
             showToast('설정이 저장되었습니다');
-            if (data.needs_restart || isNetwork) {
+            if (data.needs_restart || isNetwork)
                 document.getElementById('restart-notice').style.display = 'block';
-            }
-        })
-        .catch(() => showToast('저장 실패', true));
+        }).catch(() => showToast('저장 실패', true));
     }
 
     function showToast(msg, isError = false) {
@@ -634,7 +887,7 @@
         setTimeout(() => toast.style.display = 'none', 3000);
     }
 
-    // UI 함수
+    // ── UI 헬퍼 ──────────────────────────────────────────
     function updatePacketStats(stats) {
         if (!stats) return;
         updateLossBar('rx1', stats.rx1);
@@ -647,10 +900,7 @@
         document.getElementById(`${id}LossRate`).textContent = `${data.loss_rate}%`;
         const bar = document.getElementById(`${id}Bar`);
         bar.style.width = `${Math.min(data.loss_rate, 100)}%`;
-        bar.className = 'loss-bar ' + (
-            data.loss_rate < 5 ? 'loss-good' :
-            data.loss_rate < 20 ? 'loss-mid' : 'loss-bad'
-        );
+        bar.className = 'loss-bar ' + (data.loss_rate < 5 ? 'loss-good' : data.loss_rate < 20 ? 'loss-mid' : 'loss-bad');
     }
 
     function addPairRow(data) {
@@ -663,8 +913,7 @@
             <td style="color:#58a6ff">${data.rx1_rssi} dBm</td>
             <td style="color:#3fb950">${data.rx2_rssi} dBm</td>
             <td style="color:#58a6ff">${data.rx1_subs}</td>
-            <td style="color:#3fb950">${data.rx2_subs}</td>
-        `;
+            <td style="color:#3fb950">${data.rx2_subs}</td>`;
         tbody.insertBefore(row, tbody.firstChild);
         if (tbody.children.length > 10) tbody.removeChild(tbody.lastChild);
     }
@@ -679,8 +928,7 @@
             <div class="timeline-content">
                 <div class="time">${time}</div>
                 <div class="event">낙상 감지 #${count} — Pi4 알림 + SMS 발송 완료</div>
-            </div>
-        `;
+            </div>`;
         timeline.insertBefore(item, timeline.firstChild);
     }
 
@@ -689,14 +937,10 @@
         const label = document.getElementById('rpi4Label');
         const sub = document.getElementById('rpi4Sub');
         if (connected) {
-            dot.className = 'dot on';
-            label.textContent = '연결됨';
-            label.style.color = '#3fb950';
+            dot.className = 'dot on'; label.textContent = '연결됨'; label.style.color = '#3fb950';
             sub.textContent = message || 'WebSocket 연결 활성';
         } else {
-            dot.className = 'dot';
-            label.textContent = '미연결';
-            label.style.color = '#ff4d4d';
+            dot.className = 'dot'; label.textContent = '미연결'; label.style.color = '#ff4d4d';
             sub.textContent = message || 'WebSocket 대기 중...';
         }
     }
