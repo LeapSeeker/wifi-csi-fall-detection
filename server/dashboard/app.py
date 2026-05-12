@@ -113,7 +113,6 @@ def status():
 
 @app.route("/trigger_fall", methods=["POST"])
 def trigger_fall():
-    update_fall()
     if _fall_callback:
         _fall_callback()
     return jsonify({"status": "ok"})
@@ -154,8 +153,6 @@ def collect_start():
     if not activity_code:
         return jsonify({"ok": False, "error": "activity_code 필요"}), 400
     result = _collect_manager.start_session(activity_code, env, subject)
-    if result["ok"]:
-        socketio.emit("collect_started", result)
     return jsonify(result)
 
 @app.route("/collect/stop", methods=["POST"])
@@ -188,6 +185,7 @@ def collect_labels():
             "display": info["display"],
             "target": info["target"],
             "duration": sum(s["duration"] for s in info.get("stages", [])) or info.get("duration", 0),
+            "stages": info.get("stages", []),
             "class_idx": info["class_idx"],
         })
     return jsonify(labels)
@@ -246,4 +244,7 @@ def start_dashboard(on_fall_detected=None, collect_manager=None):
     global _fall_callback, _collect_manager
     _fall_callback = on_fall_detected
     _collect_manager = collect_manager
+    # socketio.emit 주입
+    if collect_manager is not None:
+        collect_manager.set_emit(socketio.emit)
     socketio.run(app, host="0.0.0.0", port=8080, debug=False)

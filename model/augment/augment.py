@@ -48,7 +48,7 @@ def scaling(
 
 def time_warping(
     x: np.ndarray,
-    sigma: float = 0.2,
+    sigma: float = 0.1,
     knot: int = 4,
     rng: np.random.Generator | None = None,
 ) -> np.ndarray:

@@ -1,5 +1,6 @@
 # server/main.py
 
+import os
 import multiprocessing
 import sys
 import time
@@ -16,6 +17,7 @@ from logger.log_manager import log_info, log_warn, log_pair, log_fall, get_log_f
 from logger.fall_history import save_fall
 from inference.worker import InferenceWorker
 from collect_manager import CollectManager
+from dotenv import load_dotenv
 
 # -----------------------------------------------
 # 전역 핸들 (Windows multiprocessing 안전: top-level에는 인스턴스 X)
@@ -128,7 +130,8 @@ def main():
     global rpi_connection, fall_cooldown, packet_monitor, pairing_buffer, inference_worker, collect_manager
 
     rpi_connection = RPiConnection(on_status_change=update_rpi4_status)
-    fall_cooldown = FallCooldown(cooldown_sec=30)
+    load_dotenv()  # .env에서 환경 변수 로드
+    fall_cooldown = FallCooldown(cooldown_sec=int(os.getenv("COOLDOWN_SEC", "30")))
     packet_monitor = PacketMonitor()
     pairing_buffer = PairingBuffer(on_paired=on_paired)
     inference_worker = InferenceWorker()
