@@ -264,6 +264,10 @@ static void wifi_init(void)
     xEventGroupWaitBits(s_wifi_event_group, WIFI_CONNECTED_BIT,
                         pdFALSE, pdTRUE, portMAX_DELAY);
     ESP_LOGI(TAG, "WiFi 연결: %s (채널 %d)", g_wifi_ssid, g_wifi_channel);
+
+    /* Power Save 비활성화 — modem sleep로 인한 burst→idle 방지 */
+    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
+    ESP_LOGI(TAG, "WiFi Power Save 비활성화 (WIFI_PS_NONE)");
 }
 
 /* ── UDP 소켓 초기화 ─────────────────────────────────── */

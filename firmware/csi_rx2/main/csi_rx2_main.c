@@ -86,6 +86,13 @@ static volatile uint32_t  pkt_seq   = 0;
 static EventGroupHandle_t wifi_event_group;
 #define WIFI_CONNECTED_BIT BIT0
 
+/* ── 처리량/큐 상태 모니터링 카운터 (DEBUG, 안정화 후 제거) ── */
+static volatile uint32_t g_csi_total = 0;  // CSI 콜백 진입 (모든 패킷)
+static volatile uint32_t g_csi_match = 0;  // TX MAC 일치 (필터 통과)
+static volatile uint32_t g_csi_qfull = 0;  // 큐 full로 drop
+static volatile uint32_t g_udp_sent  = 0;  // sendto 성공
+static volatile uint32_t g_udp_fail  = 0;  // sendto 실패
+
 /* ═══════════════════════════════════════════════════════
  * NVS 저장 / 로드
  * ═══════════════════════════════════════════════════════ */
@@ -198,10 +205,12 @@ static void serial_cmd_task(void *pvParameters)
 static void wifi_csi_cb(void *ctx, wifi_csi_info_t *info)
 {
     if (!info || !info->buf) return;
+    g_csi_total++;
     if (memcmp(info->mac, TX_MAC_ADDR, sizeof(TX_MAC_ADDR)) != 0) {
         ESP_LOGD(TAG, "CSI filtered: non-TX MAC");
         return;
     }
+    g_csi_match++;
 
     csi_packet_t pkt;
     pkt.magic     = PACKET_MAGIC;
@@ -225,7 +234,9 @@ static void wifi_csi_cb(void *ctx, wifi_csi_info_t *info)
     }
 
     BaseType_t woken = pdFALSE;
-    xQueueSendFromISR(csi_queue, &pkt, &woken);
+    if (xQueueSendFromISR(csi_queue, &pkt, &woken) != pdTRUE) {
+        g_csi_qfull++;
+    }
     portYIELD_FROM_ISR(woken);
 }
 
@@ -236,9 +247,30 @@ static void udp_send_task(void *pvParameters)
     ESP_LOGI(TAG, "UDP 전송 태스크 시작 → %s:%d", g_server_ip, g_server_port);
     while (1) {
         if (xQueueReceive(csi_queue, &pkt, portMAX_DELAY) == pdTRUE) {
-            sendto(udp_sock, &pkt, sizeof(csi_packet_t), 0,
-                   (struct sockaddr *)&server_addr, sizeof(server_addr));
+            int ret = sendto(udp_sock, &pkt, sizeof(csi_packet_t), 0,
+                             (struct sockaddr *)&server_addr, sizeof(server_addr));
+            if (ret > 0) g_udp_sent++;
+            else         g_udp_fail++;
         }
+    }
+}
+
+/* ── 1초 주기 통계 로그 태스크 (DEBUG, 안정화 후 제거) ───── */
+static void stats_task(void *pv)
+{
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        ESP_LOGI(TAG, "STATS cb=%lu match=%lu qfull=%lu sent=%lu fail=%lu",
+                 (unsigned long)g_csi_total,
+                 (unsigned long)g_csi_match,
+                 (unsigned long)g_csi_qfull,
+                 (unsigned long)g_udp_sent,
+                 (unsigned long)g_udp_fail);
+        g_csi_total = 0;
+        g_csi_match = 0;
+        g_csi_qfull = 0;
+        g_udp_sent  = 0;
+        g_udp_fail  = 0;
     }
 }
 
@@ -288,6 +320,10 @@ static void wifi_init(void)
     xEventGroupWaitBits(s_wifi_event_group, WIFI_CONNECTED_BIT,
                         pdFALSE, pdTRUE, portMAX_DELAY);
     ESP_LOGI(TAG, "WiFi 연결: %s (채널 %d)", g_wifi_ssid, g_wifi_channel);
+
+    /* Power Save 비활성화 — modem sleep로 인한 burst→idle 방지 */
+    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
+    ESP_LOGI(TAG, "WiFi Power Save 비활성화 (WIFI_PS_NONE)");
 }
 
 /* ── SNTP 초기화 ─────────────────────────────────────── */
@@ -370,6 +406,7 @@ void app_main(void)
     csi_init();
 
     xTaskCreate(udp_send_task, "udp_send", 8192, NULL, 5, NULL);
+    xTaskCreate(stats_task,    "stats",    4096, NULL, 2, NULL);
 
     ESP_LOGI(TAG, "=== RX2 준비 완료 ===");
     ESP_LOGI(TAG, "서버: %s:%d | DevID: 0x%02X | Magic: 0x%02X | 패킷: %d bytes",
