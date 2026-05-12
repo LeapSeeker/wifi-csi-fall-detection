@@ -30,6 +30,12 @@ Thumbs.db
 # 개인용 Claude Code 메모리 (팀 공유 안 함)
 CLAUDE.local.md
 
+# 개인용 Claude Code 권한/설정 (팀 공유 안 함)
+.claude/settings.local.json
+
+# 서버 런타임 로그
+server/logs/
+
 # 사전학습 데이터셋 (폴더는 보존, 내용물만 제외)
 data/alsaify-raw/*
 !data/alsaify-raw/.gitkeep
