@@ -21,7 +21,14 @@ from tqdm import tqdm
 from .acf import N_LAGS
 from .amplitude import to_amplitude
 from .downsample import downsample_alsaify
-from .loader import AlsaifyMeta, load_csi_csv, parse_alsaify_filename
+from .loader import (
+    AlsaifyMeta,
+    SafeSignalMeta,
+    load_csi_csv,
+    load_safesignal_csv,
+    parse_alsaify_filename,
+)
+from .resample import ResampleResult, resample_to_100hz
 from .rpca import DEFAULT_MAX_ITER, rpca_sparse
 from .sdp import SUB_STRIDE, SUB_W, W_T, stacked_doppler_profile
 from .window import WINDOW_SIZE, sliding_windows
@@ -352,4 +359,101 @@ def preprocess_directory_full(
         rpca_max_iter=rpca_max_iter,
         rpca_tol=rpca_tol,
         show_progress=show_progress,
+    )
+
+
+# ─── SafeSignal 자체수집 전용 (D-018) ─────────────────────────────────────
+# Alsaify 경로(downsample_alsaify)와 분리. 공통 후단(sliding_windows,
+# windows_to_model_input)만 재사용한다.
+
+@dataclass
+class SafeSignalPreprocessResult:
+    windows: np.ndarray              # (n_windows, window_size, n_sc) float32
+    meta: SafeSignalMeta
+    resample: ResampleResult         # 품질 metadata (gap_count, original_rate_hz 등)
+
+
+@dataclass
+class SafeSignalModelInputResult:
+    inputs: np.ndarray               # (n_windows, 1, 28, 20) float32 — CNN 입력
+    meta: SafeSignalMeta
+    resample: ResampleResult
+
+
+def preprocess_safesignal_file(
+    path: str | Path,
+    rx: str = "both",
+    target_hz: float = 100.0,
+    max_gap_ms: float = 100.0,
+    window_size: int = WINDOW_SIZE,
+    stride: int | None = None,
+    drop_last: bool = True,
+    tail_window: bool = False,
+    pad_short: bool = False,
+) -> SafeSignalPreprocessResult:
+    """SafeSignal CSV → 100Hz 리샘플 → 윈도우.
+
+    흐름: load_safesignal_csv → resample_to_100hz → sliding_windows.
+    Alsaify의 downsample_alsaify(320→100Hz)와는 다른 경로(timestamp 기반 보간).
+
+    rx="both" 기본 — Rx1/Rx2 concat (D-013), 윈도우 shape (?, 300, 104).
+    5초 수집 데이터에서는 호출자가 tail_window=True를 줘 잔여 패킷 보존 가능.
+    """
+    raw = load_safesignal_csv(path, rx=rx)
+    res = resample_to_100hz(
+        raw.amplitude,
+        raw.timestamps_us,
+        target_hz=target_hz,
+        max_gap_ms=max_gap_ms,
+    )
+    windows = sliding_windows(
+        res.amplitude,
+        window_size=window_size,
+        stride=stride,
+        drop_last=drop_last,
+        tail_window=tail_window,
+        pad_short=pad_short,
+    )
+    return SafeSignalPreprocessResult(
+        windows=windows,
+        meta=raw.meta,
+        resample=res,
+    )
+
+
+def preprocess_safesignal_file_full(
+    path: str | Path,
+    rx: str = "both",
+    target_hz: float = 100.0,
+    max_gap_ms: float = 100.0,
+    window_size: int = WINDOW_SIZE,
+    stride: int | None = None,
+    drop_last: bool = True,
+    tail_window: bool = False,
+    pad_short: bool = False,
+    rpca_max_iter: int = DEFAULT_MAX_ITER,
+    rpca_tol: float | None = None,
+) -> SafeSignalModelInputResult:
+    """SafeSignal CSV → 모델 입력 텐서 (n_windows, 1, 28, 20).
+
+    preprocess_safesignal_file 결과에 windows_to_model_input(RPCA→ACF→SDP) 적용.
+    """
+    pre = preprocess_safesignal_file(
+        path,
+        rx=rx,
+        target_hz=target_hz,
+        max_gap_ms=max_gap_ms,
+        window_size=window_size,
+        stride=stride,
+        drop_last=drop_last,
+        tail_window=tail_window,
+        pad_short=pad_short,
+    )
+    inputs = windows_to_model_input(
+        pre.windows, rpca_max_iter=rpca_max_iter, rpca_tol=rpca_tol
+    )
+    return SafeSignalModelInputResult(
+        inputs=inputs,
+        meta=pre.meta,
+        resample=pre.resample,
     )
