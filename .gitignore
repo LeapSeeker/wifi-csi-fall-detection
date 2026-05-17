@@ -13,6 +13,7 @@ data/raw/_archive/
 data/augmented/*.csv
 model/pretrained/*.pth
 model/pretrained/checkpoints/
+model/pretrained/checkpoints_local_backup_*/
 model/pretrained/*.pt
 *.onnx
 
@@ -33,6 +34,7 @@ CLAUDE.local.md
 
 # 개인용 Claude Code 권한/설정 (팀 공유 안 함)
 .claude/settings.local.json
+.claude/settings.json
 
 # 서버 런타임 로그
 server/logs/
