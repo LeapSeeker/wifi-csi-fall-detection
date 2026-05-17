@@ -199,6 +199,40 @@ def main(csv_path: Path) -> int:
     assert model_input.shape == (1, W_T, N_LAGS)
     assert model_input.dtype == np.float32
 
+    # ── 7.5) Global z-score 정규화 검증 ────────────────────────────────────
+    _hr("7.5) Global z-score (window 단위)")
+    mi_mean = float(model_input.mean())
+    mi_std = float(model_input.std())
+    print(f"  model_input mean={mi_mean:.6f}  std={mi_std:.6f}")
+    assert model_input.shape == (1, W_T, N_LAGS), \
+        f"z-score 후 shape이 변경됨: {model_input.shape}"
+    assert abs(mi_mean) < 0.1, f"abs(mean) < 0.1 위반: mean={mi_mean:.6f}"
+    assert 0.9 < mi_std < 1.1, f"0.9 < std < 1.1 위반: std={mi_std:.6f}"
+    assert np.isfinite(model_input).all(), "model_input에 nan/inf 존재"
+    print("  일반 입력 mean≈0 / std≈1 검증 통과")
+
+    # degenerate 입력: constant/zero 윈도우에서도 RPCA→ACF→SDP→z-score가
+    # nan/inf 없이 끝나는지 확인한다.
+    # ACF는 constant 입력에서 lag0=1, 나머지 lag=0을 반환하므로
+    # 이 케이스는 std=0 직접 검증이 아니라 전체 경로 finite 검증이다.
+    # (RPCA 내부에서 RuntimeWarning이 뜰 수 있으나 최종 출력 finite면 PASS)
+    const_win = np.ones((WINDOW_SIZE, 90), dtype=np.float32)
+    const_out = window_to_model_input(const_win)
+    print(f"  constant input → shape={const_out.shape}  "
+          f"mean={float(const_out.mean()):.3e}  std={float(const_out.std()):.3e}")
+    assert const_out.shape == (1, W_T, N_LAGS)
+    assert np.isfinite(const_out).all(), \
+        "constant 입력 전체 경로에서 nan/inf 발생"
+
+    zero_win = np.zeros((WINDOW_SIZE, 90), dtype=np.float32)
+    zero_out = window_to_model_input(zero_win)
+    print(f"  zero input     → shape={zero_out.shape}  "
+          f"mean={float(zero_out.mean()):.3e}  std={float(zero_out.std()):.3e}")
+    assert zero_out.shape == (1, W_T, N_LAGS)
+    assert np.isfinite(zero_out).all(), \
+        "zero 입력 전체 경로에서 nan/inf 발생"
+    print("  degenerate 입력 전체 경로 finite 검증 통과")
+
     # ── 8) 모델 forward (배치) ─────────────────────────────────────────────
     _hr("8) CNNGRUAttention forward — batch (4, 1, 28, 20)")
     try:
