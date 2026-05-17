@@ -39,6 +39,10 @@ CLAUDE.local.md
 # 서버 런타임 로그
 server/logs/
 
+# tools/ 산출물 (augment_inspector 등) — 스크립트만 추적
+tools/inspect_output/
+tools/inspect_output_*/
+
 # 사전학습 데이터셋 (폴더는 보존, 내용물만 제외)
 data/alsaify-raw/*
 !data/alsaify-raw/.gitkeep
