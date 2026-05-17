@@ -51,6 +51,14 @@ def rpca_sparse(
     lmbda = 1.0 / np.sqrt(max(n_t, n_s))
 
     D = np.asarray(matrix, dtype=np.float64)
+
+    # Degenerate 입력 방어 — RobustPCA 초기화에서 1/||D||_1 형태로 mu가 계산되므로
+    # 전부 0이거나 거의 상수면 inf/nan이 전파된다. wrapper 단계에서 가로채 zero S로 반환.
+    if not np.isfinite(D).all():
+        raise ValueError("RPCA input contains nan/inf")
+    if np.std(D) < 1e-8:
+        return np.zeros_like(D, dtype=np.float32)
+
     rpca = RobustPCA(D, lmbda=lmbda)
 
     iter_print = 100 if verbose else max(max_iter + 10, 10_000)

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import sys
 import time
+import warnings
 from pathlib import Path
 
 # 직접 실행(`python model/preprocessing/test_pipeline.py`, IDE Run 버튼 등) 지원.
@@ -215,23 +216,29 @@ def main(csv_path: Path) -> int:
     # nan/inf 없이 끝나는지 확인한다.
     # ACF는 constant 입력에서 lag0=1, 나머지 lag=0을 반환하므로
     # 이 케이스는 std=0 직접 검증이 아니라 전체 경로 finite 검증이다.
-    # (RPCA 내부에서 RuntimeWarning이 뜰 수 있으나 최종 출력 finite면 PASS)
+    # rpca_sparse()가 std<1e-8인 입력을 조기 zero 반환으로 가로채므로
+    # RPCA 내부의 inf*0 → RuntimeWarning이 발생하지 않아야 한다.
     const_win = np.ones((WINDOW_SIZE, 90), dtype=np.float32)
-    const_out = window_to_model_input(const_win)
+    zero_win = np.zeros((WINDOW_SIZE, 90), dtype=np.float32)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", RuntimeWarning)
+        const_out = window_to_model_input(const_win)
+        zero_out = window_to_model_input(zero_win)
+    runtime_warnings = [w for w in caught if issubclass(w.category, RuntimeWarning)]
     print(f"  constant input → shape={const_out.shape}  "
           f"mean={float(const_out.mean()):.3e}  std={float(const_out.std()):.3e}")
+    print(f"  zero input     → shape={zero_out.shape}  "
+          f"mean={float(zero_out.mean()):.3e}  std={float(zero_out.std()):.3e}")
+    print(f"  RuntimeWarning 발생 건수: {len(runtime_warnings)}")
     assert const_out.shape == (1, W_T, N_LAGS)
     assert np.isfinite(const_out).all(), \
         "constant 입력 전체 경로에서 nan/inf 발생"
-
-    zero_win = np.zeros((WINDOW_SIZE, 90), dtype=np.float32)
-    zero_out = window_to_model_input(zero_win)
-    print(f"  zero input     → shape={zero_out.shape}  "
-          f"mean={float(zero_out.mean()):.3e}  std={float(zero_out.std()):.3e}")
     assert zero_out.shape == (1, W_T, N_LAGS)
     assert np.isfinite(zero_out).all(), \
         "zero 입력 전체 경로에서 nan/inf 발생"
-    print("  degenerate 입력 전체 경로 finite 검증 통과")
+    assert not runtime_warnings, \
+        f"degenerate 입력 경로에서 RuntimeWarning 발생: {runtime_warnings}"
+    print("  degenerate 입력 finite + RuntimeWarning 없음 검증 통과")
 
     # ── 8) 모델 forward (배치) ─────────────────────────────────────────────
     _hr("8) CNNGRUAttention forward — batch (4, 1, 28, 20)")
