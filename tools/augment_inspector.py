@@ -9,10 +9,12 @@
 CLI:
     python tools/augment_inspector.py <csv_path_or_dir> [--out <output_dir>] [--seed 42]
     python tools/augment_inspector.py --synthetic [--out <output_dir>] [--seed 42]
+    python tools/augment_inspector.py  # CSV 파일 선택 창
 """
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -125,6 +127,46 @@ def resolve_csv_path(arg: str) -> Path:
     if not csvs:
         raise FileNotFoundError(f"디렉터리에 *.csv 파일 없음: {p}")
     return csvs[0]
+
+
+def pick_csv_file() -> Path | None:
+    """GUI 파일 선택 창으로 SafeSignal CSV 1개를 선택한다."""
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+    except ImportError:
+        print(
+            "[error] tkinter 사용 불가. CSV 경로를 직접 인자로 전달하세요.\n"
+            "예: python tools\\augment_inspector.py data\\raw",
+            file=sys.stderr,
+        )
+        return None
+
+    initial_dir = PROJECT_ROOT / "data" / "raw"
+    if not initial_dir.exists():
+        initial_dir = PROJECT_ROOT
+
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+    selected = filedialog.askopenfilename(
+        title="SafeSignal CSV 파일 선택",
+        initialdir=str(initial_dir),
+        filetypes=[
+            ("CSV files", "*.csv"),
+            ("All files", "*.*"),
+        ],
+    )
+    root.destroy()
+    return Path(selected) if selected else None
+
+
+def open_output_dir(path: Path) -> None:
+    """Windows에서 결과 폴더를 연다. 실패해도 inspector 결과는 유지한다."""
+    try:
+        os.startfile(path.resolve())  # type: ignore[attr-defined]
+    except Exception as e:
+        print(f"[warn ] 결과 폴더 자동 열기 실패: {e!r}")
 
 
 # ── 출력물 생성 ──────────────────────────────────────────────────────────
@@ -391,8 +433,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--out",
         type=Path,
-        default=DEFAULT_OUT,
-        help=f"출력 디렉터리 (기본: {DEFAULT_OUT})",
+        default=None,
+        help=(
+            f"출력 디렉터리 (기본: {DEFAULT_OUT}, "
+            "파일 선택 모드에서는 inspect_output/<csv_stem>)"
+        ),
     )
     parser.add_argument(
         "--seed",
@@ -407,17 +452,24 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    if not args.synthetic and args.csv_path is None:
-        parser.error("csv_path가 필요하다 (또는 --synthetic 지정).")
-
-    out_dir: Path = args.out
-    out_dir.mkdir(parents=True, exist_ok=True)
+    picker_mode = not args.synthetic and args.csv_path is None
 
     # 1) 입력 CSV 결정
     if args.synthetic:
+        out_dir = args.out if args.out is not None else DEFAULT_OUT
+        out_dir.mkdir(parents=True, exist_ok=True)
         csv_path = make_synthetic_csv(out_dir, seed=args.seed)
         print(f"[synthetic] 합성 CSV 생성: {csv_path}")
+    elif picker_mode:
+        csv_path = pick_csv_file()
+        if csv_path is None:
+            print("[info ] CSV 선택이 취소되었습니다.")
+            return 2
+        out_dir = args.out if args.out is not None else DEFAULT_OUT / csv_path.stem
+        out_dir.mkdir(parents=True, exist_ok=True)
     else:
+        out_dir = args.out if args.out is not None else DEFAULT_OUT
+        out_dir.mkdir(parents=True, exist_ok=True)
         try:
             csv_path = resolve_csv_path(args.csv_path)
         except FileNotFoundError as e:
@@ -502,6 +554,10 @@ def main(argv: list[str] | None = None) -> int:
         diff_stats=diff_stats,
     )
     print(f"[saved ] {summary_path}")
+
+    if picker_mode:
+        print(f"[open  ] 결과 폴더 열기: {out_dir.resolve()}")
+        open_output_dir(out_dir)
 
     return 0
 
