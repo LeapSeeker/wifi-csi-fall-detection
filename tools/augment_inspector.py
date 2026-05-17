@@ -25,8 +25,11 @@ if str(PROJECT_ROOT) not in sys.path:
 try:
     import numpy as np
 except ImportError:
-    print("[error] numpy 미설치. `pip install numpy` 후 다시 실행하세요.", file=sys.stderr)
-    raise
+    print(
+        "[error] numpy 미설치. `pip install numpy` 후 다시 실행하세요.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
 
 try:
     import matplotlib
@@ -37,7 +40,7 @@ except ImportError:
         "[error] matplotlib 미설치. `pip install matplotlib` 후 다시 실행하세요.",
         file=sys.stderr,
     )
-    raise
+    sys.exit(1)
 
 try:
     import pandas as pd  # synthetic CSV 생성용
@@ -46,7 +49,7 @@ except ImportError:
         "[error] pandas 미설치. `pip install pandas` 후 다시 실행하세요.",
         file=sys.stderr,
     )
-    raise
+    sys.exit(1)
 
 from model.augment.augment import jittering, noise_scale, scaling, time_warping
 from model.preprocessing.pipeline import preprocess_safesignal_file_full
@@ -323,13 +326,44 @@ def write_stats_summary(
     else:
         lines.append("    → sigma 비중이 큼. 학습 시 패턴 손상 가능성 검토 필요.")
 
-    lines.append(
-        "  scaling range 0.8~1.2: SDP는 global z-score 정규화되어 평균~0, std~1 부근."
+    scaling_aug = augmented["scaling"]
+    original_range = float(original.max() - original.min())
+    scaling_diff = np.abs(scaling_aug - original)
+    scaling_diff_max = float(scaling_diff.max())
+    scaling_diff_mean = float(scaling_diff.mean())
+    scaling_aug_std = float(scaling_aug.std())
+    scaling_std_change_pct = (
+        (scaling_aug_std / orig_std - 1.0) * 100.0 if orig_std > 0 else float("nan")
     )
-    lines.append(
-        "    z-score 후 값에 ±20% 배율을 곱하는 셈이므로 형태(shape) 보존, "
-        "에너지(스케일)만 조정. 과하지 않은 강도로 판단."
-    )
+
+    lines.append("  scaling range 0.8~1.2:")
+    if original_range <= 1e-8:
+        lines.append(f"    original_range={original_range:.6f}")
+        lines.append(
+            "    → 원본 값 범위가 거의 0이므로 scaling 판단 불가. "
+            "입력/전처리 상태 확인 필요."
+        )
+    else:
+        ratio = scaling_diff_max / original_range
+        lines.append(f"    original_range={original_range:.6f}")
+        lines.append(f"    max|Δ|/range={ratio * 100.0:.2f}%")
+        lines.append(f"    mean|Δ|={scaling_diff_mean:.6f}")
+        lines.append(f"    std_change={scaling_std_change_pct:+.2f}%")
+        if ratio < 0.10:
+            verdict = (
+                "scaling 영향이 약함. 다양성 증가 효과가 제한적일 수 있음."
+            )
+        elif ratio <= 0.35:
+            verdict = (
+                "scaling 영향이 원본 범위 대비 완만함. "
+                "inspector 기준으로는 무리 없는 범위."
+            )
+        else:
+            verdict = (
+                "scaling 영향이 큼. 비낙상 패턴 왜곡 및 FAR 증가 가능성을 "
+                "실제 검증에서 확인 필요."
+            )
+        lines.append(f"    → {verdict}")
     lines.append("")
     lines.append(
         "주의: 위의 적정성 판단은 빠른 sanity check이다. 최종 적정성은 실제 "
