@@ -3,6 +3,10 @@
 실행:
     python collect/collect_main.py [--port 5005]
 
+Google Drive 자동 업로드(rclone 사용, 선택):
+    $env:SAFESIGNAL_DRIVE_UPLOAD="1"
+    $env:SAFESIGNAL_DRIVE_REMOTE="gdrive:SafeSignal/data/raw"
+
 수집 목표 (270 세션):
 - 낙상 9종 × 10회 = 90 세션
 - 비낙상 6종 × 30회 = 180 세션
@@ -21,6 +25,7 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 from collect.beep import beep_end, beep_ready, beep_stage
+from collect.drive_upload import DriveUploadConfig, upload_file_async, upload_status_message
 from collect.labels import ACTIVITY_INFO, ACTIVITY_ORDER, get_duration
 from collect.recorder import SessionRecorder
 from collect.udp import UDP_PORT, start_udp_receiver
@@ -145,6 +150,7 @@ def _run_session(recorder: SessionRecorder, activity_code: str, env: int, subjec
             path = recorder.save_session(buf, activity_code, env, subject)
             if path is not None:
                 print(f"  저장됨: {path}")
+                upload_file_async(path)
             break
         if ans in ("n", "no"):
             print("  폐기됨.")
@@ -173,6 +179,8 @@ def main() -> int:
 
     print(GUIDE_TEXT)
     print(PORT_NOTICE)
+    upload_config = DriveUploadConfig.from_env()
+    print(upload_status_message(upload_config))
 
     recorder = SessionRecorder()
 

@@ -2,6 +2,7 @@
 
 # 가상환경
 .venv/
+.local/
 
 # 외부 저장소
 esp-csi/
@@ -11,6 +12,7 @@ wifi-csi-fall-detection/
 data/raw/*.csv
 data/raw/_archive/
 data/augmented/*.csv
+data/upload_log.md
 model/pretrained/*.pth
 model/pretrained/checkpoints/
 model/pretrained/checkpoints_local_backup_*/
