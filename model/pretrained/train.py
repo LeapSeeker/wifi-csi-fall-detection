@@ -66,6 +66,7 @@ CACHE_WINDOW_SIZE: int = WINDOW_SIZE  # 300 패킷 (3s @100Hz, D-004)
 CACHE_STRIDE: int | None = None       # None → window_size (=비중첩)
 CACHE_TAIL_WINDOW: bool = True
 CACHE_PAD_SHORT: bool = True
+CACHE_LAG_POLICY: str = "lag1_20"     # ACF lag0 제외, lag=1..20 사용
 
 
 def _make_cache_path(
@@ -75,11 +76,12 @@ def _make_cache_path(
     stride: int | None,
     tail_window: bool,
     pad_short: bool,
+    lag_policy: str,
 ) -> Path:
     """전처리 파라미터를 파일명에 직접 표기한 캐시 경로 생성.
 
     파라미터가 동일하면 기존 캐시를 자동 재사용, 하나라도 다르면 새 캐시가
-    생긴다. 형식: dataset_cache_e{envs}_w{ws}_s{stride}[_tail][_ps].npz.
+    생긴다. 형식: dataset_cache_e{envs}_w{ws}_s{stride}_{lag_policy}[_tail][_ps].npz.
     stride=None이면 파일명에는 window_size와 동일한 값으로 표기한다.
     """
     env_str = "".join(str(e) for e in sorted(envs))
@@ -90,7 +92,9 @@ def _make_cache_path(
     if pad_short:
         flags.append("ps")
     flag_str = ("_" + "_".join(flags)) if flags else ""
-    return cache_dir / f"dataset_cache_e{env_str}_w{window_size}_s{s}{flag_str}.npz"
+    return cache_dir / (
+        f"dataset_cache_e{env_str}_w{window_size}_s{s}_{lag_policy}{flag_str}.npz"
+    )
 
 
 # ── 캐시 빌드 ──────────────────────────────────────────────────────────────
@@ -380,9 +384,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--data_root", type=Path, default=DEFAULT_DATA_ROOT)
     p.add_argument("--cache_path", type=Path, default=None,
                    help="기본: checkpoints/dataset_cache_e<envs>_w<ws>_s<stride>"
-                        "[_tail][_ps].npz. 전처리 파라미터(window/stride/"
-                        "tail_window/pad_short)가 그대로 파일명에 박혀 파라미터가 "
-                        "바뀌면 자동으로 새 캐시가 생성된다.")
+                        "_lag1_20[_tail][_ps].npz. 전처리 파라미터(window/stride/"
+                        "lag policy/tail_window/pad_short)가 그대로 파일명에 박혀 "
+                        "파라미터가 바뀌면 자동으로 새 캐시가 생성된다.")
     p.add_argument("--ckpt_dir", type=Path, default=DEFAULT_CKPT_DIR)
     p.add_argument("--envs", type=int, nargs="+", default=list(LOS_ENVS),
                    choices=[1, 2, 3],
@@ -417,6 +421,7 @@ def main() -> int:
             stride=CACHE_STRIDE,
             tail_window=CACHE_TAIL_WINDOW,
             pad_short=CACHE_PAD_SHORT,
+            lag_policy=CACHE_LAG_POLICY,
         )
 
     if args.rebuild_cache or not args.cache_path.exists():

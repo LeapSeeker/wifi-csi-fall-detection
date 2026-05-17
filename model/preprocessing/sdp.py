@@ -2,6 +2,7 @@
 
 서브윈도우 W=30, stride=10 으로 시간 축을 분할 → 각 서브윈도우마다 ACF (n_sc, N_Δ)
 를 계산 → 서브캐리어 축으로 평균 → (N_Δ,) 1D 프로파일 → W_T 개를 stack.
+ACF lag=0은 제외하고 lag=1..20을 사용한다.
 
 300패킷 입력 기준:
   W_T = (300 - 30) / 10 + 1 = 28
@@ -64,8 +65,8 @@ def stacked_doppler_profile(
     n_t, n_sc = matrix.shape
     if n_t < sub_w:
         raise ValueError(f"n_t({n_t}) < sub_w({sub_w})")
-    if n_lags > sub_w:
-        raise ValueError(f"n_lags({n_lags}) > sub_w({sub_w})")
+    if n_lags >= sub_w:
+        raise ValueError(f"n_lags({n_lags}) >= sub_w({sub_w})")
 
     n_sub = (n_t - sub_w) // stride + 1
     out = np.empty((n_sub, n_lags), dtype=np.float32)

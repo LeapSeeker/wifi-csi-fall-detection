@@ -165,13 +165,13 @@ def main(csv_path: Path) -> int:
     acf_one = autocorrelation_matrix(sub0)                 # (90, 20)
     print(f"  ACF output:          shape={acf_one.shape}  axes=(subcarrier, lag)")
     print(f"    => ACF가 axis 순서를 (time, sc) → (sc, lag) 로 transpose함")
-    print(f"    rho_0[:, 0] mean={float(acf_one[:, 0].mean()):.6f} (정확히 1.0이어야)")
-    print(f"    rho_0[:, 0] min={float(acf_one[:, 0].min()):.6f} "
+    print(f"    rho_1[:, 0] mean={float(acf_one[:, 0].mean()):.6f} (lag0 제외)")
+    print(f"    rho_1[:, 0] min={float(acf_one[:, 0].min()):.6f} "
           f"max={float(acf_one[:, 0].max()):.6f}")
     assert acf_one.shape == (90, N_LAGS), \
         f"ACF shape mismatch: expected (90,{N_LAGS}) got {acf_one.shape}"
-    assert np.allclose(acf_one[:, 0], 1.0, atol=1e-5), \
-        "ACF lag-0이 1이 아님 → 축 0이 lag로 잘못 잡힘 가능성"
+    assert not np.allclose(acf_one[:, 0], 1.0, atol=1e-5), \
+        "ACF 첫 열이 모두 1.0임 → lag0이 제거되지 않았을 가능성"
 
     # ── 7) SDP 입력 직전 / 집계 후 ─────────────────────────────────────────
     _hr("7) SDP (서브캐리어 축 평균 집계)")
@@ -214,8 +214,8 @@ def main(csv_path: Path) -> int:
 
     # degenerate 입력: constant/zero 윈도우에서도 RPCA→ACF→SDP→z-score가
     # nan/inf 없이 끝나는지 확인한다.
-    # ACF는 constant 입력에서 lag0=1, 나머지 lag=0을 반환하므로
-    # 이 케이스는 std=0 직접 검증이 아니라 전체 경로 finite 검증이다.
+    # ACF는 constant 입력에서 lag=1..N_LAGS를 모두 0으로 반환한다.
+    # 이 케이스는 전체 경로 finite 검증이다.
     # rpca_sparse()가 std<1e-8인 입력을 조기 zero 반환으로 가로채므로
     # RPCA 내부의 inf*0 → RuntimeWarning이 발생하지 않아야 한다.
     const_win = np.ones((WINDOW_SIZE, 90), dtype=np.float32)

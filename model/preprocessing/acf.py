@@ -1,8 +1,12 @@
 """자기상관(ACF) 계산.
 
-서브윈도우 시계열의 lag-k 자기상관을 lag=0..N_Δ-1 까지 산출.
+서브윈도우 시계열의 lag-k 자기상관을 lag=1..N_Δ 까지 산출.
 N_Δ = 20, ΔT = 0.01s (= 100Hz 샘플 간격).
-정규화: rho_k = sum (x_t - mu)(x_{t+k} - mu) / sum (x_t - mu)^2  → rho_0 = 1.
+정규화: rho_k = sum (x_t - mu)(x_{t+k} - mu) / sum (x_t - mu)^2.
+
+lag=0은 수학적으로 항상 rho_0=1인 상수 열이라 SDP/z-score 분포를 지배하므로
+모델 입력에서는 제외한다. 출력 shape은 기존과 동일하게 (N_Δ,)를 유지하되,
+인덱스 0이 lag=1, 인덱스 19가 lag=20을 의미한다.
 """
 from __future__ import annotations
 
@@ -19,7 +23,7 @@ def autocorrelation_1d(x: np.ndarray, n_lags: int = N_LAGS) -> np.ndarray:
     ----------
     x : np.ndarray, shape (n,)
     n_lags : int
-        반환 lag 개수 (lag=0..n_lags-1). n_lags <= len(x) 필요.
+        반환 lag 개수 (lag=1..n_lags). n_lags < len(x) 필요.
 
     Returns
     -------
@@ -27,22 +31,18 @@ def autocorrelation_1d(x: np.ndarray, n_lags: int = N_LAGS) -> np.ndarray:
     """
     x = np.asarray(x, dtype=np.float64)
     n = x.shape[0]
-    if n_lags > n:
-        raise ValueError(f"n_lags({n_lags}) > len(x)({n})")
+    if n_lags >= n:
+        raise ValueError(f"n_lags({n_lags}) >= len(x)({n})")
 
     xc = x - x.mean()
     denom = np.dot(xc, xc)
     out = np.empty(n_lags, dtype=np.float32)
     if denom == 0:
         out.fill(0.0)
-        out[0] = 1.0
         return out
 
-    for k in range(n_lags):
-        if k == 0:
-            out[k] = 1.0
-        else:
-            out[k] = np.dot(xc[: n - k], xc[k:]) / denom
+    for k in range(1, n_lags + 1):
+        out[k - 1] = np.dot(xc[: n - k], xc[k:]) / denom
     return out
 
 

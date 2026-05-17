@@ -17,15 +17,12 @@ from model.preprocessing.acf import autocorrelation_1d, autocorrelation_matrix, 
 
 
 def check_boundary_conditions() -> None:
-    print("\n[1] 경계 조건 검증 (rho_0=1, |rho_k|<=1)")
+    print("\n[1] 경계 조건 검증 (lag=1..N_LAGS, |rho_k|<=1)")
     rng = np.random.default_rng(42)
     all_pass = True
     for i in range(10):
         x = rng.uniform(-1, 1, size=100).astype(np.float32)
         acf = autocorrelation_1d(x, n_lags=N_LAGS)
-        if not np.isclose(acf[0], 1.0, atol=1e-5):
-            print(f"  [FAIL] 신호 {i}: rho_0={acf[0]:.6f} != 1")
-            all_pass = False
         if not (np.abs(acf) <= 1.0 + 1e-5).all():
             print(f"  [FAIL] 신호 {i}: |rho_k| > 1 발생")
             all_pass = False
@@ -38,17 +35,16 @@ def check_known_signal() -> None:
     t = np.linspace(0, 1, 100, endpoint=False)
     x = np.sin(2 * np.pi * 2 * t).astype(np.float32)
     acf = autocorrelation_1d(x, n_lags=20)
-    print(f"  rho_0={acf[0]:.4f}  rho_5={acf[5]:.4f}  rho_10={acf[10]:.4f}  rho_19={acf[19]:.4f}")
-    print(f"  rho_0=1: {'PASS' if np.isclose(acf[0], 1.0, atol=1e-5) else 'FAIL'}")
+    print(f"  rho_1={acf[0]:.4f}  rho_5={acf[4]:.4f}  rho_10={acf[9]:.4f}  rho_20={acf[19]:.4f}")
+    print(f"  lag0 제외 shape 유지: {'PASS' if acf.shape == (20,) else 'FAIL'}")
 
 
 def check_zero_signal() -> None:
     print("\n[3] 영 신호 (상수) 입력 검증")
     x = np.ones(100, dtype=np.float32) * 3.0
     acf = autocorrelation_1d(x, n_lags=N_LAGS)
-    print(f"  rho_0={acf[0]:.4f} (기대 1.0)")
-    print(f"  rho_k(k>0) 최대값={np.abs(acf[1:]).max():.6f} (기대 0.0)")
-    print(f"  {'PASS' if np.isclose(acf[0], 1.0) and np.abs(acf[1:]).max() < 1e-5 else 'FAIL'}")
+    print(f"  rho_k(k=1..{N_LAGS}) 최대값={np.abs(acf).max():.6f} (기대 0.0)")
+    print(f"  {'PASS' if np.abs(acf).max() < 1e-5 else 'FAIL'}")
 
 
 def check_n_lags_shape() -> None:

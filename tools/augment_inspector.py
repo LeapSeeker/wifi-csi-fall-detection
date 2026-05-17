@@ -230,7 +230,7 @@ def save_augmentation_heatmaps(
             vmax=vmax,
         )
         ax.set_title(title, fontsize=10)
-        ax.set_xlabel("lag (0~19)")
+        ax.set_xlabel("lag (1~20)")
         ax.set_ylabel("time step (0~27)")
     # 남는 마지막 subplot 비활성
     axes.flat[5].axis("off")
@@ -283,7 +283,7 @@ def save_diff_heatmaps(
             f"{titles[key]}  max|Δ|={max_abs:.3f}  mean|Δ|={mean_abs:.3f}",
             fontsize=10,
         )
-        ax.set_xlabel("lag (0~19)")
+        ax.set_xlabel("lag (1~20)")
         ax.set_ylabel("time step (0~27)")
 
     fig.colorbar(last_im, ax=axes.ravel().tolist(), shrink=0.85, pad=0.02)

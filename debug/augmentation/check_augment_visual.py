@@ -66,7 +66,7 @@ def main() -> None:
     for ax, data, name in zip(axes, all_data, all_names):
         im = ax.imshow(data[0], aspect="auto", cmap="RdBu_r", vmin=vmin, vmax=vmax)
         ax.set_title(name, fontsize=10)
-        ax.set_xlabel("lag (0~19)")
+        ax.set_xlabel("lag (1~20)")
         ax.set_ylabel("time step (0~27)")
         diff = float(np.abs(data[0] - x[0]).mean()) if name != "원본" else 0.0
         ax.text(0.5, -0.18, f"mean|Δ|={diff:.4f}", transform=ax.transAxes,
@@ -88,7 +88,7 @@ def main() -> None:
     for ax, diff, name in zip(axes2, diffs, names):
         ax.imshow(diff, aspect="auto", cmap="RdBu_r", vmin=-dabs, vmax=dabs)
         ax.set_title(name, fontsize=10)
-        ax.set_xlabel("lag (0~19)")
+        ax.set_xlabel("lag (1~20)")
         ax.set_ylabel("time step (0~27)")
         ax.text(0.5, -0.18, f"mean|Δ|={abs(diff).mean():.4f}",
                 transform=ax.transAxes, ha="center", fontsize=9, color="gray")

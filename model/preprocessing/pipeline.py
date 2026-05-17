@@ -91,7 +91,7 @@ def window_to_model_input(
     """단일 윈도우 (300, n_sc) → 모델 입력 (1, 28, 20).
 
     1) RPCA → S(sparse) 성분
-    2) 서브윈도우 ACF (lag=0..N_LAGS-1, 즉 lag0 포함) → 서브캐리어 평균 → SDP (28, 20)
+    2) 서브윈도우 ACF (lag=1..N_LAGS, lag0 제외) → 서브캐리어 평균 → SDP (28, 20)
     3) Global z-score 정규화 (윈도우 단위: (sdp - sdp.mean()) / (sdp.std() + 1e-6))
     4) 채널 축 추가 → (1, 28, 20)
     """

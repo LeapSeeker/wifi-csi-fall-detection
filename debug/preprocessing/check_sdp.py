@@ -48,7 +48,12 @@ def check_wt_formula() -> None:
     print(f"  {'n_t':>5}  {'sub_w':>6}  {'stride':>7}  {'기대 W_T':>9}  {'실제 W_T':>9}  결과")
     for n_t, sub_w, stride in cases:
         mat = rng.uniform(-1, 1, (n_t, 52)).astype(np.float32)
-        out = stacked_doppler_profile(mat, sub_w=sub_w, stride=stride)
+        out = stacked_doppler_profile(
+            mat,
+            sub_w=sub_w,
+            stride=stride,
+            n_lags=min(N_LAGS, sub_w - 1),
+        )
         expected = (n_t - sub_w) // stride + 1
         ok = out.shape[0] == expected
         print(f"  {n_t:>5}  {sub_w:>6}  {stride:>7}  {expected:>9}  {out.shape[0]:>9}  {'PASS' if ok else 'FAIL'}")
@@ -78,13 +83,13 @@ def check_exceptions() -> None:
     except ValueError as e:
         print(f"  n_t < sub_w: PASS ({e})")
 
-    # n_lags > sub_w
+    # n_lags >= sub_w
     try:
         mat = rng.uniform(-1, 1, (300, 52)).astype(np.float32)
         stacked_doppler_profile(mat, sub_w=15, n_lags=20)
-        print("  n_lags > sub_w: FAIL (예외 미발생)")
+        print("  n_lags >= sub_w: FAIL (예외 미발생)")
     except ValueError as e:
-        print(f"  n_lags > sub_w: PASS ({e})")
+        print(f"  n_lags >= sub_w: PASS ({e})")
 
     # 3D 입력
     try:
