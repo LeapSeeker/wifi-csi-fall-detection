@@ -23,7 +23,7 @@ import torch.nn.functional as F  # noqa: E402
 from model.pretrained.model import CLASSES, CNNGRUAttention  # noqa: E402
 from model.preprocessing.pipeline import window_to_model_input  # noqa: E402
 
-from .config import FALL_CLASS_IDX, FALL_THRESHOLD, MODEL_PATH
+from .config import FALL_LABELS, FALL_THRESHOLD, MODEL_PATH
 
 
 class FallPredictor:
@@ -53,6 +53,14 @@ class FallPredictor:
                 )
 
         self.classes = tuple(ckpt_classes) if ckpt_classes else CLASSES
+        self.fall_class_indices = tuple(
+            i for i, name in enumerate(self.classes) if name in FALL_LABELS
+        )
+        if not self.fall_class_indices:
+            warnings.warn(
+                f"[FallPredictor] checkpoint classes {self.classes} contain no "
+                f"fall labels from {FALL_LABELS}. is_fall will always be False."
+            )
 
         self.model = CNNGRUAttention(n_classes=len(self.classes))
         self.model.load_state_dict(ckpt["model"])
@@ -74,12 +82,17 @@ class FallPredictor:
 
         class_idx = int(np.argmax(probs))
         confidence = float(probs[class_idx])
-        fall_conf = float(probs[FALL_CLASS_IDX])
-        is_fall = (class_idx == FALL_CLASS_IDX) and (fall_conf >= FALL_THRESHOLD)
+        class_name = self.classes[class_idx]
+        fall_conf = (
+            float(max(probs[i] for i in self.fall_class_indices))
+            if self.fall_class_indices else 0.0
+        )
+        is_fall = (class_name in FALL_LABELS) and (fall_conf >= FALL_THRESHOLD)
 
         return {
-            "class": self.classes[class_idx],
+            "class": class_name,
             "confidence": confidence,
             "is_fall": is_fall,
+            "fall_confidence": fall_conf,
             "probabilities": {self.classes[i]: float(probs[i]) for i in range(len(self.classes))},
         }

@@ -20,6 +20,7 @@ python-dateutil==2.9.0.post0
 scikit-learn==1.8.0
 scipy==1.17.1
 six==1.17.0
+solapi
 sympy==1.13.1
 threadpoolctl==3.6.0
 torch==2.6.0+cu124

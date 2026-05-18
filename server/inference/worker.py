@@ -56,14 +56,20 @@ def _inference_process(
             continue
 
         try:
-            triggered = buffer.add(rx1["amplitudes"], rx2["amplitudes"])
+            triggered = buffer.add(
+                rx1["amplitudes"],
+                rx2["amplitudes"],
+                timestamp_us=int(rx1.get("timestamp_us", 0)),
+            )
             if not triggered:
                 continue
 
             window = buffer.get_window()
             result = predictor.predict(window)
             result["seq_num"] = int(rx1.get("seq_num", 0))
-            result["timestamp_us"] = int(rx1.get("timestamp_us", 0))
+            result["timestamp_us"] = int(
+                buffer.window_timestamp_us or rx1.get("timestamp_us", 0)
+            )
             result_queue.put(result)
         except Exception:
             traceback.print_exc()

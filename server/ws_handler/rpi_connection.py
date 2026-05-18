@@ -7,6 +7,8 @@ import threading
 
 import websockets
 
+from protocol.pi4_messages import build_fall_alert_payload
+
 class RPiConnection:
     def __init__(self, on_status_change=None):
         self.websocket = None
@@ -62,7 +64,7 @@ class RPiConnection:
     ):
         """낙상 감지 시 Pi4에 결과 전송 (JSON 포맷, D-008 + 본 작업 확정).
 
-        포맷: {"event":"fall_detected","label":"fall","confidence":..,"seq_num":..,"timestamp_us":..}
+        포맷은 protocol.pi4_messages.build_fall_alert_payload()를 기준으로 한다.
         """
         if not self.connected or self.websocket is None:
             print("[WS] Pi4 미연결 상태 - 알림 전송 실패")
@@ -73,13 +75,11 @@ class RPiConnection:
         if not timestamp_us:
             timestamp_us = int(datetime.datetime.now().timestamp() * 1_000_000)
 
-        payload = {
-            "event": "fall_detected",
-            "label": "fall",
-            "confidence": float(confidence),
-            "seq_num": int(seq_num),
-            "timestamp_us": int(timestamp_us),
-        }
+        payload = build_fall_alert_payload(
+            confidence=confidence,
+            seq_num=seq_num,
+            timestamp_us=timestamp_us,
+        )
         asyncio.run_coroutine_threadsafe(
             self._send(json.dumps(payload)),
             self.loop,

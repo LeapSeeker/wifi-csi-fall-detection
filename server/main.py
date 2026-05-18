@@ -61,6 +61,25 @@ def on_fall_detected(
     if last_fall_pair["rx1"] and last_fall_pair["rx2"]:
         save_fall(fall_count, last_fall_pair["rx1"], last_fall_pair["rx2"])
 
+
+def record_activity_result(result: dict):
+    """추후 1주일 단위 생활 패턴 분석용 일반 행동 저장 지점."""
+    # 저장 형식(JSONL/CSV/SQLite 등)은 아직 미정이다.
+    return
+
+
+def handle_inference_result(result: dict):
+    """InferenceWorker 결과를 낙상 알림과 일반 행동 저장 흐름으로 분기."""
+    if result.get("is_fall"):
+        on_fall_detected(
+            confidence=result.get("confidence", 0.0),
+            seq_num=result.get("seq_num", 0),
+            timestamp_us=result.get("timestamp_us", 0),
+        )
+        return
+
+    record_activity_result(result)
+
 # -----------------------------------------------
 # 페어링 완료 시 호출되는 콜백
 # -----------------------------------------------
@@ -106,7 +125,7 @@ def cleanup_loop():
 
 
 def result_loop():
-    """InferenceWorker 결과 폴링 → 낙상이면 on_fall_detected() 호출."""
+    """InferenceWorker 결과 폴링 → handle_inference_result()로 분기."""
     while True:
         if inference_worker is None:
             time.sleep(0.1)
@@ -118,12 +137,7 @@ def result_loop():
         if "error" in result:
             log_warn(f"[InferenceWorker] {result['error']}")
             continue
-        if result.get("is_fall"):
-            on_fall_detected(
-                confidence=result.get("confidence", 0.0),
-                seq_num=result.get("seq_num", 0),
-                timestamp_us=result.get("timestamp_us", 0),
-            )
+        handle_inference_result(result)
 
 
 def main():

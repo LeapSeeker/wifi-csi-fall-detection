@@ -155,7 +155,25 @@ def check_buffer() -> bool:
     assert buf.add([1.0] * 10, rx2) is False
     assert buf.add(rx1, [1.0] * 10) is False
 
-    print("  [2] SlidingWindowBuffer shape & stride OK")
+    # 실제 수집처럼 70Hz raw timestamp가 들어와도 100Hz grid 기준 3초에
+    # 첫 윈도우가 만들어져야 한다. packet-count 300개까지 기다리면 안 된다.
+    buf_70hz = SlidingWindowBuffer()
+    first_trigger = None
+    base_ts = 1_700_000_000_000_000
+    step_70hz = round(1_000_000 / 70)
+    for i in range(1, WINDOW_SIZE + 1):
+        triggered = buf_70hz.add(rx1, rx2, timestamp_us=base_ts + i * step_70hz)
+        if triggered:
+            first_trigger = i
+            break
+    assert first_trigger is not None, "70Hz timestamp 입력에서 trigger 미발생"
+    assert first_trigger < WINDOW_SIZE, (
+        f"70Hz 입력을 packet-count처럼 {first_trigger}개까지 기다림"
+    )
+    assert buf_70hz.get_window().shape == (WINDOW_SIZE, N_SUBCARRIERS_EACH * 2)
+    assert buf_70hz.window_timestamp_us > 0
+
+    print("  [2] SlidingWindowBuffer timestamp resampling & stride OK")
     return True
 
 

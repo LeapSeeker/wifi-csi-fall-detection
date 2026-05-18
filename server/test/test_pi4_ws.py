@@ -3,6 +3,14 @@
 import asyncio
 import websockets
 import json
+from pathlib import Path
+import sys
+
+SERVER_DIR = Path(__file__).resolve().parents[1]
+if str(SERVER_DIR) not in sys.path:
+    sys.path.insert(0, str(SERVER_DIR))
+
+from protocol.pi4_messages import PI4_EVENT_FALL_DETECTED, PI4_LABEL_FALL
 
 # 서버 설정 (노트북 로컬 테스트)
 SERVER_IP = "127.0.0.1"
@@ -26,7 +34,7 @@ async def run():
                     print("[PI4 TEST] JSON 파싱 실패 - 메시지 무시")
                     continue
 
-                if data.get("event") == "fall_detected" and data.get("label") == "fall":
+                if data.get("event") == PI4_EVENT_FALL_DETECTED and data.get("label") == PI4_LABEL_FALL:
                     confidence = data.get("confidence", 0.0)
                     seq_num = data.get("seq_num", 0)
                     timestamp_us = data.get("timestamp_us", 0)
