@@ -209,15 +209,64 @@ rclone ls gdrive:
 
 ---
 
-## 5. 이후 자동 업로드 사용
+## 5. 새 터미널에서 서버 UI 수집 + 자동 업로드
 
-수집 프로그램 실행 전에 PowerShell에서 아래 환경변수를 설정한다.
+새 Git Bash 터미널을 열 때마다 아래 순서로 진행한다.
 
-```powershell
-cd C:\Project\LastProject\wifi-csi-fall-detection
-$env:SAFESIGNAL_DRIVE_UPLOAD="1"
-$env:SAFESIGNAL_DRIVE_REMOTE="gdrive:"
-python collect/collect_main.py
+### 5.1 가상환경 활성화
+
+```bash
+cd /c/Project/LastProject/wifi-csi-fall-detection
+source .venv/Scripts/activate
+```
+
+### 5.2 Drive 대상 폴더 확인
+
+```bash
+./.local/rclone/rclone-v1.74.1-windows-amd64/rclone.exe lsd gdrive:
+```
+
+`SafeSignal_Dataset` 폴더가 보이면 다음 단계로 진행한다.
+
+### 5.3 자동 업로드 환경변수 설정
+
+```bash
+export SAFESIGNAL_DRIVE_UPLOAD=1
+export SAFESIGNAL_DRIVE_REMOTE="gdrive:SafeSignal_Dataset"
+export SAFESIGNAL_RCLONE_BIN="/c/Project/LastProject/wifi-csi-fall-detection/.local/rclone/rclone-v1.74.1-windows-amd64/rclone.exe"
+```
+
+같은 터미널 창에서는 서버를 껐다 켜도 이 값이 유지된다. 새 터미널을 열면 다시 설정해야 한다.
+
+설정 확인:
+
+```bash
+echo $SAFESIGNAL_DRIVE_REMOTE
+```
+
+정상 출력:
+
+```text
+gdrive:SafeSignal_Dataset
+```
+
+### 5.4 서버 실행
+
+```bash
+cd /c/Project/LastProject/wifi-csi-fall-detection/server
+python main.py
+```
+
+대시보드에서 수집 탭으로 들어가 `E`, `S`, activity를 선택해 수집한다.
+
+### 5.5 업로드 확인
+
+수집 저장 후 새 Git Bash 탭 또는 서버를 종료한 터미널에서 확인한다.
+
+```bash
+cd /c/Project/LastProject/wifi-csi-fall-detection
+tail -20 data/upload_log.md
+./.local/rclone/rclone-v1.74.1-windows-amd64/rclone.exe ls gdrive:SafeSignal_Dataset/E2/S02
 ```
 
 동작 예:
@@ -225,7 +274,7 @@ python collect/collect_main.py
 ```text
 저장됨: data/raw/E1_S01_A_WALK_T003.csv
 [Drive] 업로드 시작: E1_S01_A_WALK_T003.csv
-[Drive] 업로드 완료: gdrive:/E1/S01/E1_S01_A_WALK_T003.csv
+[Drive] 업로드 완료: gdrive:SafeSignal_Dataset/E1/S01/E1_S01_A_WALK_T003.csv
 ```
 
 환경변수를 설정하지 않으면 기존처럼 로컬 저장만 수행한다.
@@ -244,7 +293,7 @@ python collect/collect_main.py
 
 ```powershell
 $env:SAFESIGNAL_DRIVE_UPLOAD="1"
-$env:SAFESIGNAL_DRIVE_REMOTE="gdrive:"
+$env:SAFESIGNAL_DRIVE_REMOTE="gdrive:SafeSignal_Dataset"
 $env:SAFESIGNAL_RCLONE_BIN="C:\Tools\rclone\rclone.exe"
 python collect/collect_main.py
 ```

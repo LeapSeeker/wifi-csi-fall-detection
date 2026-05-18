@@ -23,7 +23,8 @@ ENV_TIMEOUT = "SAFESIGNAL_DRIVE_TIMEOUT_SEC"
 
 DEFAULT_RCLONE = "rclone"
 DEFAULT_TIMEOUT_SEC = 120
-UPLOAD_LOG = Path("data/upload_log.md")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+UPLOAD_LOG = PROJECT_ROOT / "data" / "upload_log.md"
 SAFESIGNAL_CSV_RE = re.compile(
     r"^E(?P<env>\d+)_S(?P<subject>\d+)_A_(?P<activity>.+)_T(?P<trial>\d+)\.csv$",
     re.IGNORECASE,
@@ -131,7 +132,6 @@ def upload_file(local_path: str | Path, config: DriveUploadConfig | None = None)
         "copyto",
         str(path),
         remote_path,
-        "--create-empty-src-dirs",
     ]
 
     try:

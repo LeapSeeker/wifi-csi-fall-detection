@@ -25,6 +25,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 from collect.recorder import SessionRecorder
 from collect.labels import ACTIVITY_INFO
 from collect.udp import CsiPacket
+from collect.drive_upload import upload_file_async
 
 
 def _beep(freq: int, ms: int) -> None:
@@ -53,8 +54,8 @@ def beep_end() -> None:
 class CollectManager:
     """대시보드에서 수집 세션을 제어하는 매니저."""
 
-    def __init__(self, raw_dir: Path = Path("data/raw")):
-        self._recorder = SessionRecorder(raw_dir=raw_dir)
+    def __init__(self, raw_dir: Path | None = None):
+        self._recorder = SessionRecorder(raw_dir=raw_dir or (_PROJECT_ROOT / "data" / "raw"))
         self._is_recording = False
         self._activity_code: Optional[str] = None
         self._env: Optional[int] = None
@@ -170,6 +171,8 @@ class CollectManager:
         path = self._recorder.save_session(
             buf, self._activity_code, self._env, self._subject
         )
+        if path is not None:
+            upload_file_async(path)
         self._pending_buf = []
         loss = self._recorder.calculate_loss_rate(buf)
         return {
@@ -216,6 +219,8 @@ class CollectManager:
             }
 
         path = self._recorder.save_session(buf, activity_code, env, subject)
+        if path is not None:
+            upload_file_async(path)
         return {
             "ok": True, "saved": True,
             "path": str(path) if path else None,
