@@ -6,6 +6,7 @@
     <title>Fall Detection System</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <script src="{{ url_for('static', filename='js/offline-fallback.js') }}"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; background: #0a0c14; color: #c9d1d9; min-height: 100vh; }
@@ -425,6 +426,7 @@
     }, 1000);
 
     let lastPacketTime = null;
+    let lastSeenPacketTotal = 0;
     setInterval(() => {
         if (!lastPacketTime) return;
         document.getElementById('lastPacketVal').textContent = Math.floor((Date.now() - lastPacketTime) / 1000);
@@ -455,15 +457,37 @@
             scales: { x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } }, y: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' }, min: 0, max: 64 } } }
     });
 
-    // ── 초기 상태 ─────────────────────────────────────────
-    fetch('/status').then(r => r.json()).then(data => {
+    function syncStatus(data) {
         document.getElementById('pairCount').textContent = data.pair_count;
+        document.getElementById('pairBadge').textContent = `${Math.min(data.pair_count, 10)} / 10`;
         document.getElementById('fallCount').textContent = data.fall_count;
         if (data.last_fall_time) document.getElementById('lastFallTime').textContent = `마지막: ${data.last_fall_time}`;
         updateRpi4(data.rpi4_connected);
-        data.recent_pairs.forEach(addPairRow);
         updatePacketStats(data.packet_stats);
+        const rx1 = data.packet_stats && data.packet_stats.rx1 ? data.packet_stats.rx1.received : 0;
+        const rx2 = data.packet_stats && data.packet_stats.rx2 ? data.packet_stats.rx2.received : 0;
+        const totalPackets = rx1 + rx2;
+        if (totalPackets > lastSeenPacketTotal) {
+            lastPacketTime = Date.now();
+            document.getElementById('lastPacketVal').textContent = '0';
+        }
+        lastSeenPacketTotal = totalPackets;
+    }
+
+    // ── 초기 상태 ─────────────────────────────────────────
+    fetch('/status').then(r => r.json()).then(data => {
+        syncStatus(data);
+        data.recent_pairs.forEach(addPairRow);
     });
+
+    // CDN/Socket.IO client를 사용할 수 없는 오프라인 공유기 환경에서도
+    // RX1/RX2 수신 카운트와 페어링 수는 확인할 수 있게 HTTP polling을 유지한다.
+    setInterval(() => {
+        fetch('/status')
+            .then(r => r.json())
+            .then(syncStatus)
+            .catch(() => {});
+    }, 1000);
 
     // ── 소켓 이벤트 ──────────────────────────────────────
     socket.on('pair_update', (data) => {
