@@ -329,15 +329,16 @@
                 <!-- 수집 품질 요약 (저장/폐기 판단용, report-only) -->
                 <div class="collect-quality-box" id="collectQualityBox" style="display:none; margin-top:10px; padding:10px 12px; background:#161b22; border:1px solid #30363d; border-radius:8px; font-size:12px; color:#8b949e;">
                     <div style="color:#e6edf3; font-weight:600; margin-bottom:6px;">📊 수집 품질 (저장/폐기 판단)</div>
+                    <div id="qVerdict" style="margin-bottom:8px; padding:6px 8px; border-radius:6px; font-weight:700; font-size:13px; background:#21262d; color:#8b949e;">종합 판정: -</div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px 16px;">
                         <div>페어 수: <span id="qPairCount" style="color:#e6edf3;">-</span></div>
                         <div>손실률: <span id="qLoss" style="color:#e6edf3;">-</span></div>
                         <div>pair rate: <span id="qRate" style="color:#e6edf3;">-</span></div>
                         <div>capture ratio: <span id="qCapture" style="color:#e6edf3;">-</span></div>
-                        <div style="grid-column:1 / -1;">pair_dt: <span id="qPairDt" style="color:#e6edf3;">-</span></div>
-                        <div style="grid-column:1 / -1;">ts gap: <span id="qGap" style="color:#e6edf3;">-</span></div>
+                        <div style="grid-column:1 / -1;">pair_dt: <span id="qPairDt">-</span></div>
+                        <div style="grid-column:1 / -1;">ts gap: <span id="qGap">-</span></div>
                     </div>
-                    <div style="margin-top:6px; font-size:11px; color:#6e7681;">※ pair_dt/gap은 참고용 정보입니다 (threshold 미확정).</div>
+                    <div style="margin-top:6px; font-size:11px; color:#6e7681;">※ <span style="color:#d29922">노랑</span>=경고 / <span style="color:#ff4d4d">빨강</span>=불량 | pair_dt p50&gt;10ms 또는 ts_gap p95&gt;30ms 시 재수집 권장</div>
                 </div>
             </div>
 
@@ -592,6 +593,15 @@
         return `${Number(v).toFixed(digits)}${suffix || ''}`;
     }
 
+    function qualColor(val_us, thresholds) {
+        if (val_us === null || val_us === undefined || Number.isNaN(val_us)) {
+            return { text: 'N/A', color: '#8b949e' };
+        }
+        const ms = val_us / 1000;
+        const color = ms > thresholds.bad ? '#ff4d4d' : ms > thresholds.warn ? '#d29922' : '#e6edf3';
+        return { text: `${ms.toFixed(1)}ms`, color };
+    }
+
     socket.on('collect_finished', (data) => {
         if (_stageTimer) { clearInterval(_stageTimer); _stageTimer = null; }
         document.getElementById('stageDisplay').style.display = 'none';
@@ -602,18 +612,91 @@
         addCollectLog(`수집 완료: ${data.pair_count}개 페어${lossMsg}`, data.warn ? 'warn' : 'ok');
 
         // 품질 요약 박스 채우기 (저장/폐기 판단용, report-only)
+        // 로그용 plain text
         const pairDtStr = `p50=${fmtMs(data.pair_dt_p50_us)} p95=${fmtMs(data.pair_dt_p95_us)} p99=${fmtMs(data.pair_dt_p99_us)} max=${fmtMs(data.pair_dt_max_us)}`;
         const gapStr = `p95=${fmtMs(data.gap_p95_us)} max=${fmtMs(data.gap_max_us)}`;
+
+        // 페어 수
         document.getElementById('qPairCount').textContent = data.pair_count;
+
+        // 손실률 (기존 로직 유지)
         const qLoss = document.getElementById('qLoss');
         qLoss.textContent = `${data.loss_rate}%`;
         qLoss.style.color = data.warn ? '#f0883e' : '#e6edf3';
-        document.getElementById('qRate').textContent = fmtNum(data.pair_rate_hz, 1, ' Hz');
-        document.getElementById('qCapture').textContent = fmtNum(data.capture_ratio, 2);
-        document.getElementById('qPairDt').textContent = pairDtStr;
-        document.getElementById('qGap').textContent = gapStr;
+
+        // pair rate
+        const rateEl = document.getElementById('qRate');
+        const hz = data.pair_rate_hz;
+        rateEl.textContent = fmtNum(hz, 1, ' Hz');
+        rateEl.style.color = (hz === null || hz === undefined) ? '#8b949e' : hz < 85 ? '#ff4d4d' : hz < 95 ? '#d29922' : '#e6edf3';
+
+        // capture ratio
+        const capEl = document.getElementById('qCapture');
+        const cap = data.capture_ratio;
+        capEl.textContent = fmtNum(cap, 2);
+        capEl.style.color = (cap === null || cap === undefined) ? '#8b949e' : (cap < 0.90 || cap > 1.10) ? '#ff4d4d' : (cap < 0.95 || cap > 1.05) ? '#d29922' : '#e6edf3';
+
+        // pair_dt — 항목별 개별 색상
+        const dt50  = qualColor(data.pair_dt_p50_us,  { warn: 5,  bad: 10 });
+        const dt95  = qualColor(data.pair_dt_p95_us,  { warn: 10, bad: 15 });
+        const dt99  = qualColor(data.pair_dt_p99_us,  { warn: 15, bad: 30 });
+        const dtMax = qualColor(data.pair_dt_max_us,  { warn: 30, bad: 50 });
+        document.getElementById('qPairDt').innerHTML =
+            `p50=<span style="color:${dt50.color}">${dt50.text}</span> ` +
+            `p95=<span style="color:${dt95.color}">${dt95.text}</span> ` +
+            `p99=<span style="color:${dt99.color}">${dt99.text}</span> ` +
+            `max=<span style="color:${dtMax.color}">${dtMax.text}</span>`;
+
+        // ts_gap — 항목별 개별 색상
+        const gp95 = qualColor(data.gap_p95_us, { warn: 15, bad: 30 });
+        const gpMax = qualColor(data.gap_max_us, { warn: 30, bad: 60 });
+        document.getElementById('qGap').innerHTML =
+            `p95=<span style="color:${gp95.color}">${gp95.text}</span> ` +
+            `max=<span style="color:${gpMax.color}">${gpMax.text}</span>`;
+
+        // 종합 판정 (저장/검토/폐기) — 손실+페어링 종합
+        // 🔴 손실≥20% | p50>10ms | gap_p95>30ms  → 폐기·재수집
+        // 🟡 손실≥5%  | p50>5ms  | gap_p95>15ms   → 검토 후 저장
+        const loss = data.loss_rate;
+        const lossOk = !(loss === null || loss === undefined || Number.isNaN(loss));
+        const p50ms = (data.pair_dt_p50_us === null || data.pair_dt_p50_us === undefined) ? null : data.pair_dt_p50_us / 1000;
+        const g95ms = (data.gap_p95_us === null || data.gap_p95_us === undefined) ? null : data.gap_p95_us / 1000;
+        const badReasons = [];
+        const warnReasons = [];
+
+        // 지표별로 정확히 한 버킷에만 분류 (bad 우선)
+        if (lossOk) {
+            if (loss >= 20)     badReasons.push(`손실 ${loss}%`);
+            else if (loss >= 5) warnReasons.push(`손실 ${loss}%`);
+        }
+        if (p50ms !== null) {
+            if (p50ms > 10)     badReasons.push(`pair_dt p50 ${p50ms.toFixed(1)}ms`);
+            else if (p50ms > 5) warnReasons.push(`pair_dt p50 ${p50ms.toFixed(1)}ms`);
+        }
+        if (g95ms !== null) {
+            if (g95ms > 30)      badReasons.push(`ts_gap p95 ${g95ms.toFixed(1)}ms`);
+            else if (g95ms > 15) warnReasons.push(`ts_gap p95 ${g95ms.toFixed(1)}ms`);
+        }
+
+        const level = badReasons.length ? 'bad' : warnReasons.length ? 'warn' : 'ok';
+        // 🔴면 bad 사유 + 함께 걸린 warn 사유까지 모두 표시, 🟡면 warn 사유만
+        const reasons = level === 'bad' ? badReasons.concat(warnReasons) : warnReasons;
+
+        const verdictMap = {
+            ok:   { text: '🟢 저장 권장',       color: '#3fb950', bg: '#13251a', log: 'ok' },
+            warn: { text: '🟡 검토 후 저장',     color: '#d29922', bg: '#2b2412', log: 'warn' },
+            bad:  { text: '🔴 폐기·재수집 권장', color: '#ff4d4d', bg: '#2d1414', log: 'err' },
+        };
+        const v = verdictMap[level];
+        const reasonStr = reasons.length ? ` (${reasons.join(', ')})` : '';
+        const verdictEl = document.getElementById('qVerdict');
+        verdictEl.textContent = `종합 판정: ${v.text}${reasonStr}`;
+        verdictEl.style.color = v.color;
+        verdictEl.style.background = v.bg;
+
         document.getElementById('collectQualityBox').style.display = 'block';
         addCollectLog(`품질 요약 → pair_dt ${pairDtStr} | ts_gap ${gapStr}`);
+        addCollectLog(`종합 판정: ${v.text}${reasonStr}`, v.log);
 
         setButtons('finished');
         loadActivityCounts();
