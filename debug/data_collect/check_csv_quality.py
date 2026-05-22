@@ -1,7 +1,12 @@
 """data/raw/ 폴더 내 수집된 CSV 파일 일괄 품질 검증.
 
 파일명 규칙: E{env}_S{subj:02d}_A_{act}_T{trial:03d}.csv
-컬럼 구조 (107개): timestamp_us, seq_rx1, seq_rx2, amp_rx1_0..51, amp_rx2_0..51
+컬럼 구조:
+  - 필수(107컬럼 공통): timestamp_us, seq_rx1, seq_rx2, amp_rx1_0..51, amp_rx2_0..51
+  - 신규(110컬럼): + timestamp_rx1_us, timestamp_rx2_us, pair_dt_us (페어링 품질용)
+컬럼 수가 아니라 필수 컬럼명 존재로 검증하므로 107/110 CSV를 모두 통과시킨다.
+pair_dt_us가 있으면 p50/p95/p99/max를 출력하고, 없으면 legacy로 보고 N/A 표시한다.
+pair_dt/gap은 report-only — RECOLLECT 판정과 강하게 연결하지 않는다.
 
 실행:
     python debug/data_collect/check_csv_quality.py
@@ -21,26 +26,41 @@ sys.path.insert(0, str(PROJECT_ROOT))
 import numpy as np
 import pandas as pd
 
-# 활동별 최소 기대 row 수 (10Hz 기준)
+# 활동별 최소 기대 row 수 (100Hz 기준, duration × 100Hz × 80%)
 MIN_ROWS: dict[str, int] = {
-    "WALK":      640,   # 8s × 10Hz × 80%
+    "WALK":      640,   # 8s × 100Hz × 80%
     "RUN":       640,
-    "STAND":     400,   # 5s × 10Hz × 80%
+    "STAND":     400,   # 5s × 100Hz × 80%
     "PICK":      400,
-    "LIE":       560,   # 7s × 10Hz × 80%
-    "SIT_STD":   480,   # 6s × 10Hz × 80%
-    "FALL_SIT_F": 400,  # 5s × 10Hz × 80%
+    "LIE":       560,   # 7s × 100Hz × 80%
+    "SIT_STD":   480,   # 6s × 100Hz × 80%
+    "FALL_SIT_F": 400,  # 5s × 100Hz × 80%
     "FALL_SIT_B": 400,
-    "FALL_SIT_S": 400,
     "FALL_STD_F": 400,
     "FALL_STD_B": 400,
-    "FALL_STD_S": 400,
     "FALL_WALK_F": 400,
     "FALL_WALK_B": 400,
-    "FALL_WALK_S": 400,
 }
 DEFAULT_MIN_ROWS = 300
-EXPECTED_COLS = 107
+
+# 컬럼 수 대신 필수 컬럼명 존재로 검증 (107/110 CSV 공통 통과)
+REQUIRED_COLS: list[str] = (
+    ["timestamp_us", "seq_rx1", "seq_rx2"]
+    + [f"amp_rx1_{i}" for i in range(52)]
+    + [f"amp_rx2_{i}" for i in range(52)]
+)
+
+
+def _percentile(values, q):
+    if len(values) == 0:
+        return None
+    return float(np.percentile(np.asarray(values, dtype=float), q))
+
+
+def _fmt_ms(value_us):
+    if value_us is None:
+        return "N/A"
+    return f"{value_us / 1000.0:.1f}ms"
 
 
 def calc_loss_rate(seqs: list[int]) -> float:
@@ -86,6 +106,13 @@ def check_file(csv_path: Path) -> dict:
         "zero_ratio": 0.0,
         "status": "OK",
         "warnings": [],
+        # 페어링 품질 (report-only). pair_dt는 legacy(107) CSV면 None.
+        "pair_dt_p50_us": None,
+        "pair_dt_p95_us": None,
+        "pair_dt_p99_us": None,
+        "pair_dt_max_us": None,
+        "gap_p95_us": None,
+        "gap_max_us": None,
     }
 
     meta = parse_filename(csv_path.name)
@@ -104,10 +131,12 @@ def check_file(csv_path: Path) -> dict:
     result["rows"] = len(df)
     result["cols"] = len(df.columns)
 
-    # 컬럼 수 검증
-    if result["cols"] != EXPECTED_COLS:
+    # 필수 컬럼명 존재 검증 (컬럼 수 무관 — 107/110 모두 허용)
+    missing = [c for c in REQUIRED_COLS if c not in df.columns]
+    if missing:
         result["status"] = "ERROR"
-        result["warnings"].append(f"컬럼 수 {result['cols']} != {EXPECTED_COLS}")
+        head = ", ".join(missing[:5]) + ("..." if len(missing) > 5 else "")
+        result["warnings"].append(f"필수 컬럼 누락({len(missing)}개): {head}")
 
     # row 수 검증
     activity = meta["activity"]
@@ -139,6 +168,22 @@ def check_file(csv_path: Path) -> dict:
         amp = df[amp_cols].values.astype(np.float32)
         result["neg_ratio"] = float((amp < 0).mean())
         result["zero_ratio"] = float((amp == 0).mean())
+
+    # pair delay (신규 110컬럼 CSV만; legacy면 None 유지) — report-only
+    if "pair_dt_us" in df.columns:
+        pair_dt = df["pair_dt_us"].dropna().to_numpy(dtype=float)
+        if pair_dt.size:
+            result["pair_dt_p50_us"] = _percentile(pair_dt, 50)
+            result["pair_dt_p95_us"] = _percentile(pair_dt, 95)
+            result["pair_dt_p99_us"] = _percentile(pair_dt, 99)
+            result["pair_dt_max_us"] = float(pair_dt.max())
+
+    # timestamp gap (timestamp_us diff 기준) — report-only
+    if "timestamp_us" in df.columns and len(df) >= 2:
+        gaps = np.abs(np.diff(df["timestamp_us"].to_numpy(dtype=float)))
+        if gaps.size:
+            result["gap_p95_us"] = _percentile(gaps, 95)
+            result["gap_max_us"] = float(gaps.max())
 
     return result
 
@@ -177,6 +222,21 @@ def main() -> None:
         print(f"  {r['file']:<40}  {r['rows']:>5}  {r['cols']:>5}  "
               f"  {r['loss_rx1']*100:>7.1f}%  {r['loss_rx2']*100:>7.1f}%  "
               f"{'OK' if r['seq_ok'] else 'FAIL':>7}  {status_color:>9}")
+
+        # 페어링 품질 (report-only). pair_dt는 legacy CSV면 N/A.
+        if r["pair_dt_p50_us"] is None:
+            print(f"    └ pair_dt: N/A (legacy 107컬럼)")
+        else:
+            print(
+                f"    └ pair_dt: p50={_fmt_ms(r['pair_dt_p50_us'])} "
+                f"p95={_fmt_ms(r['pair_dt_p95_us'])} "
+                f"p99={_fmt_ms(r['pair_dt_p99_us'])} "
+                f"max={_fmt_ms(r['pair_dt_max_us'])}"
+            )
+        print(
+            f"    └ ts_gap : p95={_fmt_ms(r['gap_p95_us'])} "
+            f"max={_fmt_ms(r['gap_max_us'])}"
+        )
 
         for w in r["warnings"]:
             print(f"    └ {w}")

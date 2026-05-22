@@ -40,7 +40,12 @@ N_SC_EACH = 52
 
 
 def _make_synthetic_csv(path: Path, n_packets: int = 400, rate_hz: float = 70.0) -> None:
-    """파일명 규칙(E1_S99_A_STAND_T001.csv) + 107 컬럼 합성 CSV 생성."""
+    """파일명 규칙(E1_S99_A_STAND_T001.csv) + legacy 107컬럼 합성 CSV 생성.
+
+    로더의 107/110 호환 검증 중 legacy(107컬럼) 경로를 대표한다. 신규 품질
+    컬럼(timestamp_rx1_us/timestamp_rx2_us/pair_dt_us)이 없어도 (n, 104)로
+    로드되는지 확인하기 위한 합성 데이터다.
+    """
     step_us = int(round(1_000_000.0 / rate_hz))
     ts = np.arange(n_packets, dtype=np.int64) * step_us + 1_000_000
     rng = np.random.default_rng(0)
