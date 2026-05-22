@@ -4,7 +4,9 @@
 파일명 규칙: E{env}_S{subj:02d}_A_{activity_code}_T{trial:03d}.csv
 저장 경로: data/raw/
 
-CSV 컬럼은 107개로 고정 (rssi는 패킷 파싱만 유지하고 CSV/전처리 입력에서는 제외).
+CSV 컬럼은 110개로 고정 (rssi는 패킷 파싱만 유지하고 CSV/전처리 입력에서는 제외).
+timestamp_us는 호환성을 위해 Rx1 timestamp 의미를 그대로 유지하며,
+timestamp_rx1_us / timestamp_rx2_us / pair_dt_us는 페어링 품질 사후 검증용으로 추가됐다.
 """
 
 from __future__ import annotations
@@ -20,13 +22,15 @@ from collect.udp import AMPLITUDE_COUNT, CsiPacket
 
 DATA_RAW_DIR = Path("data/raw")
 
-# CSV 컬럼 순서 (총 107개) — rssi는 패킷에서 파싱하지만 저장하지 않음
+# CSV 컬럼 순서 (총 110개) — rssi는 패킷에서 파싱하지만 저장하지 않음.
+# 페어링 품질 컬럼(timestamp_rx1_us/timestamp_rx2_us/pair_dt_us)은 맨 끝에 append.
 _AMP_RX1_COLS = [f"amp_rx1_{i}" for i in range(AMPLITUDE_COUNT)]
 _AMP_RX2_COLS = [f"amp_rx2_{i}" for i in range(AMPLITUDE_COUNT)]
 CSV_COLUMNS: list[str] = (
     ["timestamp_us", "seq_rx1", "seq_rx2"]
     + _AMP_RX1_COLS
     + _AMP_RX2_COLS
+    + ["timestamp_rx1_us", "timestamp_rx2_us", "pair_dt_us"]
 )
 
 
@@ -56,7 +60,7 @@ class SessionRecorder:
             if not self._is_recording:
                 return
             row = {
-                "timestamp_us": rx1.timestamp_us,
+                "timestamp_us": rx1.timestamp_us,  # 호환성: Rx1 timestamp 의미 유지
                 "seq_rx1": rx1.seq,
                 "seq_rx2": rx2.seq,
             }
@@ -64,6 +68,10 @@ class SessionRecorder:
                 row[f"amp_rx1_{i}"] = v
             for i, v in enumerate(rx2.amplitudes):
                 row[f"amp_rx2_{i}"] = v
+            # 페어링 품질 사후 검증용 (report-only)
+            row["timestamp_rx1_us"] = rx1.timestamp_us
+            row["timestamp_rx2_us"] = rx2.timestamp_us
+            row["pair_dt_us"] = abs(rx1.timestamp_us - rx2.timestamp_us)
             self._buf.append(row)
 
     def stop_session(self) -> list[dict]:

@@ -24,6 +24,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 from collect.recorder import SessionRecorder
 from collect.labels import ACTIVITY_INFO
+from collect.quality import summarize_session
 from collect.udp import CsiPacket
 from collect.drive_upload import upload_file_async
 
@@ -160,10 +161,21 @@ class CollectManager:
         beep_end()
 
         loss = self._recorder.calculate_loss_rate(buf)
+        summary = summarize_session(buf)
         self._emit("collect_finished", {
             "pair_count": len(buf),
             "loss_rate": round(loss * 100, 1),
             "warn": loss > 0.05,
+            # 페어링 품질 요약 (report-only). None은 그대로 전달 → UI에서 N/A.
+            "duration_s": round(summary["duration_s"], 2),
+            "pair_rate_hz": round(summary["pair_rate_hz"], 1),
+            "capture_ratio": round(summary["capture_ratio"], 2),
+            "pair_dt_p50_us": summary["pair_dt_p50_us"],
+            "pair_dt_p95_us": summary["pair_dt_p95_us"],
+            "pair_dt_p99_us": summary["pair_dt_p99_us"],
+            "pair_dt_max_us": summary["pair_dt_max_us"],
+            "gap_p95_us": summary["gap_p95_us"],
+            "gap_max_us": summary["gap_max_us"],
         })
 
     def save_pending(self) -> dict:

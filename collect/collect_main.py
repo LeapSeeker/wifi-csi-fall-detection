@@ -27,6 +27,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 from collect.beep import beep_end, beep_ready, beep_stage
 from collect.drive_upload import DriveUploadConfig, upload_file_async, upload_status_message
 from collect.labels import ACTIVITY_INFO, ACTIVITY_ORDER, get_duration
+from collect.quality import format_quality_lines, summarize_session
 from collect.recorder import SessionRecorder
 from collect.udp import UDP_PORT, start_udp_receiver
 
@@ -143,6 +144,10 @@ def _run_session(recorder: SessionRecorder, activity_code: str, env: int, subjec
     )
     if loss > 0.05:
         print(f"  [경고] 패킷 손실률 {loss*100:.1f}% — 저장 여부를 신중히 결정하세요.")
+
+    # 페어링 품질 요약 (report-only — 저장 차단 조건 아님)
+    for line in format_quality_lines(summarize_session(buf)):
+        print(line)
 
     while True:
         ans = input("저장하시겠습니까? (Y/N): ").strip().lower()

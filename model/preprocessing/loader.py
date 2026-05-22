@@ -8,8 +8,11 @@
    - 파일명 규칙: E{env}_S{subj}_C{class}_A{act}_T{trial}.csv
 
 2) SafeSignal 자체수집 (collect/recorder.py 출력):
-   - 107개 컬럼: timestamp_us, seq_rx{1,2}, amp_rx1_{0..51}, amp_rx2_{0..51}
-   - 진폭만 저장(이미 sqrt(I^2+Q^2) 적용된 float32). 복소수 파싱 불필요.
+   - 필수(legacy 107컬럼): timestamp_us, seq_rx{1,2}, amp_rx1_{0..51}, amp_rx2_{0..51}
+   - 신규(110컬럼): 위 + timestamp_rx1_us, timestamp_rx2_us, pair_dt_us (페어링 품질용)
+   - 107(legacy)/110 CSV 모두 지원. 본 로더는 필수 컬럼만 이름 기반으로 선택하므로
+     추가된 품질 컬럼은 무시되어 양쪽 모두 동일하게 (n, 104) amplitude로 로드된다.
+   - 진폭만 사용(이미 sqrt(I^2+Q^2) 적용된 float32). 복소수 파싱 불필요.
    - 파일명 규칙: E{env}_S{subj}_A_{ACTIVITY}_T{trial}.csv  (예: E1_S01_A_STAND_T001)
 """
 from __future__ import annotations

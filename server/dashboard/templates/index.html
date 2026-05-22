@@ -324,6 +324,20 @@
                     <button class="collect-save-btn" id="collectSaveBtn" onclick="collectStop(true)" disabled>💾 저장</button>
                     <button class="collect-discard-btn" id="collectDiscardBtn" onclick="collectStop(false)" disabled>🗑 폐기</button>
                 </div>
+
+                <!-- 수집 품질 요약 (저장/폐기 판단용, report-only) -->
+                <div class="collect-quality-box" id="collectQualityBox" style="display:none; margin-top:10px; padding:10px 12px; background:#161b22; border:1px solid #30363d; border-radius:8px; font-size:12px; color:#8b949e;">
+                    <div style="color:#e6edf3; font-weight:600; margin-bottom:6px;">📊 수집 품질 (저장/폐기 판단)</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px 16px;">
+                        <div>페어 수: <span id="qPairCount" style="color:#e6edf3;">-</span></div>
+                        <div>손실률: <span id="qLoss" style="color:#e6edf3;">-</span></div>
+                        <div>pair rate: <span id="qRate" style="color:#e6edf3;">-</span></div>
+                        <div>capture ratio: <span id="qCapture" style="color:#e6edf3;">-</span></div>
+                        <div style="grid-column:1 / -1;">pair_dt: <span id="qPairDt" style="color:#e6edf3;">-</span></div>
+                        <div style="grid-column:1 / -1;">ts gap: <span id="qGap" style="color:#e6edf3;">-</span></div>
+                    </div>
+                    <div style="margin-top:6px; font-size:11px; color:#6e7681;">※ pair_dt/gap은 참고용 정보입니다 (threshold 미확정).</div>
+                </div>
             </div>
 
             <div class="collect-log">
@@ -544,6 +558,16 @@
         }, 100);
     });
 
+    // us 값을 ms 문자열로 (null/undefined → 'N/A')
+    function fmtMs(us) {
+        if (us === null || us === undefined || Number.isNaN(us)) return 'N/A';
+        return `${(us / 1000).toFixed(1)}ms`;
+    }
+    function fmtNum(v, digits, suffix) {
+        if (v === null || v === undefined || Number.isNaN(v)) return 'N/A';
+        return `${Number(v).toFixed(digits)}${suffix || ''}`;
+    }
+
     socket.on('collect_finished', (data) => {
         if (_stageTimer) { clearInterval(_stageTimer); _stageTimer = null; }
         document.getElementById('stageDisplay').style.display = 'none';
@@ -552,12 +576,28 @@
 
         const lossMsg = data.warn ? ` ⚠️ 손실률 ${data.loss_rate}%` : ` 손실률 ${data.loss_rate}%`;
         addCollectLog(`수집 완료: ${data.pair_count}개 페어${lossMsg}`, data.warn ? 'warn' : 'ok');
+
+        // 품질 요약 박스 채우기 (저장/폐기 판단용, report-only)
+        const pairDtStr = `p50=${fmtMs(data.pair_dt_p50_us)} p95=${fmtMs(data.pair_dt_p95_us)} p99=${fmtMs(data.pair_dt_p99_us)} max=${fmtMs(data.pair_dt_max_us)}`;
+        const gapStr = `p95=${fmtMs(data.gap_p95_us)} max=${fmtMs(data.gap_max_us)}`;
+        document.getElementById('qPairCount').textContent = data.pair_count;
+        const qLoss = document.getElementById('qLoss');
+        qLoss.textContent = `${data.loss_rate}%`;
+        qLoss.style.color = data.warn ? '#f0883e' : '#e6edf3';
+        document.getElementById('qRate').textContent = fmtNum(data.pair_rate_hz, 1, ' Hz');
+        document.getElementById('qCapture').textContent = fmtNum(data.capture_ratio, 2);
+        document.getElementById('qPairDt').textContent = pairDtStr;
+        document.getElementById('qGap').textContent = gapStr;
+        document.getElementById('collectQualityBox').style.display = 'block';
+        addCollectLog(`품질 요약 → pair_dt ${pairDtStr} | ts_gap ${gapStr}`);
+
         setButtons('finished');
         loadActivityCounts();
     });
 
     socket.on('collect_stopped', (data) => {
         document.getElementById('stageDisplay').style.display = 'none';
+        document.getElementById('collectQualityBox').style.display = 'none';
         setBanner('idle', '대기 중 — 활동을 선택하고 시작하세요');
         if (data.saved) {
             addCollectLog(`저장 완료: ${data.message} | 페어: ${data.pair_count} | 손실률: ${data.loss_rate}%`, 'ok');
@@ -652,6 +692,7 @@
         const env = parseInt(document.getElementById('envInput').value);
         const subject = parseInt(document.getElementById('subjectInput').value);
         document.getElementById('collectPairCount').textContent = '0';
+        document.getElementById('collectQualityBox').style.display = 'none';
         setBanner('countdown', '준비 중...');
         setButtons('countdown');
         fetch('/collect/start', {

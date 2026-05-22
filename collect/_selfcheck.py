@@ -126,7 +126,7 @@ def test_trial_and_count() -> None:
         # count: 0
         assert rec.count_sessions("WALK", env=1, subject=1) == 0
 
-        # 가짜 세션 1건 저장 (rssi 컬럼 없음 — 107 컬럼)
+        # 가짜 세션 1건 저장 (rssi 컬럼 없음 — 110 컬럼, 신규 품질 컬럼은 누락 시 빈값)
         buf1 = [
             {col: 0 for col in ["timestamp_us", "seq_rx1", "seq_rx2"]}
         ]
@@ -153,13 +153,82 @@ def test_trial_and_count() -> None:
         from collect.recorder import CSV_COLUMNS
 
         assert list(df.columns) == CSV_COLUMNS, "CSV column order mismatch"
-        assert len(CSV_COLUMNS) == 107, f"expected 107 columns, got {len(CSV_COLUMNS)}"
+        assert len(CSV_COLUMNS) == 110, f"expected 110 columns, got {len(CSV_COLUMNS)}"
         assert "rssi_rx1" not in df.columns and "rssi_rx2" not in df.columns
 
         empty_path = rec.save_session([], "WALK", env=1, subject=1)
         assert empty_path is None
         assert rec.count_sessions("WALK", 1, 1) == 2
-    print("[OK] trial increment + count_sessions + CSV columns (107, no rssi)")
+    print("[OK] trial increment + count_sessions + CSV columns (110, no rssi)")
+
+
+def test_pair_delay_columns() -> None:
+    """rx1/rx2 timestamp 차이가 있는 pair 저장 후 신규 컬럼 정확성 검증."""
+    import pandas as pd
+
+    from collect.recorder import CSV_COLUMNS
+
+    with tempfile.TemporaryDirectory() as tmp:
+        raw = Path(tmp) / "raw"
+        rec = SessionRecorder(raw_dir=raw)
+        rec.start_session("WALK", env=1, subject=1)
+        rx1 = CsiPacket(
+            DEVICE_ID_RX1, -40, 1, 1_000_000, [float(i) for i in range(AMPLITUDE_COUNT)]
+        )
+        rx2 = CsiPacket(
+            DEVICE_ID_RX2, -45, 1, 1_030_000, [float(i + 100) for i in range(AMPLITUDE_COUNT)]
+        )
+        rec.add_pair(rx1, rx2)
+        buf = rec.stop_session()
+        path = rec.save_session(buf, "WALK", env=1, subject=1)
+
+        df = pd.read_csv(path)
+        assert len(df.columns) == 110, len(df.columns)
+        assert list(df.columns) == CSV_COLUMNS
+        r = df.iloc[0]
+        # timestamp_us는 Rx1 의미 유지 + timestamp_rx1_us와 동일
+        assert int(r["timestamp_us"]) == 1_000_000
+        assert int(r["timestamp_rx1_us"]) == 1_000_000
+        assert int(r["timestamp_us"]) == int(r["timestamp_rx1_us"])
+        assert int(r["timestamp_rx2_us"]) == 1_030_000
+        assert int(r["pair_dt_us"]) == abs(1_000_000 - 1_030_000) == 30_000
+    print("[OK] pair delay columns (timestamp_rx1/rx2_us, pair_dt_us)")
+
+
+def test_quality_summary() -> None:
+    """summarize_session: 0/1 row, legacy(no pair_dt), 신규 버퍼 안전 동작."""
+    from collect.quality import summarize_session
+
+    # 0 row
+    s0 = summarize_session([])
+    assert s0["pair_count"] == 0
+    assert s0["pair_dt_p95_us"] is None and s0["gap_max_us"] is None
+    assert s0["loss_rate"] == 0.0
+
+    # 1 row → gap 계산 불가(None), pair_dt는 단일값
+    s1 = summarize_session([{"timestamp_us": 100, "seq_rx1": 0, "seq_rx2": 0, "pair_dt_us": 20}])
+    assert s1["pair_count"] == 1
+    assert s1["gap_p95_us"] is None and s1["gap_max_us"] is None
+    assert s1["pair_dt_p50_us"] == 20.0
+
+    # legacy 버퍼 (pair_dt_us 없음) → pair_dt None, gap은 계산됨
+    legacy = [
+        {"timestamp_us": i * 10_000, "seq_rx1": i, "seq_rx2": i} for i in range(5)
+    ]
+    sl = summarize_session(legacy)
+    assert sl["pair_dt_p95_us"] is None
+    assert sl["gap_max_us"] is not None and sl["gap_p95_us"] is not None
+    assert sl["pair_rate_hz"] > 0
+
+    # 신규 버퍼 → pair_dt 통계 계산
+    new = [
+        {"timestamp_us": i * 10_000, "seq_rx1": i, "seq_rx2": i, "pair_dt_us": 1000 + i}
+        for i in range(5)
+    ]
+    sn = summarize_session(new)
+    assert sn["pair_dt_max_us"] == 1004.0
+    assert sn["pair_dt_p50_us"] is not None
+    print("[OK] quality summary (0/1 rows, legacy/new buffers)")
 
 
 def test_trial_no_overwrite() -> None:
@@ -258,6 +327,8 @@ def main() -> int:
     test_pairing()
     test_loss_rate()
     test_trial_and_count()
+    test_pair_delay_columns()
+    test_quality_summary()
     test_trial_no_overwrite()
     test_bind_failure_raises_runtime_error()
     test_countdown_has_sleep()
