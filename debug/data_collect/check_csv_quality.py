@@ -31,13 +31,10 @@ MIN_ROWS: dict[str, int] = {
     "SIT_STD":   480,   # 6s × 10Hz × 80%
     "FALL_SIT_F": 400,  # 5s × 10Hz × 80%
     "FALL_SIT_B": 400,
-    "FALL_SIT_S": 400,
     "FALL_STD_F": 400,
     "FALL_STD_B": 400,
-    "FALL_STD_S": 400,
     "FALL_WALK_F": 400,
     "FALL_WALK_B": 400,
-    "FALL_WALK_S": 400,
 }
 DEFAULT_MIN_ROWS = 300
 EXPECTED_COLS = 107

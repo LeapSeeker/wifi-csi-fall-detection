@@ -1,7 +1,7 @@
 """SafeSignal 자체 데이터 수집 — 활동 코드 / 단계 / 수집 목표 정의.
 
-자체 수집 목표 (270 세션):
-- 낙상 9종 × 10회 = 90 세션
+자체 수집 목표 (240 세션):
+- 낙상 6종 × 10회 = 60 세션
 - 비낙상 6종 × 30회 = 180 세션
 """
 
@@ -19,7 +19,8 @@ CLASS_NAMES: dict[int, str] = {
 
 
 ACTIVITY_INFO: dict[str, dict] = {
-    # 낙상 9종 — class_idx=0, target=10
+    # 낙상 6종 — class_idx=0, target=10
+    # side fall(FALL_*_S)은 fine-tuning 기본 수집/학습/평가 범위에서 제외.
     "FALL_SIT_F": {
         "display": "앉다→낙상 (앞)",
         "class_idx": 0,
@@ -36,15 +37,6 @@ ACTIVITY_INFO: dict[str, dict] = {
         "stages": [
             {"name": "앉기", "duration": 2},
             {"name": "뒤로 낙상", "duration": 3},
-        ],
-    },
-    "FALL_SIT_S": {
-        "display": "앉다→낙상 (옆)",
-        "class_idx": 0,
-        "target": 10,
-        "stages": [
-            {"name": "앉기", "duration": 2},
-            {"name": "옆으로 낙상", "duration": 3},
         ],
     },
     "FALL_STD_F": {
@@ -65,15 +57,6 @@ ACTIVITY_INFO: dict[str, dict] = {
             {"name": "뒤로 낙상", "duration": 3},
         ],
     },
-    "FALL_STD_S": {
-        "display": "서다→낙상 (옆)",
-        "class_idx": 0,
-        "target": 10,
-        "stages": [
-            {"name": "서있기", "duration": 2},
-            {"name": "옆으로 낙상", "duration": 3},
-        ],
-    },
     "FALL_WALK_F": {
         "display": "걷다→낙상 (앞)",
         "class_idx": 0,
@@ -90,15 +73,6 @@ ACTIVITY_INFO: dict[str, dict] = {
         "stages": [
             {"name": "걷기", "duration": 2},
             {"name": "뒤로 낙상", "duration": 3},
-        ],
-    },
-    "FALL_WALK_S": {
-        "display": "걷다→낙상 (옆)",
-        "class_idx": 0,
-        "target": 10,
-        "stages": [
-            {"name": "걷기", "duration": 2},
-            {"name": "옆으로 낙상", "duration": 3},
         ],
     },
     # 비낙상 6종 — target=30

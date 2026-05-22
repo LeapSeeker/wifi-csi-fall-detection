@@ -90,6 +90,9 @@ class CollectManager:
 
     def start_session(self, activity_code: str, env: int, subject: int) -> dict:
         """수집 세션 시작 — 카운트다운 후 녹화 시작."""
+        if activity_code not in ACTIVITY_INFO:
+            return {"ok": False, "error": f"알 수 없는 activity_code: {activity_code}"}
+
         with self._lock:
             if self._is_recording:
                 return {"ok": False, "error": "이미 수집 중입니다."}

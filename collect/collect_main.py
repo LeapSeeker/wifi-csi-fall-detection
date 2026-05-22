@@ -7,8 +7,8 @@ Google Drive 자동 업로드(rclone 사용, 선택):
     $env:SAFESIGNAL_DRIVE_UPLOAD="1"
     $env:SAFESIGNAL_DRIVE_REMOTE="gdrive:SafeSignal/data/raw"
 
-수집 목표 (270 세션):
-- 낙상 9종 × 10회 = 90 세션
+수집 목표 (240 세션):
+- 낙상 6종 × 10회 = 60 세션
 - 비낙상 6종 × 30회 = 180 세션
 """
 
