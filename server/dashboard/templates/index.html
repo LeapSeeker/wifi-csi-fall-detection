@@ -765,7 +765,7 @@
     function renderActivityTable(labels, counts) {
         const tbody = document.getElementById('activityTable');
         if (!labels.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">레이블 로딩 실패</td></tr>'; return; }
-        const CLASS_NAMES = ['fall','walking','sit_stand','lying','standing','running','picking'];
+        const CLASS_NAMES = ['fall','walking','sit_stand','lying','standing','running','picking','no_motion'];
         tbody.innerHTML = labels.map((item, i) => {
             const cnt = counts[item.code] || { done: 0, target: item.target };
             const ratio = cnt.target > 0 ? Math.min(cnt.done / cnt.target, 1.0) : 0;

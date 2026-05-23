@@ -304,22 +304,26 @@ def test_countdown_has_sleep() -> None:
 def test_labels() -> None:
     from collect.labels import ACTIVITY_INFO, get_duration, total_target_sessions
 
-    # 240 세션 검증
-    assert total_target_sessions() == 240, total_target_sessions()
+    # 242 세션 검증 (기존 240 + NO_MOTION baseline 2)
+    assert total_target_sessions() == 242, total_target_sessions()
     # FALL_*: 6종 × target=10 (side fall 제외)
     fall_codes = [c for c, info in ACTIVITY_INFO.items() if info["class_idx"] == 0]
     assert len(fall_codes) == 6
     assert all(ACTIVITY_INFO[c]["target"] == 10 for c in fall_codes)
     assert all(not c.endswith("_S") for c in fall_codes)
-    # 비낙상: 6종 × 30
+    # 비낙상: 기존 6종 × 30 + NO_MOTION baseline 2
     nonfall = [c for c, info in ACTIVITY_INFO.items() if info["class_idx"] != 0]
-    assert len(nonfall) == 6
-    assert all(ACTIVITY_INFO[c]["target"] == 30 for c in nonfall)
+    assert len(nonfall) == 7
+    regular_nonfall = [c for c in nonfall if c != "NO_MOTION"]
+    assert all(ACTIVITY_INFO[c]["target"] == 30 for c in regular_nonfall)
+    assert ACTIVITY_INFO["NO_MOTION"]["target"] == 2
+    assert ACTIVITY_INFO["NO_MOTION"]["class_idx"] == 7
     # duration 자동 합산
     assert get_duration("FALL_SIT_F") == 5  # 2 + 3
     assert get_duration("WALK") == 8
     assert get_duration("LIE") == 7  # 3 + 4
-    print("[OK] labels (240 sessions, side fall excluded, durations)")
+    assert get_duration("NO_MOTION") == 300
+    print("[OK] labels (242 sessions, side fall excluded, no_motion baseline, durations)")
 
 
 def main() -> int:

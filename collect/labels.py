@@ -1,8 +1,9 @@
 """SafeSignal 자체 데이터 수집 — 활동 코드 / 단계 / 수집 목표 정의.
 
-자체 수집 목표 (240 세션):
+자체 수집 목표 (242 세션):
 - 낙상 6종 × 10회 = 60 세션
 - 비낙상 6종 × 30회 = 180 세션
+- no_motion baseline 2회
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ CLASS_NAMES: dict[int, str] = {
     4: "standing",
     5: "running",
     6: "picking",
+    7: "no_motion",
 }
 
 
@@ -117,6 +119,12 @@ ACTIVITY_INFO: dict[str, dict] = {
         "class_idx": 6,
         "target": 30,
         "duration": 5,
+    },
+    "NO_MOTION": {
+        "display": "무동작/빈 공간",
+        "class_idx": 7,
+        "target": 2,
+        "duration": 300,
     },
 }
 
