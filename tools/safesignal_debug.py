@@ -10,6 +10,8 @@
   no-motion-energy  위와 동일하되 activity=NO_MOTION 고정 (--activity 미노출)
   calibrate         debug/preprocessing/build_no_motion_baseline.py 호출
                     (환경별 NO_MOTION baseline JSON summary 생성)
+  baseline-summary  debug/preprocessing/inspect_no_motion_baseline.py 호출
+                    (baseline JSON 검증/요약, read-only)
 
 Examples
 --------
@@ -26,6 +28,11 @@ NO_MOTION 고정 energy 분석:
 환경별 NO_MOTION baseline 생성:
     python tools/safesignal_debug.py calibrate --env E2
     python tools/safesignal_debug.py calibrate --env E2 --workers 1 --progress-every 10
+
+baseline JSON 검증/요약:
+    python tools/safesignal_debug.py baseline-summary --env E2
+    python tools/safesignal_debug.py baseline-summary --env E2 --strict
+    python tools/safesignal_debug.py baseline-summary --env E2 --json
 """
 from __future__ import annotations
 
@@ -137,6 +144,20 @@ def cmd_calibrate(args: argparse.Namespace) -> int:
     return _run_script(script, forwarded)
 
 
+def cmd_baseline_summary(args: argparse.Namespace) -> int:
+    script = PROJECT_ROOT / "debug" / "preprocessing" / "inspect_no_motion_baseline.py"
+    forwarded: list[str] = []
+    if args.env:
+        forwarded.extend(["--env", args.env])
+    if args.path:
+        forwarded.extend(["--path", args.path])
+    if args.strict:
+        forwarded.append("--strict")
+    if args.as_json:
+        forwarded.append("--json")
+    return _run_script(script, forwarded)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="SafeSignal debug/analysis runner")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -173,6 +194,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="min-files 미달이어도 warning만 내고 진행",
     )
     p_cal.set_defaults(func=cmd_calibrate)
+
+    p_sum = sub.add_parser("baseline-summary", help="NO_MOTION baseline JSON 검증/요약 (read-only)")
+    p_sum.add_argument("--env", default=None, help="환경 라벨 (예: E2)")
+    p_sum.add_argument("--path", default=None, help="baseline JSON 직접 지정 (--env보다 우선)")
+    p_sum.add_argument("--strict", action="store_true", help="검증 실패 시 non-zero exit")
+    p_sum.add_argument("--json", action="store_true", dest="as_json", help="compact JSON summary 출력")
+    p_sum.set_defaults(func=cmd_baseline_summary)
 
     return parser
 
