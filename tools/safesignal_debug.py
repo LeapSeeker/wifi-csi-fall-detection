@@ -12,6 +12,8 @@
                     (환경별 NO_MOTION baseline JSON summary 생성)
   baseline-summary  debug/preprocessing/inspect_no_motion_baseline.py 호출
                     (baseline JSON 검증/요약, read-only)
+  compare-energy    debug/preprocessing/compare_sdp_energy_to_baseline.py 호출
+                    (baseline 대비 대상 활동/FALL energy 분리도 비교, read-only)
 
 Examples
 --------
@@ -33,6 +35,12 @@ baseline JSON 검증/요약:
     python tools/safesignal_debug.py baseline-summary --env E2
     python tools/safesignal_debug.py baseline-summary --env E2 --strict
     python tools/safesignal_debug.py baseline-summary --env E2 --json
+
+baseline 대비 SDP energy 분리도 비교 (read-only):
+    python tools/safesignal_debug.py compare-energy --env E2
+    python tools/safesignal_debug.py compare-energy --env E2 --target-env E4
+    python tools/safesignal_debug.py compare-energy --baseline data/calibration/E2_no_motion_baseline.json --target-class fall
+    python tools/safesignal_debug.py compare-energy --env E2 --activity WALK
 """
 from __future__ import annotations
 
@@ -158,6 +166,35 @@ def cmd_baseline_summary(args: argparse.Namespace) -> int:
     return _run_script(script, forwarded)
 
 
+def cmd_compare_energy(args: argparse.Namespace) -> int:
+    script = PROJECT_ROOT / "debug" / "preprocessing" / "compare_sdp_energy_to_baseline.py"
+    forwarded: list[str] = ["--dir", args.dir]
+    if args.env:
+        forwarded.extend(["--env", args.env])
+    if args.baseline:
+        forwarded.extend(["--baseline", args.baseline])
+    if args.target_env:
+        forwarded.extend(["--target-env", args.target_env])
+    if args.target_class is not None:
+        forwarded.extend(["--target-class", args.target_class])
+    if args.activity:
+        forwarded.extend(["--activity", *args.activity])
+    forwarded.extend([
+        "--workers", str(args.workers),
+        "--rpca-max-iter", str(args.rpca_max_iter),
+        "--progress-every", str(args.progress_every),
+    ])
+    if args.rpca_tol is not None:
+        forwarded.extend(["--rpca-tol", str(args.rpca_tol)])
+    if args.limit_windows_per_file is not None:
+        forwarded.extend(["--limit-windows-per-file", str(args.limit_windows_per_file)])
+    if args.max_files is not None:
+        forwarded.extend(["--max-files", str(args.max_files)])
+    if args.out:
+        forwarded.extend(["--out", args.out])
+    return _run_script(script, forwarded)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="SafeSignal debug/analysis runner")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -201,6 +238,25 @@ def build_parser() -> argparse.ArgumentParser:
     p_sum.add_argument("--strict", action="store_true", help="검증 실패 시 non-zero exit")
     p_sum.add_argument("--json", action="store_true", dest="as_json", help="compact JSON summary 출력")
     p_sum.set_defaults(func=cmd_baseline_summary)
+
+    p_cmp = sub.add_parser(
+        "compare-energy",
+        help="baseline 대비 대상 활동/FALL SDP energy 분리도 비교 (read-only)",
+    )
+    p_cmp.add_argument("--env", default=None, help="baseline 환경 라벨 (예: E2)")
+    p_cmp.add_argument("--baseline", default=None, help="baseline JSON 직접 지정 (--env 보다 우선)")
+    p_cmp.add_argument("--dir", default="data/raw", help="CSV 폴더")
+    p_cmp.add_argument("--target-env", default=None, help="대상 환경 (미지정 시 baseline environment)")
+    p_cmp.add_argument("--target-class", default=None, help="대상 class (기본 fall)")
+    p_cmp.add_argument("--activity", nargs="+", default=None, help="대상 raw activity (--target-class 보다 우선)")
+    p_cmp.add_argument("--workers", type=int, default=1, help="병렬 프로세스 수")
+    p_cmp.add_argument("--rpca-max-iter", type=int, default=200)
+    p_cmp.add_argument("--rpca-tol", type=float, default=None)
+    p_cmp.add_argument("--limit-windows-per-file", type=int, default=None)
+    p_cmp.add_argument("--progress-every", type=int, default=25)
+    p_cmp.add_argument("--max-files", type=int, default=None)
+    p_cmp.add_argument("--out", default=None, help="summary JSON 저장 경로 (raw record 미저장)")
+    p_cmp.set_defaults(func=cmd_compare_energy)
 
     return parser
 
