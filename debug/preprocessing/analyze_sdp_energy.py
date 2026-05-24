@@ -49,6 +49,10 @@
     python debug/preprocessing/analyze_sdp_energy.py --activity NO_MOTION \
         --limit-windows-per-file 8 --workers 1
 
+    # 긴 단일 프로세스 실행에서 윈도우 진행률 표시
+    python debug/preprocessing/analyze_sdp_energy.py --activity NO_MOTION \
+        --workers 1 --progress-every 10
+
     # 결과 저장
     python debug/preprocessing/analyze_sdp_energy.py --out sdp_energy.csv
     python debug/preprocessing/analyze_sdp_energy.py --out sdp_energy.json
@@ -183,6 +187,7 @@ def _process_file(args: tuple) -> tuple[str, list[dict] | None, str | None]:
         limit_windows,
         rpca_max_iter,
         rpca_tol,
+        progress_every,
     ) = args
     path = Path(path_str)
     try:
@@ -218,10 +223,18 @@ def _process_file(args: tuple) -> tuple[str, list[dict] | None, str | None]:
         }
 
         records: list[dict] = []
+        total_windows = int(windows.shape[0])
+        if progress_every:
+            print(f"    ▶ {path.name}: {total_windows} windows 시작", flush=True)
         for i, w in enumerate(windows):
             m = _window_metrics(w, rpca_max_iter=rpca_max_iter, rpca_tol=rpca_tol)
             rec = {**file_ctx, "window_idx": i, **m}
             records.append(rec)
+            if progress_every and ((i + 1) % progress_every == 0 or (i + 1) == total_windows):
+                print(
+                    f"    {path.name}: window {i + 1}/{total_windows}",
+                    flush=True,
+                )
         return path.name, records, None
     except Exception as e:  # noqa: BLE001 — 파일 1개 실패가 전체를 막지 않도록
         return path.name, None, repr(e)
@@ -381,6 +394,13 @@ def main() -> None:
         "--workers", type=int, default=None,
         help="병렬 프로세스 수. None→cpu_count-1, 1→단일 프로세스.",
     )
+    parser.add_argument(
+        "--progress-every", type=int, default=25,
+        help=(
+            "단일 프로세스(workers<=1)에서 N개 윈도우마다 진행률 출력. "
+            "0이면 파일 완료 시에만 출력."
+        ),
+    )
     parser.add_argument("--out", type=str, default=None, help="결과 저장 경로 (.csv | .json)")
     args = parser.parse_args()
 
@@ -406,6 +426,10 @@ def main() -> None:
     if workers is None:
         workers = max(1, mp.cpu_count() - 1)
 
+    progress_every = args.progress_every if workers <= 1 else 0
+    if progress_every:
+        print(f"  progress-every={progress_every} windows")
+
     work_args = [
         (
             str(p),
@@ -416,6 +440,7 @@ def main() -> None:
             args.limit_windows_per_file,
             args.rpca_max_iter,
             args.rpca_tol,
+            progress_every,
         )
         for p in paths
     ]
