@@ -351,7 +351,15 @@ def save_results(out_path: Path, records: list[dict], summary: dict, exceed: dic
 
 # ─── main ────────────────────────────────────────────────────────────────────
 
-def collect_paths(data_dir: Path, activities: list[str] | None) -> list[Path]:
+def collect_paths(
+    data_dir: Path,
+    activities: list[str] | None,
+    environment: int | None = None,
+) -> list[Path]:
+    """data_dir의 SafeSignal CSV 중 activity/environment 필터를 통과한 경로.
+
+    environment=None이면 환경 제한 없음 (기존 동작). 지정 시 해당 정수 환경만.
+    """
     paths = sorted(data_dir.glob("*.csv"))
     valid: list[Path] = []
     act_filter = {a.upper() for a in activities} if activities else None
@@ -361,6 +369,8 @@ def collect_paths(data_dir: Path, activities: list[str] | None) -> list[Path]:
         except ValueError:
             continue
         if act_filter is not None and meta.activity.upper() not in act_filter:
+            continue
+        if environment is not None and meta.environment != environment:
             continue
         valid.append(p)
     return valid

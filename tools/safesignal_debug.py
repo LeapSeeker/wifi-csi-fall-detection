@@ -8,6 +8,8 @@
   quality           debug/data_collect/check_csv_quality.py 호출 (수집 CSV 품질)
   sdp-energy        debug/preprocessing/analyze_sdp_energy.py 호출 (활동별 energy)
   no-motion-energy  위와 동일하되 activity=NO_MOTION 고정 (--activity 미노출)
+  calibrate         debug/preprocessing/build_no_motion_baseline.py 호출
+                    (환경별 NO_MOTION baseline JSON summary 생성)
 
 Examples
 --------
@@ -20,6 +22,10 @@ CSV 품질 검사:
 
 NO_MOTION 고정 energy 분석:
     python tools/safesignal_debug.py no-motion-energy --limit-windows-per-file 10 --progress-every 5
+
+환경별 NO_MOTION baseline 생성:
+    python tools/safesignal_debug.py calibrate --env E2
+    python tools/safesignal_debug.py calibrate --env E2 --workers 1 --progress-every 10
 """
 from __future__ import annotations
 
@@ -102,6 +108,35 @@ def cmd_no_motion_energy(args: argparse.Namespace) -> int:
     return _run_script(script, _sdp_forward_args(args))
 
 
+def cmd_calibrate(args: argparse.Namespace) -> int:
+    script = PROJECT_ROOT / "debug" / "preprocessing" / "build_no_motion_baseline.py"
+    forwarded: list[str] = [
+        "--env",
+        args.env,
+        "--dir",
+        args.dir,
+        "--workers",
+        str(args.workers),
+        "--rpca-max-iter",
+        str(args.rpca_max_iter),
+        "--progress-every",
+        str(args.progress_every),
+        "--min-files",
+        str(args.min_files),
+    ]
+    if args.out:
+        forwarded.extend(["--out", args.out])
+    if args.rpca_tol is not None:
+        forwarded.extend(["--rpca-tol", str(args.rpca_tol)])
+    if args.limit_windows_per_file is not None:
+        forwarded.extend(["--limit-windows-per-file", str(args.limit_windows_per_file)])
+    if args.max_files is not None:
+        forwarded.extend(["--max-files", str(args.max_files)])
+    if args.allow_few_files:
+        forwarded.append("--allow-few-files")
+    return _run_script(script, forwarded)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="SafeSignal debug/analysis runner")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -118,6 +153,26 @@ def build_parser() -> argparse.ArgumentParser:
     p_nm = sub.add_parser("no-motion-energy", help="NO_MOTION 고정 SDP energy 분석")
     _add_sdp_args(p_nm, include_activity=False)
     p_nm.set_defaults(func=cmd_no_motion_energy)
+
+    p_cal = sub.add_parser("calibrate", help="환경별 NO_MOTION baseline JSON 생성")
+    p_cal.add_argument("--env", required=True, help="환경 라벨 (예: E2)")
+    p_cal.add_argument("--dir", default="data/raw", help="CSV 폴더")
+    p_cal.add_argument(
+        "--out", default=None,
+        help="저장 경로 (기본 data/calibration/{ENV}_no_motion_baseline.json)",
+    )
+    p_cal.add_argument("--workers", type=int, default=1, help="병렬 프로세스 수")
+    p_cal.add_argument("--rpca-max-iter", type=int, default=200)
+    p_cal.add_argument("--rpca-tol", type=float, default=None)
+    p_cal.add_argument("--limit-windows-per-file", type=int, default=None)
+    p_cal.add_argument("--progress-every", type=int, default=25)
+    p_cal.add_argument("--max-files", type=int, default=None)
+    p_cal.add_argument("--min-files", type=int, default=2, help="요구 최소 파일 수")
+    p_cal.add_argument(
+        "--allow-few-files", action="store_true",
+        help="min-files 미달이어도 warning만 내고 진행",
+    )
+    p_cal.set_defaults(func=cmd_calibrate)
 
     return parser
 
