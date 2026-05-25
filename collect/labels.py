@@ -4,6 +4,10 @@
 - 낙상 6종 × 10회 = 60 세션
 - 비낙상 6종 × 30회 = 180 세션
 - no_motion baseline 2회
+
+세션 수/target은 그대로이며, fall 세션의 stage 구성과 duration만 event 중심으로 변경됨.
+각 fall 세션은 event 중심 4초 프로토콜(대기 1초 → 낙상 2초 → 낙상 후 정지 1초)로
+실제 낙상 순간을 짧고 명확하게 포착한다.
 """
 
 from __future__ import annotations
@@ -28,8 +32,9 @@ ACTIVITY_INFO: dict[str, dict] = {
         "class_idx": 0,
         "target": 10,
         "stages": [
-            {"name": "앉기", "duration": 2},
-            {"name": "앞으로 낙상", "duration": 3},
+            {"name": "앉은 상태 대기", "duration": 1},
+            {"name": "앞으로 낙상", "duration": 2},
+            {"name": "낙상 후 정지", "duration": 1},
         ],
     },
     "FALL_SIT_B": {
@@ -37,8 +42,9 @@ ACTIVITY_INFO: dict[str, dict] = {
         "class_idx": 0,
         "target": 10,
         "stages": [
-            {"name": "앉기", "duration": 2},
-            {"name": "뒤로 낙상", "duration": 3},
+            {"name": "앉은 상태 대기", "duration": 1},
+            {"name": "뒤로 낙상", "duration": 2},
+            {"name": "낙상 후 정지", "duration": 1},
         ],
     },
     "FALL_STD_F": {
@@ -46,8 +52,9 @@ ACTIVITY_INFO: dict[str, dict] = {
         "class_idx": 0,
         "target": 10,
         "stages": [
-            {"name": "서있기", "duration": 2},
-            {"name": "앞으로 낙상", "duration": 3},
+            {"name": "선 상태 대기", "duration": 1},
+            {"name": "앞으로 낙상", "duration": 2},
+            {"name": "낙상 후 정지", "duration": 1},
         ],
     },
     "FALL_STD_B": {
@@ -55,8 +62,9 @@ ACTIVITY_INFO: dict[str, dict] = {
         "class_idx": 0,
         "target": 10,
         "stages": [
-            {"name": "서있기", "duration": 2},
-            {"name": "뒤로 낙상", "duration": 3},
+            {"name": "선 상태 대기", "duration": 1},
+            {"name": "뒤로 낙상", "duration": 2},
+            {"name": "낙상 후 정지", "duration": 1},
         ],
     },
     "FALL_WALK_F": {
@@ -64,8 +72,9 @@ ACTIVITY_INFO: dict[str, dict] = {
         "class_idx": 0,
         "target": 10,
         "stages": [
-            {"name": "걷기", "duration": 2},
-            {"name": "앞으로 낙상", "duration": 3},
+            {"name": "1~2걸음 걷기", "duration": 1},
+            {"name": "앞으로 낙상", "duration": 2},
+            {"name": "낙상 후 정지", "duration": 1},
         ],
     },
     "FALL_WALK_B": {
@@ -73,8 +82,9 @@ ACTIVITY_INFO: dict[str, dict] = {
         "class_idx": 0,
         "target": 10,
         "stages": [
-            {"name": "걷기", "duration": 2},
-            {"name": "뒤로 낙상", "duration": 3},
+            {"name": "1~2걸음 걷기", "duration": 1},
+            {"name": "뒤로 낙상", "duration": 2},
+            {"name": "낙상 후 정지", "duration": 1},
         ],
     },
     # 비낙상 6종 — target=30
