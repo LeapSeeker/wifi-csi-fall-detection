@@ -414,3 +414,141 @@ rclone copy data\raw gdrive:
 - raw CSV는 전처리 변경과 무관하게 원본 데이터로 보존한다.
 - Google Drive 업로드 설정이 되어 있어도 로컬 `data/raw/`는 삭제하지 않는다.
 - 토큰/계정 정보가 들어 있는 rclone 설정 파일은 Git에 커밋하지 않는다.
+
+---
+
+## 12. Git Bash `drive` alias (수집 서버 + 자동 업로드 한 번에 실행)
+
+5장의 절차(레포 이동 → 환경변수 설정 → Drive 연결 확인 → 서버 실행)를 매번 손으로
+입력하지 않도록 Git Bash alias 하나로 묶는다.
+
+> 이 wrapper는 **코드에 넣지 않는다.** `server/main.py`나 `tools/safesignal_debug.py`에
+> collect-server wrapper를 추가하지 말고, 아래처럼 셸 alias로만 관리한다.
+
+`drive` alias 동작:
+
+1. `wifi-csi-fall-detection` 레포로 이동
+2. `SAFESIGNAL_DRIVE_UPLOAD=1` 설정
+3. `SAFESIGNAL_DRIVE_REMOTE=gdrive:SafeSignal_Dataset` 설정
+4. `SAFESIGNAL_RCLONE_BIN`을 레포 내부 `rclone.exe`로 설정
+5. `rclone lsd gdrive:` 로 Drive 연결 확인
+6. `python server/main.py` 실행
+
+### 12.1 일시 등록 (현재 터미널 창에서만)
+
+새 Git Bash 창을 연 직후, 아래 한 줄을 붙여 넣으면 그 창에서만 `drive`를 쓸 수 있다.
+창을 닫으면 사라진다.
+
+```bash
+alias drive='cd /c/Project/LastProject/wifi-csi-fall-detection && export SAFESIGNAL_DRIVE_UPLOAD=1 && export SAFESIGNAL_DRIVE_REMOTE="gdrive:SafeSignal_Dataset" && export SAFESIGNAL_RCLONE_BIN="/c/Project/LastProject/wifi-csi-fall-detection/.local/rclone/rclone-v1.74.1-windows-amd64/rclone.exe" && "$SAFESIGNAL_RCLONE_BIN" lsd gdrive: && python server/main.py'
+```
+
+등록 후 실행:
+
+```bash
+drive
+```
+
+`rclone lsd gdrive:` 에서 `SafeSignal_Dataset` 등 Drive 항목이 출력되면 연결 정상이고,
+이어서 수집 서버가 뜬다. Drive 연결에 실패하면 `&&` 체인이 거기서 멈추므로
+서버가 실행되지 않는다 — 이 경우 9장(실패 시 처리)을 따른다.
+
+### 12.2 영구 등록 (`~/.bashrc`)
+
+매번 붙여 넣기 싫으면 `~/.bashrc`에 한 번만 추가한다.
+
+```bash
+cat >> ~/.bashrc <<'EOF'
+
+# SafeSignal: 수집 서버 + Drive 자동 업로드
+alias drive='cd /c/Project/LastProject/wifi-csi-fall-detection && export SAFESIGNAL_DRIVE_UPLOAD=1 && export SAFESIGNAL_DRIVE_REMOTE="gdrive:SafeSignal_Dataset" && export SAFESIGNAL_RCLONE_BIN="/c/Project/LastProject/wifi-csi-fall-detection/.local/rclone/rclone-v1.74.1-windows-amd64/rclone.exe" && "$SAFESIGNAL_RCLONE_BIN" lsd gdrive: && python server/main.py'
+EOF
+```
+
+현재 창에 즉시 반영(또는 Git Bash를 새로 열기):
+
+```bash
+source ~/.bashrc
+```
+
+이후로는 어느 Git Bash 창에서든 `drive` 한 번이면 된다.
+
+### 12.3 참고
+
+- 가상환경(`.venv`)을 쓰는 경우, alias 마지막의 `python`이 가상환경 파이썬을 가리키도록
+  alias 실행 전에 `source .venv/Scripts/activate`를 먼저 하거나,
+  alias 안의 `python`을 `.venv/Scripts/python.exe`로 바꿔도 된다.
+- 레포 경로나 rclone 버전 폴더명이 바뀌면 위 경로 두 곳
+  (`cd` 대상과 `SAFESIGNAL_RCLONE_BIN`)을 함께 수정한다.
+- remote 루트를 `gdrive:` 자체로 쓰고 싶으면 `SAFESIGNAL_DRIVE_REMOTE` 값만 바꾼다.
+  (`E?/S??` 하위 분류는 업로더가 파일명으로 자동 처리한다 — 1장 참고.)
+
+---
+
+## 13. Git Bash `train` alias (수집용 서버 = 추론 비활성 + 자동 업로드)
+
+수집 품질 측정 중에는 RPCA/추론 부하가 UDP 수신/페어링/대시보드 갱신에 영향을 주고
+`InferenceWorker input_queue full/drop` 로그가 계속 쌓인다. 이를 막기 위해 추론
+프로세스를 아예 띄우지 않는 "수집용 서버" 실행을 `train` alias로 묶는다.
+
+`drive` alias와 거의 같지만, **`SAFESIGNAL_DISABLE_INFERENCE=1`을 추가**하여
+`server/main.py`가 `InferenceWorker`를 생성/start하지 않도록 한다. 서버 시작 로그에
+`[Inference] disabled by SAFESIGNAL_DISABLE_INFERENCE=1`이 출력되면 정상이다.
+
+> `drive`(추론 활성, 기존 동작)와 `train`(추론 비활성, 수집 전용)은 별도 alias로
+> 공존한다. 수집만 할 때는 `train`, 실시간 추론까지 확인하려면 `drive`를 쓴다.
+
+`train` alias 동작:
+
+1. `wifi-csi-fall-detection` 레포로 이동
+2. `SAFESIGNAL_DISABLE_INFERENCE=1` 설정 (추론 프로세스 미시작)
+3. `SAFESIGNAL_DRIVE_UPLOAD=1` 설정
+4. `SAFESIGNAL_DRIVE_REMOTE=gdrive:SafeSignal_Dataset` 설정
+5. `SAFESIGNAL_RCLONE_BIN`을 레포 내부 `rclone.exe`로 설정
+6. `rclone lsd gdrive:` 로 Drive 연결 확인
+7. `python server/main.py` 실행
+
+### 13.1 일시 등록 (현재 터미널 창에서만)
+
+```bash
+alias train='cd /c/Project/LastProject/wifi-csi-fall-detection && export SAFESIGNAL_DISABLE_INFERENCE=1 && export SAFESIGNAL_DRIVE_UPLOAD=1 && export SAFESIGNAL_DRIVE_REMOTE="gdrive:SafeSignal_Dataset" && export SAFESIGNAL_RCLONE_BIN="/c/Project/LastProject/wifi-csi-fall-detection/.local/rclone/rclone-v1.74.1-windows-amd64/rclone.exe" && "$SAFESIGNAL_RCLONE_BIN" lsd gdrive: && python server/main.py'
+```
+
+등록 후 실행:
+
+```bash
+train
+```
+
+### 13.2 영구 등록 (`~/.bashrc`)
+
+```bash
+cat >> ~/.bashrc <<'EOF'
+
+# SafeSignal train alias start
+alias train='cd /c/Project/LastProject/wifi-csi-fall-detection && export SAFESIGNAL_DISABLE_INFERENCE=1 && export SAFESIGNAL_DRIVE_UPLOAD=1 && export SAFESIGNAL_DRIVE_REMOTE="gdrive:SafeSignal_Dataset" && export SAFESIGNAL_RCLONE_BIN="/c/Project/LastProject/wifi-csi-fall-detection/.local/rclone/rclone-v1.74.1-windows-amd64/rclone.exe" && "$SAFESIGNAL_RCLONE_BIN" lsd gdrive: && python server/main.py'
+# SafeSignal train alias end
+EOF
+```
+
+현재 창에 즉시 반영(또는 Git Bash를 새로 열기):
+
+```bash
+source ~/.bashrc
+```
+
+등록 확인:
+
+```bash
+bash -lc "source ~/.bashrc && alias train"
+```
+
+### 13.3 참고
+
+- `train`은 추론을 끄므로 낙상 알림/SMS/Pi4 fall 이벤트는 발생하지 않는다. 순수
+  데이터 수집·저장·Drive 업로드 전용이다. 추론까지 필요하면 `drive`를 쓴다.
+- `SAFESIGNAL_DISABLE_INFERENCE` 허용값은 `1`, `true`, `yes`, `on` (대소문자 무관).
+  미설정/그 외 값이면 기존대로 추론이 활성화된다.
+- `.env`에 `SAFESIGNAL_DISABLE_INFERENCE=1`을 넣어도 동작한다(`load_dotenv()` 이후 평가).
+- 가상환경(`.venv`) 사용 시 alias 실행 전 `source .venv/Scripts/activate`를 먼저
+  하거나, alias 안의 `python`을 `.venv/Scripts/python.exe`로 바꾼다.
