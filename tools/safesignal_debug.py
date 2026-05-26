@@ -14,6 +14,10 @@
                     (baseline JSON 검증/요약, read-only)
   compare-energy    debug/preprocessing/compare_sdp_energy_to_baseline.py 호출
                     (baseline 대비 대상 활동/FALL energy 분리도 비교, read-only)
+  visualize         debug/data_collect/visualize_csv.py 호출
+                    (수집 CSV 메뉴 기반 그래프 확인)
+  clean-csv         debug/data_collect/sort_csv_by_timestamp.py 호출
+                    (기존 CSV timestamp 정렬본 생성)
 
 Examples
 --------
@@ -41,6 +45,13 @@ baseline 대비 SDP energy 분리도 비교 (read-only):
     python tools/safesignal_debug.py compare-energy --env E2 --target-env E4
     python tools/safesignal_debug.py compare-energy --baseline data/calibration/E2_no_motion_baseline.json --target-class fall
     python tools/safesignal_debug.py compare-energy --env E2 --activity WALK
+
+수집 CSV 그래프 확인:
+    python tools/safesignal_debug.py visualize
+    python tools/safesignal_debug.py visualize --file data/raw/E2_S02_A_STAND_T001.csv
+
+기존 CSV timestamp 정렬본 생성:
+    python tools/safesignal_debug.py clean-csv --env E2 E4
 """
 from __future__ import annotations
 
@@ -195,6 +206,30 @@ def cmd_compare_energy(args: argparse.Namespace) -> int:
     return _run_script(script, forwarded)
 
 
+def cmd_visualize(args: argparse.Namespace) -> int:
+    script = PROJECT_ROOT / "debug" / "data_collect" / "visualize_csv.py"
+    forwarded: list[str] = ["--dir", args.dir]
+    if args.file:
+        forwarded.extend(["--file", args.file])
+    if args.save_dir:
+        forwarded.extend(["--save-dir", args.save_dir])
+    if args.no_show:
+        forwarded.append("--no-show")
+    if args.once:
+        forwarded.append("--once")
+    return _run_script(script, forwarded)
+
+
+def cmd_clean_csv(args: argparse.Namespace) -> int:
+    script = PROJECT_ROOT / "debug" / "data_collect" / "sort_csv_by_timestamp.py"
+    forwarded: list[str] = ["--dir", args.dir, "--out", args.out]
+    if args.env:
+        forwarded.extend(["--env", *args.env])
+    if args.overwrite:
+        forwarded.append("--overwrite")
+    return _run_script(script, forwarded)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="SafeSignal debug/analysis runner")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -257,6 +292,25 @@ def build_parser() -> argparse.ArgumentParser:
     p_cmp.add_argument("--max-files", type=int, default=None)
     p_cmp.add_argument("--out", default=None, help="summary JSON 저장 경로 (raw record 미저장)")
     p_cmp.set_defaults(func=cmd_compare_energy)
+
+    p_vis = sub.add_parser("visualize", help="수집 CSV 메뉴 기반 그래프 확인")
+    p_vis.add_argument("--dir", default="data/raw", help="CSV 폴더")
+    p_vis.add_argument("--file", default=None, help="CSV 파일 직접 지정")
+    p_vis.add_argument("--save-dir", default=None, help="그래프 PNG 저장 폴더")
+    p_vis.add_argument("--no-show", action="store_true", help="창을 띄우지 않고 저장만 수행")
+    p_vis.add_argument(
+        "--once",
+        action="store_true",
+        help="--file 사용 시 동작 1회 실행 후 종료",
+    )
+    p_vis.set_defaults(func=cmd_visualize)
+
+    p_clean = sub.add_parser("clean-csv", help="기존 CSV timestamp 정렬본 생성")
+    p_clean.add_argument("--dir", default="data/raw", help="원본 CSV 폴더")
+    p_clean.add_argument("--out", default="data/cleaned", help="정렬본 출력 폴더")
+    p_clean.add_argument("--env", nargs="+", default=None, help="환경 필터 예: E2 E4")
+    p_clean.add_argument("--overwrite", action="store_true", help="기존 출력 파일 덮어쓰기")
+    p_clean.set_defaults(func=cmd_clean_csv)
 
     return parser
 

@@ -74,9 +74,9 @@ def test_pairing() -> None:
     paired: list[tuple[CsiPacket, CsiPacket]] = []
     pb = PairingBuffer(on_paired=lambda r1, r2: paired.append((r1, r2)))
 
-    # rx1 먼저 들어옴, rx2가 30ms 뒤 → pair
+    # rx1 먼저 들어옴, rx2가 20ms 뒤 → pair
     p1 = CsiPacket(DEVICE_ID_RX1, -40, 1, 1_000_000, [0.0] * AMPLITUDE_COUNT)
-    p2 = CsiPacket(DEVICE_ID_RX2, -45, 1, 1_030_000, [0.0] * AMPLITUDE_COUNT)
+    p2 = CsiPacket(DEVICE_ID_RX2, -45, 1, 1_020_000, [0.0] * AMPLITUDE_COUNT)
     pb.add(p1)
     assert paired == []
     pb.add(p2)
@@ -84,16 +84,16 @@ def test_pairing() -> None:
     assert paired[0][0].device_id == DEVICE_ID_RX1
     assert paired[0][1].device_id == DEVICE_ID_RX2
 
-    # 60ms 차이 → pair 실패 (50ms tolerance 초과)
+    # 30ms 차이 → pair 실패 (25ms tolerance 초과)
     paired.clear()
     p3 = CsiPacket(DEVICE_ID_RX1, -40, 2, 2_000_000, [0.0] * AMPLITUDE_COUNT)
-    p4 = CsiPacket(DEVICE_ID_RX2, -45, 2, 2_060_000, [0.0] * AMPLITUDE_COUNT)
+    p4 = CsiPacket(DEVICE_ID_RX2, -45, 2, 2_030_000, [0.0] * AMPLITUDE_COUNT)
     pb.add(p3)
     pb.add(p4)
-    assert paired == [], "60ms 차이는 pair되면 안 됨"
+    assert paired == [], "30ms 차이는 pair되면 안 됨"
 
     # cleanup으로 만료 패킷 제거
-    pb.cleanup()  # latest_ts_us = 2_060_000, p3(2_000_000) diff=60_000us — under 200ms, 유지
+    pb.cleanup()  # latest_ts_us = 2_030_000, p3(2_000_000) diff=30_000us — under 200ms, 유지
     p5 = CsiPacket(DEVICE_ID_RX2, -40, 99, 2_500_000, [0.0] * AMPLITUDE_COUNT)
     pb.add(p5)  # latest_ts = 2_500_000, p3,p4 모두 expire
     pb.cleanup()
@@ -193,6 +193,36 @@ def test_pair_delay_columns() -> None:
         assert int(r["timestamp_rx2_us"]) == 1_030_000
         assert int(r["pair_dt_us"]) == abs(1_000_000 - 1_030_000) == 30_000
     print("[OK] pair delay columns (timestamp_rx1/rx2_us, pair_dt_us)")
+
+
+def test_save_session_sorts_by_timestamp() -> None:
+    """CSV 저장 시 pair arrival order가 아니라 timestamp_us 기준으로 정렬."""
+    import pandas as pd
+
+    with tempfile.TemporaryDirectory() as tmp:
+        raw = Path(tmp) / "raw"
+        rec = SessionRecorder(raw_dir=raw)
+        buf = []
+        for arrival_idx, ts_us in enumerate([1_030_000, 1_000_000, 1_020_000]):
+            row = {
+                "timestamp_us": ts_us,
+                "seq_rx1": arrival_idx,
+                "seq_rx2": arrival_idx,
+                "timestamp_rx1_us": ts_us,
+                "timestamp_rx2_us": ts_us,
+                "pair_dt_us": 0,
+            }
+            for i in range(AMPLITUDE_COUNT):
+                row[f"amp_rx1_{i}"] = float(arrival_idx)
+                row[f"amp_rx2_{i}"] = float(arrival_idx + 100)
+            buf.append(row)
+
+        path = rec.save_session(buf, "WALK", env=1, subject=1)
+        df = pd.read_csv(path)
+        assert df["timestamp_us"].tolist() == [1_000_000, 1_020_000, 1_030_000]
+        # 같은 timestamp가 없으면 timestamp 정렬 결과에 따라 seq도 1,2,0 순서가 된다.
+        assert df["seq_rx1"].tolist() == [1, 2, 0]
+    print("[OK] save_session sorts rows by timestamp_us")
 
 
 def test_quality_summary() -> None:
@@ -319,7 +349,7 @@ def test_labels() -> None:
     assert ACTIVITY_INFO["NO_MOTION"]["target"] == 2
     assert ACTIVITY_INFO["NO_MOTION"]["class_idx"] == 7
     # duration 자동 합산
-    assert get_duration("FALL_SIT_F") == 5  # 2 + 3
+    assert get_duration("FALL_SIT_F") == 4  # 1 + 2 + 1
     assert get_duration("WALK") == 8
     assert get_duration("LIE") == 7  # 3 + 4
     assert get_duration("NO_MOTION") == 300
@@ -332,6 +362,7 @@ def main() -> int:
     test_loss_rate()
     test_trial_and_count()
     test_pair_delay_columns()
+    test_save_session_sorts_by_timestamp()
     test_quality_summary()
     test_trial_no_overwrite()
     test_bind_failure_raises_runtime_error()

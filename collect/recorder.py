@@ -81,6 +81,24 @@ class SessionRecorder:
             self._buf.clear()
             return buf_copy
 
+    @staticmethod
+    def rows_to_dataframe(buf: list[dict]) -> pd.DataFrame:
+        """수집 row를 timestamp 순서로 정렬한 CSV DataFrame으로 변환."""
+        df = pd.DataFrame(buf, columns=CSV_COLUMNS)
+        if len(df) <= 1 or "timestamp_us" not in df.columns:
+            return df
+
+        # pair 확정/도착 순서는 네트워크 artifact다. CSV time-series row는
+        # 측정 시각(timestamp_us) 기준으로 정렬하고, 동일 timestamp에서는
+        # 원래 append 순서를 보존한다.
+        arrival = pd.Series(range(len(df)), index=df.index, name="_arrival_idx")
+        df = pd.concat([df, arrival], axis=1)
+        df = df.sort_values(
+            ["timestamp_us", "_arrival_idx"],
+            kind="stable",
+        ).drop(columns=["_arrival_idx"])
+        return df
+
     # ── 분석 헬퍼 ────────────────────────────────────────
     @staticmethod
     def calculate_loss_rate(buf: list[dict]) -> float:
@@ -146,7 +164,7 @@ class SessionRecorder:
         while path.exists():
             trial += 1
             path = self._make_filename(activity_code, env, subject, trial)
-        df = pd.DataFrame(buf, columns=CSV_COLUMNS)
+        df = self.rows_to_dataframe(buf)
         df.to_csv(path, index=False)
         return path
 

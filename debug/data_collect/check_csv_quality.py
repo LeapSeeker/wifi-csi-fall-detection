@@ -113,6 +113,8 @@ def check_file(csv_path: Path) -> dict:
         "pair_dt_max_us": None,
         "gap_p95_us": None,
         "gap_max_us": None,
+        "ts_reversal_count": 0,
+        "ts_min_signed_gap_us": None,
     }
 
     meta = parse_filename(csv_path.name)
@@ -180,10 +182,21 @@ def check_file(csv_path: Path) -> dict:
 
     # timestamp gap (timestamp_us diff 기준) — report-only
     if "timestamp_us" in df.columns and len(df) >= 2:
-        gaps = np.abs(np.diff(df["timestamp_us"].to_numpy(dtype=float)))
-        if gaps.size:
-            result["gap_p95_us"] = _percentile(gaps, 95)
-            result["gap_max_us"] = float(gaps.max())
+        signed_gaps = np.diff(df["timestamp_us"].to_numpy(dtype=float))
+        gaps_abs = np.abs(signed_gaps)
+        if signed_gaps.size:
+            result["ts_reversal_count"] = int(np.sum(signed_gaps < 0))
+            result["ts_min_signed_gap_us"] = float(signed_gaps.min())
+            if result["ts_reversal_count"] > 0:
+                if result["status"] == "OK":
+                    result["status"] = "WARN"
+                result["warnings"].append(
+                    f"timestamp 역행 {result['ts_reversal_count']}회 "
+                    f"(min signed gap={_fmt_ms(result['ts_min_signed_gap_us'])})"
+                )
+        if gaps_abs.size:
+            result["gap_p95_us"] = _percentile(gaps_abs, 95)
+            result["gap_max_us"] = float(gaps_abs.max())
 
     return result
 
@@ -234,8 +247,9 @@ def main() -> None:
                 f"max={_fmt_ms(r['pair_dt_max_us'])}"
             )
         print(
-            f"    └ ts_gap : p95={_fmt_ms(r['gap_p95_us'])} "
-            f"max={_fmt_ms(r['gap_max_us'])}"
+            f"    └ ts_gap : abs_p95={_fmt_ms(r['gap_p95_us'])} "
+            f"abs_max={_fmt_ms(r['gap_max_us'])} "
+            f"reversal={r['ts_reversal_count']}"
         )
 
         for w in r["warnings"]:

@@ -11,6 +11,8 @@ wifi-csi-fall-detection/
 # 데이터 & 모델
 data/raw/*.csv
 data/raw/_archive/
+data/cleaned/
+data/quarantine/
 data/augmented/*.csv
 data/upload_log.md
 model/pretrained/*.pth
@@ -40,6 +42,8 @@ CLAUDE.local.md
 
 # 서버 런타임 로그
 server/logs/
+*.log
+Get-NetUDPEndpoint
 
 # tools/ 산출물 (augment_inspector 등) — 스크립트만 추적
 tools/inspect_output/

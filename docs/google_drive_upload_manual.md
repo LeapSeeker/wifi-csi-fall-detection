@@ -511,7 +511,7 @@ source ~/.bashrc
 ### 13.1 일시 등록 (현재 터미널 창에서만)
 
 ```bash
-alias train='cd /c/Project/LastProject/wifi-csi-fall-detection && export SAFESIGNAL_DISABLE_INFERENCE=1 && export SAFESIGNAL_DRIVE_UPLOAD=1 && export SAFESIGNAL_DRIVE_REMOTE="gdrive:SafeSignal_Dataset" && export SAFESIGNAL_RCLONE_BIN="/c/Project/LastProject/wifi-csi-fall-detection/.local/rclone/rclone-v1.74.1-windows-amd64/rclone.exe" && "$SAFESIGNAL_RCLONE_BIN" lsd gdrive: && python server/main.py'
+alias train='cd /c/Project/LastProject/wifi-csi-fall-detection && bash tools/run_collect_server.sh'
 ```
 
 등록 후 실행:
