@@ -87,14 +87,20 @@ def on_paired(rx1, rx2):
     last_fall_pair["rx1"] = rx1
     last_fall_pair["rx2"] = rx2
     log_pair(rx1, rx2)
-    update_pair(rx1, rx2)
 
-    # 수집 모드: collect_manager로 전달
-    if collect_manager is not None and collect_manager.is_recording:
+    # is_recording을 한 번만 읽어 분기 기준을 고정한다.
+    # (수집/추론 동시 전달 또는 양쪽 누락 방지)
+    is_collecting = collect_manager is not None and collect_manager.is_recording
+
+    # 수집 모드: collect_manager에 먼저 반영해야 update_pair가 emit하는
+    # collect_pair_count가 현재 수집된 페어 수와 일치한다 (1개 지연 방지).
+    if is_collecting:
         collect_manager.add_pair(rx1, rx2)
 
+    update_pair(rx1, rx2)
+
     # 추론: 수집 중이 아닐 때만 실행
-    if inference_worker is not None and (collect_manager is None or not collect_manager.is_recording):
+    if inference_worker is not None and not is_collecting:
         inference_worker.put(rx1, rx2)
 
 # -----------------------------------------------
