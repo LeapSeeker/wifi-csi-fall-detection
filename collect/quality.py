@@ -33,7 +33,7 @@ def summarize_session(buf: list[dict]) -> dict:
     반환 키:
         pair_count, duration_s, pair_rate_hz, capture_ratio, loss_rate,
         pair_dt_p50_us, pair_dt_p95_us, pair_dt_p99_us, pair_dt_max_us,
-        gap_p95_us, gap_max_us
+        gap_p95_us, gap_max_us, ts_reversal_count, ts_min_signed_gap_us
 
     pair_dt_us / gap을 계산할 수 없으면(legacy 버퍼, row 부족) 해당 값은 None.
     """
@@ -50,6 +50,8 @@ def summarize_session(buf: list[dict]) -> dict:
         "pair_dt_max_us": None,
         "gap_p95_us": None,
         "gap_max_us": None,
+        "ts_reversal_count": 0,
+        "ts_min_signed_gap_us": None,
     }
     if n == 0:
         return summary
@@ -67,11 +69,14 @@ def summarize_session(buf: list[dict]) -> dict:
             rate = n / duration_s
             summary["pair_rate_hz"] = rate
             summary["capture_ratio"] = rate / CAPTURE_TARGET_HZ
-        # 연속 패킷 간격(gap). 비단조 페어링 결과 대비 abs 사용.
-        gaps = np.abs(np.diff(np.asarray(ts, dtype=float))).tolist()
-        if gaps:
-            summary["gap_p95_us"] = _percentile(gaps, 95)
-            summary["gap_max_us"] = float(max(gaps))
+        # 연속 패킷 간격(gap). abs 통계와 timestamp 역행을 분리해서 남긴다.
+        signed_gaps = np.diff(np.asarray(ts, dtype=float))
+        if signed_gaps.size:
+            gaps_abs = np.abs(signed_gaps).tolist()
+            summary["gap_p95_us"] = _percentile(gaps_abs, 95)
+            summary["gap_max_us"] = float(max(gaps_abs))
+            summary["ts_reversal_count"] = int(np.sum(signed_gaps < 0))
+            summary["ts_min_signed_gap_us"] = float(signed_gaps.min())
 
     # ── pair_dt (legacy 버퍼엔 키 없음 → None 유지) ──
     pair_dts = [
@@ -104,5 +109,6 @@ def format_quality_lines(summary: dict) -> list[str]:
         f"max={_fmt_ms(summary['pair_dt_max_us'])}",
         "  ts_gap : "
         f"p95={_fmt_ms(summary['gap_p95_us'])} "
-        f"max={_fmt_ms(summary['gap_max_us'])}",
+        f"max={_fmt_ms(summary['gap_max_us'])} "
+        f"reversal={summary.get('ts_reversal_count', 0)}",
     ]

@@ -7,7 +7,7 @@ from config.settings import BUFFER_MAX_SIZE, DEVICE_ID_RX1, DEVICE_ID_RX2
 
 # 페어링 허용 오차 / 만료 (마이크로초)
 # D-007 seq_num은 Rx 장치별 로컬 시퀀스라 한쪽 손실 시 어긋난다 → timestamp 기반 nearest match.
-PAIR_TOLERANCE_US = 50_000     # 50ms
+PAIR_TOLERANCE_US = 25_000     # 25ms
 PAIR_EXPIRE_US = 200_000       # 200ms
 
 

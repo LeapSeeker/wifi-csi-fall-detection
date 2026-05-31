@@ -246,22 +246,22 @@ def _mk_pkt(device_id: int, ts_us: int, seq: int = 0, rssi: int = -50) -> dict:
 
 
 def check_pairing_buffer() -> bool:
-    # 5-1) Rx1 → Rx2 (30ms 차이) → pair 성공
+    # 5-1) Rx1 → Rx2 (20ms 차이) → pair 성공
     pairs: list = []
     buf = PairingBuffer(on_paired=lambda r1, r2: pairs.append((r1, r2)))
     buf.add(_mk_pkt(DEVICE_ID_RX1, ts_us=1_000_000))
-    buf.add(_mk_pkt(DEVICE_ID_RX2, ts_us=1_030_000))
-    assert len(pairs) == 1, f"30ms 차이 pair 실패: {len(pairs)}"
+    buf.add(_mk_pkt(DEVICE_ID_RX2, ts_us=1_020_000))
+    assert len(pairs) == 1, f"20ms 차이 pair 실패: {len(pairs)}"
     rx1, rx2 = pairs[0]
     assert rx1["device_id"] == DEVICE_ID_RX1, "콜백 첫 인자 != Rx1"
     assert rx2["device_id"] == DEVICE_ID_RX2, "콜백 둘째 인자 != Rx2"
 
-    # 5-2) tolerance 초과 (60.001ms) → pair 실패
+    # 5-2) tolerance 초과 (25.001ms) → pair 실패
     pairs.clear()
     buf2 = PairingBuffer(on_paired=lambda r1, r2: pairs.append((r1, r2)))
     buf2.add(_mk_pkt(DEVICE_ID_RX1, ts_us=2_000_000))
-    buf2.add(_mk_pkt(DEVICE_ID_RX2, ts_us=2_060_001))
-    assert len(pairs) == 0, f"50ms 초과인데 pair 됨: {len(pairs)}"
+    buf2.add(_mk_pkt(DEVICE_ID_RX2, ts_us=2_025_001))
+    assert len(pairs) == 0, f"25ms 초과인데 pair 됨: {len(pairs)}"
     # 두 버퍼 모두 잔여 1개
     assert len(buf2._buf_rx1) == 1
     assert len(buf2._buf_rx2) == 1

@@ -62,6 +62,15 @@ def on_fall_detected(
         save_fall(fall_count, last_fall_pair["rx1"], last_fall_pair["rx2"])
 
 
+def _is_inference_disabled() -> bool:
+    """SAFESIGNAL_DISABLE_INFERENCE 환경변수 평가 (load_dotenv 이후 호출).
+
+    허용 truthy 값: "1", "true", "yes", "on" (대소문자 무관). 그 외/미설정은 False.
+    """
+    val = os.getenv("SAFESIGNAL_DISABLE_INFERENCE", "").strip().lower()
+    return val in ("1", "true", "yes", "on")
+
+
 def record_activity_result(result: dict):
     """추후 1주일 단위 생활 패턴 분석용 일반 행동 저장 지점."""
     # 저장 형식(JSONL/CSV/SQLite 등)은 아직 미정이다.
@@ -154,17 +163,27 @@ def main():
     fall_cooldown = FallCooldown(cooldown_sec=int(os.getenv("COOLDOWN_SEC", "30")))
     packet_monitor = PacketMonitor()
     pairing_buffer = PairingBuffer(on_paired=on_paired)
-    inference_worker = InferenceWorker()
+
+    # 수집 서버 모드: SAFESIGNAL_DISABLE_INFERENCE=1이면 추론 프로세스 자체를
+    # 생성/start하지 않는다 (RPCA/추론 부하가 UDP 수신/페어링/대시보드에 주는
+    # 영향과 input_queue full/drop 로그 제거). 기본값은 추론 활성.
+    inference_disabled = _is_inference_disabled()
+    inference_worker = None if inference_disabled else InferenceWorker()
     collect_manager = CollectManager()
 
     log_info("서버 시작")
     log_info(f"로그 파일: {get_log_filepath()}")
+    if inference_disabled:
+        log_info("[Inference] disabled by SAFESIGNAL_DISABLE_INFERENCE=1")
+    else:
+        log_info("[Inference] enabled")
 
     rpi_connection.start()
     log_info("WebSocket 서버 시작 완료")
 
-    inference_worker.start()
-    log_info("InferenceWorker 시작 완료")
+    if inference_worker is not None:
+        inference_worker.start()
+        log_info("InferenceWorker 시작 완료")
 
     try:
         start_receivers(callback=on_packet_received)
@@ -175,7 +194,9 @@ def main():
 
     threading.Thread(target=cleanup_loop, daemon=True).start()
     threading.Thread(target=stats_loop, daemon=True).start()
-    threading.Thread(target=result_loop, daemon=True).start()
+    # 추론 비활성 시 result_loop는 처리할 결과가 없으므로 스레드를 시작하지 않는다.
+    if inference_worker is not None:
+        threading.Thread(target=result_loop, daemon=True).start()
 
     log_info("대시보드: http://localhost:8080")
     start_dashboard(on_fall_detected=on_fall_detected, collect_manager=collect_manager)

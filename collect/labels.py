@@ -1,8 +1,13 @@
 """SafeSignal 자체 데이터 수집 — 활동 코드 / 단계 / 수집 목표 정의.
 
-자체 수집 목표 (240 세션):
+자체 수집 목표 (242 세션):
 - 낙상 6종 × 10회 = 60 세션
 - 비낙상 6종 × 30회 = 180 세션
+- no_motion baseline 2회
+
+세션 수/target은 그대로이며, fall 세션의 stage 구성과 duration만 event 중심으로 변경됨.
+각 fall 세션은 event 중심 4초 프로토콜(대기 1초 → 낙상 2초 → 낙상 후 정지 1초)로
+실제 낙상 순간을 짧고 명확하게 포착한다.
 """
 
 from __future__ import annotations
@@ -15,6 +20,7 @@ CLASS_NAMES: dict[int, str] = {
     4: "standing",
     5: "running",
     6: "picking",
+    7: "no_motion",
 }
 
 
@@ -26,8 +32,9 @@ ACTIVITY_INFO: dict[str, dict] = {
         "class_idx": 0,
         "target": 10,
         "stages": [
-            {"name": "앉기", "duration": 2},
-            {"name": "앞으로 낙상", "duration": 3},
+            {"name": "앉은 상태 대기", "duration": 1},
+            {"name": "앞으로 낙상", "duration": 2},
+            {"name": "낙상 후 정지", "duration": 1},
         ],
     },
     "FALL_SIT_B": {
@@ -35,8 +42,9 @@ ACTIVITY_INFO: dict[str, dict] = {
         "class_idx": 0,
         "target": 10,
         "stages": [
-            {"name": "앉기", "duration": 2},
-            {"name": "뒤로 낙상", "duration": 3},
+            {"name": "앉은 상태 대기", "duration": 1},
+            {"name": "뒤로 낙상", "duration": 2},
+            {"name": "낙상 후 정지", "duration": 1},
         ],
     },
     "FALL_STD_F": {
@@ -44,8 +52,9 @@ ACTIVITY_INFO: dict[str, dict] = {
         "class_idx": 0,
         "target": 10,
         "stages": [
-            {"name": "서있기", "duration": 2},
-            {"name": "앞으로 낙상", "duration": 3},
+            {"name": "선 상태 대기", "duration": 1},
+            {"name": "앞으로 낙상", "duration": 2},
+            {"name": "낙상 후 정지", "duration": 1},
         ],
     },
     "FALL_STD_B": {
@@ -53,8 +62,9 @@ ACTIVITY_INFO: dict[str, dict] = {
         "class_idx": 0,
         "target": 10,
         "stages": [
-            {"name": "서있기", "duration": 2},
-            {"name": "뒤로 낙상", "duration": 3},
+            {"name": "선 상태 대기", "duration": 1},
+            {"name": "뒤로 낙상", "duration": 2},
+            {"name": "낙상 후 정지", "duration": 1},
         ],
     },
     "FALL_WALK_F": {
@@ -62,8 +72,9 @@ ACTIVITY_INFO: dict[str, dict] = {
         "class_idx": 0,
         "target": 10,
         "stages": [
-            {"name": "걷기", "duration": 2},
-            {"name": "앞으로 낙상", "duration": 3},
+            {"name": "1~2걸음 걷기", "duration": 1},
+            {"name": "앞으로 낙상", "duration": 2},
+            {"name": "낙상 후 정지", "duration": 1},
         ],
     },
     "FALL_WALK_B": {
@@ -71,8 +82,9 @@ ACTIVITY_INFO: dict[str, dict] = {
         "class_idx": 0,
         "target": 10,
         "stages": [
-            {"name": "걷기", "duration": 2},
-            {"name": "뒤로 낙상", "duration": 3},
+            {"name": "1~2걸음 걷기", "duration": 1},
+            {"name": "뒤로 낙상", "duration": 2},
+            {"name": "낙상 후 정지", "duration": 1},
         ],
     },
     # 비낙상 6종 — target=30
@@ -118,10 +130,19 @@ ACTIVITY_INFO: dict[str, dict] = {
         "target": 30,
         "duration": 5,
     },
+    "NO_MOTION": {
+        "display": "무동작/빈 공간",
+        "class_idx": 7,
+        "target": 2,
+        "duration": 300,
+    },
 }
 
 
 ACTIVITY_ORDER: list[str] = list(ACTIVITY_INFO.keys())
+
+DEFAULT_PREPARE_SECONDS = 3
+NO_MOTION_PREPARE_SECONDS = 10
 
 
 def get_duration(activity_code: str) -> int:
@@ -130,6 +151,13 @@ def get_duration(activity_code: str) -> int:
     if "stages" in info:
         return sum(s["duration"] for s in info["stages"])
     return info["duration"]
+
+
+def get_prepare_seconds(activity_code: str) -> int:
+    """활동 코드별 녹화 전 준비 카운트다운 길이(초)를 반환한다."""
+    if activity_code == "NO_MOTION":
+        return NO_MOTION_PREPARE_SECONDS
+    return DEFAULT_PREPARE_SECONDS
 
 
 def total_target_sessions() -> int:

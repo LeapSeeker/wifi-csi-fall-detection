@@ -78,9 +78,23 @@ typedef struct {
     float    amplitude[SUBCARRIER_VALID];  // 208 bytes — 진폭 52개
 } __attribute__((packed)) csi_packet_t;
 
+/* ── 상태 패킷 구조체 (32 bytes) ─────────────────────── */
+typedef struct {
+    uint8_t  magic;        // 0xAC — status packet
+    uint8_t  device_id;    // 0x01
+    uint8_t  reserved[2];
+    uint64_t timestamp_us;
+    uint32_t cb;
+    uint32_t match;
+    uint32_t qfull;
+    uint32_t sent;
+    uint32_t fail;
+} __attribute__((packed)) status_packet_t;
+
 /* ── 전역 변수 ────────────────────────────────────────── */
 static QueueHandle_t      csi_queue = NULL;
 static int                udp_sock  = -1;
+static int                status_sock = -1;
 static struct sockaddr_in server_addr;
 static volatile uint32_t  pkt_seq   = 0;
 static EventGroupHandle_t wifi_event_group;
@@ -255,17 +269,51 @@ static void udp_send_task(void *pvParameters)
     }
 }
 
+/* ── 상태 패킷 전송 ──────────────────────────────────── */
+static void send_status_packet(uint32_t cb, uint32_t match, uint32_t qfull,
+                               uint32_t sent, uint32_t fail)
+{
+    status_packet_t pkt;
+    pkt.magic = 0xAC;
+    pkt.device_id = DEVICE_ID;
+    pkt.reserved[0] = 0x00;
+    pkt.reserved[1] = 0x00;
+
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    pkt.timestamp_us = (uint64_t)tv.tv_sec * 1000000ULL + tv.tv_usec;
+
+    pkt.cb = cb;
+    pkt.match = match;
+    pkt.qfull = qfull;
+    pkt.sent = sent;
+    pkt.fail = fail;
+
+    int ret = sendto(status_sock, &pkt, sizeof(status_packet_t), 0,
+                     (struct sockaddr *)&server_addr, sizeof(server_addr));
+    if (ret < 0) {
+        ESP_LOGW(TAG, "STATUS UDP 전송 실패");
+    }
+}
+
 /* ── 1초 주기 통계 로그 태스크 (DEBUG, 안정화 후 제거) ───── */
 static void stats_task(void *pv)
 {
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(1000));
+        uint32_t cb = g_csi_total;
+        uint32_t match = g_csi_match;
+        uint32_t qfull = g_csi_qfull;
+        uint32_t sent = g_udp_sent;
+        uint32_t fail = g_udp_fail;
+
         ESP_LOGI(TAG, "STATS cb=%lu match=%lu qfull=%lu sent=%lu fail=%lu",
-                 (unsigned long)g_csi_total,
-                 (unsigned long)g_csi_match,
-                 (unsigned long)g_csi_qfull,
-                 (unsigned long)g_udp_sent,
-                 (unsigned long)g_udp_fail);
+                 (unsigned long)cb,
+                 (unsigned long)match,
+                 (unsigned long)qfull,
+                 (unsigned long)sent,
+                 (unsigned long)fail);
+        send_status_packet(cb, match, qfull, sent, fail);
         g_csi_total = 0;
         g_csi_match = 0;
         g_csi_qfull = 0;
@@ -316,6 +364,7 @@ static void wifi_init(void)
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_cfg));
     ESP_ERROR_CHECK(esp_wifi_start());
+    ESP_ERROR_CHECK(esp_wifi_set_max_tx_power(78));  // 19.5 dBm
 
     xEventGroupWaitBits(s_wifi_event_group, WIFI_CONNECTED_BIT,
                         pdFALSE, pdTRUE, portMAX_DELAY);
@@ -349,6 +398,11 @@ static void udp_init(void)
     udp_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (udp_sock < 0) {
         ESP_LOGE(TAG, "소켓 생성 실패");
+        return;
+    }
+    status_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (status_sock < 0) {
+        ESP_LOGE(TAG, "상태 소켓 생성 실패");
         return;
     }
     memset(&server_addr, 0, sizeof(server_addr));

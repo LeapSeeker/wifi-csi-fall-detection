@@ -30,7 +30,7 @@ assert struct.calcsize(HEADER_FORMAT) == HEADER_SIZE, "HEADER_FORMAT size mismat
 assert HEADER_SIZE + AMPLITUDE_SIZE == PACKET_SIZE, "PACKET_SIZE mismatch"
 
 # ── 페어링 파라미터 ────────────────────────────────────────
-PAIR_TOLERANCE_US = 50_000     # 50ms
+PAIR_TOLERANCE_US = 25_000     # 25ms
 EXPIRE_US = 200_000            # 200ms 만료
 BUFFER_MAX = 200               # 한쪽 버퍼 최대 크기
 CLEANUP_INTERVAL_S = 0.05      # 50ms 주기 cleanup
