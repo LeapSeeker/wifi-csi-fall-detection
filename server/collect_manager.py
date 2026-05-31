@@ -23,7 +23,7 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 from collect.recorder import SessionRecorder
-from collect.labels import ACTIVITY_INFO
+from collect.labels import ACTIVITY_INFO, get_prepare_seconds
 from collect.quality import summarize_session
 from collect.udp import CsiPacket
 from collect.drive_upload import upload_file_async
@@ -114,9 +114,9 @@ class CollectManager:
         """카운트다운 → 녹화 → stage 루프 → 종료."""
         info = ACTIVITY_INFO[activity_code]
 
-        # 1. 준비 비프 + 3초 카운트다운
+        # 1. 준비 비프 + 활동별 카운트다운
         beep_ready()
-        for i in range(3, 0, -1):
+        for i in range(get_prepare_seconds(activity_code), 0, -1):
             self._emit("collect_countdown", {"count": i})
             time.sleep(1)
         self._emit("collect_countdown", {"count": 0})
@@ -165,7 +165,7 @@ class CollectManager:
         self._emit("collect_finished", {
             "pair_count": len(buf),
             "loss_rate": round(loss * 100, 1),
-            "warn": loss > 0.05,
+            "warn": loss >= 0.15,
             # 페어링 품질 요약 (report-only). None은 그대로 전달 → UI에서 N/A.
             "duration_s": round(summary["duration_s"], 2),
             "pair_rate_hz": round(summary["pair_rate_hz"], 1),
@@ -271,12 +271,15 @@ class CollectManager:
 
     def get_status(self) -> dict:
         with self._lock:
+            pending_count = len(self._pending_buf)
             return {
                 "is_recording": self._is_recording,
                 "activity_code": self._activity_code,
                 "env": self._env,
                 "subject": self._subject,
                 "pair_count": self._pair_count,
+                "has_pending": pending_count > 0,
+                "pending_pair_count": pending_count,
             }
 
     def get_session_counts(self, env: int, subject: int) -> dict:

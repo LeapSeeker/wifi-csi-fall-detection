@@ -141,6 +141,9 @@ ACTIVITY_INFO: dict[str, dict] = {
 
 ACTIVITY_ORDER: list[str] = list(ACTIVITY_INFO.keys())
 
+DEFAULT_PREPARE_SECONDS = 3
+NO_MOTION_PREPARE_SECONDS = 10
+
 
 def get_duration(activity_code: str) -> int:
     """활동 코드의 총 녹화 길이(초)를 반환한다."""
@@ -148,6 +151,13 @@ def get_duration(activity_code: str) -> int:
     if "stages" in info:
         return sum(s["duration"] for s in info["stages"])
     return info["duration"]
+
+
+def get_prepare_seconds(activity_code: str) -> int:
+    """활동 코드별 녹화 전 준비 카운트다운 길이(초)를 반환한다."""
+    if activity_code == "NO_MOTION":
+        return NO_MOTION_PREPARE_SECONDS
+    return DEFAULT_PREPARE_SECONDS
 
 
 def total_target_sessions() -> int:

@@ -18,6 +18,12 @@
                     (수집 CSV 메뉴 기반 그래프 확인)
   clean-csv         debug/data_collect/sort_csv_by_timestamp.py 호출
                     (기존 CSV timestamp 정렬본 생성)
+  post-collect      debug/data_collect/post_collect_report.py 호출
+                    (수집 직후 완료율/재수집 후보 요약)
+  build-cache       debug/modeling/build_safesignal_cache.py 호출
+                    (SafeSignal CSV를 model cache(.npz)로 변환)
+  eval-baseline6    debug/modeling/evaluate_baseline6.py 호출
+                    (baseline best.pt 6-class 평가)
 
 Examples
 --------
@@ -52,6 +58,14 @@ baseline 대비 SDP energy 분리도 비교 (read-only):
 
 기존 CSV timestamp 정렬본 생성:
     python tools/safesignal_debug.py clean-csv --env E2 E4
+
+수집 직후 완료/재수집 후보 요약:
+    python tools/safesignal_debug.py post-collect --env 4
+    python tools/safesignal_debug.py post-collect --env 4 --subject 2 3 --show-ok
+
+SafeSignal cache 생성 / baseline 평가:
+    python tools/safesignal_debug.py build-cache --policy pretrained6 --env 4 --out model/finetune/cache/e4_pretrained6.npz
+    python tools/safesignal_debug.py eval-baseline6 --cache model/finetune/cache/e4_pretrained6.npz
 """
 from __future__ import annotations
 
@@ -230,6 +244,69 @@ def cmd_clean_csv(args: argparse.Namespace) -> int:
     return _run_script(script, forwarded)
 
 
+def cmd_post_collect(args: argparse.Namespace) -> int:
+    script = PROJECT_ROOT / "debug" / "data_collect" / "post_collect_report.py"
+    forwarded: list[str] = ["--env", str(args.env), "--dir", args.dir]
+    if args.subject:
+        forwarded.extend(["--subject", *[str(s) for s in args.subject]])
+    if args.activity:
+        forwarded.extend(["--activity", *[str(a).upper() for a in args.activity]])
+    if args.include_no_motion:
+        forwarded.append("--include-no-motion")
+    if args.show_ok:
+        forwarded.append("--show-ok")
+    if args.out:
+        forwarded.extend(["--out", args.out])
+    return _run_script(script, forwarded)
+
+
+def cmd_build_cache(args: argparse.Namespace) -> int:
+    script = PROJECT_ROOT / "debug" / "modeling" / "build_safesignal_cache.py"
+    forwarded: list[str] = [
+        "--dir", args.dir,
+        "--out", args.out,
+        "--policy", args.policy,
+        "--rx", args.rx,
+        "--max-gap-ms", str(args.max_gap_ms),
+        "--rpca-max-iter", str(args.rpca_max_iter),
+        "--progress-every", str(args.progress_every),
+    ]
+    if args.env:
+        forwarded.extend(["--env", *[str(v) for v in args.env]])
+    if args.subject:
+        forwarded.extend(["--subject", *[str(v) for v in args.subject]])
+    if args.activity:
+        forwarded.extend(["--activity", *[str(v).upper() for v in args.activity]])
+    if args.stride is not None:
+        forwarded.extend(["--stride", str(args.stride)])
+    if args.tail_window:
+        forwarded.append("--tail-window")
+    else:
+        forwarded.append("--no-tail-window")
+    if args.pad_short:
+        forwarded.append("--pad-short")
+    if args.rpca_tol is not None:
+        forwarded.extend(["--rpca-tol", str(args.rpca_tol)])
+    if args.max_files is not None:
+        forwarded.extend(["--max-files", str(args.max_files)])
+    if args.overwrite:
+        forwarded.append("--overwrite")
+    return _run_script(script, forwarded)
+
+
+def cmd_eval_baseline6(args: argparse.Namespace) -> int:
+    script = PROJECT_ROOT / "debug" / "modeling" / "evaluate_baseline6.py"
+    forwarded: list[str] = [
+        "--cache", args.cache,
+        "--ckpt", args.ckpt,
+        "--batch-size", str(args.batch_size),
+        "--device", args.device,
+    ]
+    if args.out:
+        forwarded.extend(["--out", args.out])
+    return _run_script(script, forwarded)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="SafeSignal debug/analysis runner")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -311,6 +388,52 @@ def build_parser() -> argparse.ArgumentParser:
     p_clean.add_argument("--env", nargs="+", default=None, help="환경 필터 예: E2 E4")
     p_clean.add_argument("--overwrite", action="store_true", help="기존 출력 파일 덮어쓰기")
     p_clean.set_defaults(func=cmd_clean_csv)
+
+    p_post = sub.add_parser("post-collect", help="수집 직후 완료율/재수집 후보 요약")
+    p_post.add_argument("--env", required=True, type=int, help="환경 번호 예: 4")
+    p_post.add_argument("--dir", default="data/cleaned", help="CSV 폴더")
+    p_post.add_argument("--subject", nargs="+", type=int, default=None, help="대상 subject 예: 2 3")
+    p_post.add_argument("--activity", nargs="+", default=None, help="대상 활동 예: WALK SIT_STD FALL_SIT_F")
+    p_post.add_argument("--include-no-motion", action="store_true", help="NO_MOTION target도 완료율에 포함")
+    p_post.add_argument("--show-ok", action="store_true", help="완료된 활동도 모두 출력")
+    p_post.add_argument("--out", default=None, help="리포트 저장 경로")
+    p_post.set_defaults(func=cmd_post_collect)
+
+    p_cache = sub.add_parser("build-cache", help="SafeSignal CSV를 model cache(.npz)로 변환")
+    p_cache.add_argument("--dir", default="data/cleaned", help="CSV 입력 폴더")
+    p_cache.add_argument("--out", required=True, help="출력 .npz 경로")
+    p_cache.add_argument(
+        "--policy",
+        choices=["pretrained6", "finetune7", "no_motion8"],
+        default="finetune7",
+        help="라벨 구성 정책",
+    )
+    p_cache.add_argument("--env", nargs="+", type=int, default=None)
+    p_cache.add_argument("--subject", nargs="+", type=int, default=None)
+    p_cache.add_argument("--activity", nargs="+", default=None, help="활동 필터 예: WALK FALL_SIT_F")
+    p_cache.add_argument("--rx", choices=["rx1", "rx2", "both"], default="both")
+    p_cache.add_argument("--stride", type=int, default=None)
+    p_cache.add_argument("--tail-window", action=argparse.BooleanOptionalAction, default=True)
+    p_cache.add_argument("--pad-short", action="store_true")
+    p_cache.add_argument("--max-gap-ms", type=float, default=100.0)
+    p_cache.add_argument("--rpca-max-iter", type=int, default=200)
+    p_cache.add_argument("--rpca-tol", type=float, default=None)
+    p_cache.add_argument("--max-files", type=int, default=None, help="dry-run용 파일 수 제한")
+    p_cache.add_argument("--progress-every", type=int, default=10)
+    p_cache.add_argument("--overwrite", action="store_true")
+    p_cache.set_defaults(func=cmd_build_cache)
+
+    p_eval6 = sub.add_parser("eval-baseline6", help="baseline best.pt 6-class 평가")
+    p_eval6.add_argument("--cache", required=True, help="pretrained6 policy cache")
+    p_eval6.add_argument(
+        "--ckpt",
+        default=str(PROJECT_ROOT / "model" / "pretrained" / "checkpoints" / "best.pt"),
+        help="baseline checkpoint",
+    )
+    p_eval6.add_argument("--batch-size", type=int, default=64)
+    p_eval6.add_argument("--device", choices=["auto", "cuda", "cpu"], default="auto")
+    p_eval6.add_argument("--out", default=None, help="metrics JSON 경로")
+    p_eval6.set_defaults(func=cmd_eval_baseline6)
 
     return parser
 

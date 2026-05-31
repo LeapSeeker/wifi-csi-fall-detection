@@ -10,6 +10,7 @@ wifi-csi-fall-detection/
 
 # 데이터 & 모델
 data/raw/*.csv
+data/*.zip
 data/raw/_archive/
 data/cleaned/
 data/quarantine/
@@ -19,6 +20,8 @@ model/pretrained/*.pth
 model/pretrained/checkpoints/
 model/pretrained/checkpoints_local_backup_*/
 model/pretrained/*.pt
+model/finetune/cache/
+model/finetune/checkpoints/
 *.onnx
 
 # Python
@@ -44,6 +47,7 @@ CLAUDE.local.md
 server/logs/
 *.log
 Get-NetUDPEndpoint
+reports/
 
 # tools/ 산출물 (augment_inspector 등) — 스크립트만 추적
 tools/inspect_output/

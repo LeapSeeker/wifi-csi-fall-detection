@@ -27,7 +27,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 from collect.beep import beep_end, beep_ready, beep_stage
 from collect.drive_upload import DriveUploadConfig, upload_file_async, upload_status_message
-from collect.labels import ACTIVITY_INFO, ACTIVITY_ORDER, get_duration
+from collect.labels import ACTIVITY_INFO, ACTIVITY_ORDER, get_duration, get_prepare_seconds
 from collect.quality import format_quality_lines, summarize_session
 from collect.recorder import SessionRecorder
 from collect.udp import UDP_PORT, start_udp_receiver
@@ -105,8 +105,8 @@ def _run_session(recorder: SessionRecorder, activity_code: str, env: int, subjec
     # 1. ENTER 후 ready beep
     beep_ready()
 
-    # 2. 3초 카운트다운 (CSV에 포함되지 않음)
-    _countdown(3)
+    # 2. 준비 카운트다운 (CSV에 포함되지 않음)
+    _countdown(get_prepare_seconds(activity_code))
 
     # 3. 카운트다운 종료 직후 start_session
     recorder.start_session(activity_code, env, subject)
@@ -141,10 +141,12 @@ def _run_session(recorder: SessionRecorder, activity_code: str, env: int, subjec
         f"  → 페어 수: {n_pairs}, duration: {duration_s:.2f}s, "
         f"실측 rate: {pair_rate:.1f} Hz "
         f"(target≈100, capture_ratio={capture_ratio:.2f}), "
-        f"손실률: {loss*100:.1f}%"
+        f"seq 손실률: {loss*100:.1f}%"
     )
-    if loss > 0.05:
-        print(f"  [경고] 패킷 손실률 {loss*100:.1f}% — 저장 여부를 신중히 결정하세요.")
+    if capture_ratio < 0.75 or loss >= 0.30:
+        print("  [재수집 권장] 수집률 또는 seq 품질이 낮습니다.")
+    elif capture_ratio < 0.85 or loss >= 0.15:
+        print("  [품질 주의] 저장 가능하지만 품질 지표를 확인하세요.")
 
     # 페어링 품질 요약 (report-only — 저장 차단 조건 아님)
     for line in format_quality_lines(summarize_session(buf)):
