@@ -60,3 +60,16 @@ data/alsaify-raw/*
 # 샘플 데이터 (테스트용 zip 등, 폴더는 보존)
 data/sample-data/*
 !data/sample-data/.gitkeep
+
+# 잡파일 — 커밋 금지 (실수로 리포에 들어온 것들)
+# Git for Windows 설치 폴더 전체
+Git/
+# AI 에이전트 워크스페이스 메모/문서
+ai-workspace/
+AGENTS.md
+# 코드 전송용 zip 등
+*.zip
+# 수동 백업본
+*.LOCAL_BACKUP
+# 서버 측 원본 CSV 데이터/로그
+server/data/

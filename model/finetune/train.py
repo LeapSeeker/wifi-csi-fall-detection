@@ -32,6 +32,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
+from model.augment.augment import jittering, noise_scale, scaling, time_warping
 from model.pretrained.metrics import FallMetrics, compute_metrics
 from model.pretrained.model import CNNGRUAttention
 
@@ -324,6 +325,19 @@ class AlsaifyDataset(TensorMetadataDataset):
             filenames=data["filename"].tolist() if "filename" in data else [""] * n,
         )
 
+_ON_THE_FLY_AUGMENTS = (jittering, scaling, time_warping, noise_scale)
+
+
+def augment_on_the_fly(x: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+    """Pick one of the four augmentations uniformly and apply it once.
+
+    Reuses model/augment/augment.py functions with their default parameters
+    (only ``rng`` is forwarded). Input/output shape (1, 28, 20), dtype float32.
+    """
+    fn = _ON_THE_FLY_AUGMENTS[int(rng.integers(len(_ON_THE_FLY_AUGMENTS)))]
+    out = fn(x, rng=rng)
+    return np.asarray(out, dtype=np.float32)
+
 
 class TrainAugmentDataset(Dataset[tuple[torch.Tensor, torch.Tensor, dict]]):
     """Train-only augmentation wrapper.
@@ -334,17 +348,22 @@ class TrainAugmentDataset(Dataset[tuple[torch.Tensor, torch.Tensor, dict]]):
     (rather than mutating the global SafeSignalDataset) makes that guarantee
     visible at the call site.
 
-    TODO: TrainAugmentDataset: plug in SafeSignal augmentation (jittering /
-    scaling / time_warping / noise_scale, model/augment/augment.py) gated by
-    ``augment=True``. Apply only when ``meta['source'] == 'safesignal'``;
-    Alsaify samples must pass through untouched. Augmentation must be a
-    deterministic function of (seed, idx, epoch) — wire that through later.
-    Until that lands this wrapper is a no-op even with ``augment=True``.
+    On-the-fly augmentation (b안): when ``augment=True`` and a sample's source is
+    SafeSignal, one of jittering/scaling/time_warping/noise_scale is drawn
+    uniformly and applied once. The draw is a deterministic function of
+    ``(base_seed, idx, epoch)`` so each epoch produces fresh-but-reproducible
+    variants. Alsaify samples always pass through untouched. The original
+    tensors in the backing dataset are never mutated — only new arrays are made.
     """
 
-    def __init__(self, subset: Dataset, augment: bool = False) -> None:
+    def __init__(self, subset: Dataset, augment: bool = False, base_seed: int = 42) -> None:
         self.subset = subset
         self.augment = augment
+        self.base_seed = base_seed
+        self.epoch = 0
+
+    def set_epoch(self, epoch: int) -> None:
+        self.epoch = epoch
 
     def __len__(self) -> int:
         return len(self.subset)  # type: ignore[arg-type]
@@ -352,8 +371,10 @@ class TrainAugmentDataset(Dataset[tuple[torch.Tensor, torch.Tensor, dict]]):
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, dict]:
         x, y, meta = self.subset[idx]
         if self.augment and meta.get("source") == SOURCE_SAFESIGNAL:
-            # TODO: apply augmentation here (train-only path).
-            pass
+            rng = np.random.default_rng((self.base_seed, idx, self.epoch))
+            x_np = x.numpy()
+            aug = augment_on_the_fly(x_np, rng)
+            x = torch.as_tensor(aug, dtype=torch.float32)
         return x, y, meta
 
 
@@ -884,7 +905,7 @@ def run_training(args: argparse.Namespace) -> None:
 
     # Augmentation hook: train subset only ([D-019] scope). Currently a no-op;
     # see TrainAugmentDataset TODO for the SafeSignal augmentation contract.
-    ss_train_aug = TrainAugmentDataset(ss_train, augment=args.augment)
+    ss_train_aug = TrainAugmentDataset(ss_train, augment=args.augment, base_seed=args.seed)
     train_dataset = ConcatDataset([alsaify_train, ss_train_aug])
     auxiliary_val = ConcatDataset([alsaify_val, ss_val])
     sample_weights = build_sample_weights(train_dataset, source_ratio, hard_weight)
@@ -918,6 +939,7 @@ def run_training(args: argparse.Namespace) -> None:
         raise ValueError(f"epochs must be >= 1, got {args.epochs}")
 
     for epoch in range(1, args.epochs + 1):
+        ss_train_aug.set_epoch(epoch)
         maybe_finish_warmup(optimizer, epoch, args.warmup_epochs, args.backbone_lr)
         train_loss = train_one_epoch(model, train_loader, optimizer, criterion, device)
 
@@ -1066,7 +1088,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--augment",
         action="store_true",
-        help="Enable SafeSignal train-only augmentation (no-op until TrainAugmentDataset TODO lands).",
+        help=(
+            "Enable SafeSignal train-only on-the-fly augmentation: per sample/epoch, "
+            "draw one of jittering/scaling/time_warping/noise_scale uniformly "
+            "(deterministic in (seed, idx, epoch)). Alsaify samples pass through untouched."
+        ),
     )
     parser.add_argument("--verbose", action="store_true")
     return parser.parse_args()
