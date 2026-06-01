@@ -21,7 +21,7 @@ import random
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Iterable, Literal
+from typing import Callable, Iterable, Literal
 
 import numpy as np
 import torch
@@ -49,6 +49,17 @@ FINETUNE_CLASSES: tuple[str, ...] = (
 )
 N_CLASSES = len(FINETUNE_CLASSES)
 
+# 6-class (running 제외) 전용 — 기존 7-class 상수와 평행. pretrained6 정책에서만 사용.
+PRETRAINED6_CLASSES: tuple[str, ...] = (
+    "fall",
+    "walking",
+    "sit_stand",
+    "lying",
+    "standing",
+    "picking",
+)
+N_CLASSES_6 = len(PRETRAINED6_CLASSES)
+
 SOURCE_ALSAIFY = "alsaify"
 SOURCE_SAFESIGNAL = "safesignal"
 SourceName = Literal["alsaify", "safesignal"]
@@ -66,6 +77,12 @@ OPERATING_FAR_TARGET = 0.10
 OPERATING_F1_TARGET = 0.85
 STRETCH_RECALL_TARGET = 0.93
 STRETCH_FAR_TARGET = 0.07
+# D-011 공식 합격 기준 (CLAUDE.md MVG). within_subject 리포트의 별도 판정 키 전용 —
+# threshold 선택(select_global_threshold)·체크포인트 선택(is_better_operating)에는
+# 영향 없음 (그쪽은 OPERATING_* 0.90/0.10 유지).
+D011_RECALL_TARGET = 0.85
+D011_FAR_TARGET = 0.15
+D011_F1_TARGET = 0.85
 
 
 @dataclass(frozen=True)
@@ -325,6 +342,25 @@ class AlsaifyDataset(TensorMetadataDataset):
             filenames=data["filename"].tolist() if "filename" in data else [""] * n,
         )
 
+    @classmethod
+    def from_npz_6class(cls, path: Path) -> "AlsaifyDataset":
+        """6-class (pretrained6) 전용 로드: running이 없는 6-class 학습에서는
+        Alsaify 라벨(0 fall..5 picking)이 PRETRAINED6_CLASSES와 그대로 정합하므로
+        7-class용 ``y[y==5]=6`` remap을 적용하지 않는다. 기존 from_npz는 무변경.
+        """
+        data = np.load(path, allow_pickle=True)
+        n = int(len(data["y"]))
+        sources = [SOURCE_ALSAIFY] * n
+        y = data["y"].astype(np.int64, copy=True)  # 6-class: picking은 index 5 유지
+        return cls(
+            X=data["X"],
+            y=y,
+            subjects=data["subject"],
+            sources=sources,
+            envs=data["env"].tolist() if "env" in data else [None] * n,
+            filenames=data["filename"].tolist() if "filename" in data else [""] * n,
+        )
+
 _ON_THE_FLY_AUGMENTS = (jittering, scaling, time_warping, noise_scale)
 
 
@@ -428,10 +464,24 @@ def safesignal_class_weight(label: int, hard_weight: float) -> float:
     return 1.0
 
 
+def safesignal_class_weight_6class(label: int, hard_weight: float) -> float:
+    """6-class(pretrained6) 전용 class weight. running이 없으므로 hard 클래스는
+    picking/sit_stand. 기존 safesignal_class_weight(7-class)는 무변경."""
+    name = PRETRAINED6_CLASSES[label]
+    if name in {"picking", "sit_stand"}:
+        return hard_weight
+    if name == "walking":
+        return hard_weight * 0.88
+    if name == "lying":
+        return 1.05
+    return 1.0
+
+
 def build_sample_weights(
     dataset: Dataset,
     safesignal_ratio: float,
     hard_weight: float,
+    class_weight_fn: Callable[[int, float], float] = safesignal_class_weight,
 ) -> torch.DoubleTensor:
     """Build sample weights that fix the source ratio and shape class mix.
 
@@ -477,7 +527,7 @@ def build_sample_weights(
     source_raw_sum: dict[str, float] = {SOURCE_SAFESIGNAL: 0.0, SOURCE_ALSAIFY: 0.0}
     for label, source in records:
         if source == SOURCE_SAFESIGNAL:
-            cw = safesignal_class_weight(label, hard_weight)
+            cw = class_weight_fn(label, hard_weight)
         elif source == SOURCE_ALSAIFY:
             cw = 1.0
         else:
@@ -526,6 +576,86 @@ def split_safesignal_by_fold(
     n_val = max(1, int(round(len(train_pool) * val_ratio))) if len(train_pool) else 0
     val_idx = train_pool[:n_val].tolist()
     train_idx = train_pool[n_val:].tolist()
+
+    return (
+        torch.utils.data.Subset(dataset, train_idx),
+        torch.utils.data.Subset(dataset, val_idx),
+        torch.utils.data.Subset(dataset, test_idx),
+    )
+
+
+def split_safesignal_within_subject(
+    dataset: SafeSignalDataset,
+    val_ratio: float,
+    test_ratio: float,
+    seed: int,
+) -> tuple[torch.utils.data.Subset, torch.utils.data.Subset, torch.utils.data.Subset]:
+    """Within-subject demo split: session-grouped, (subject, class)-stratified.
+
+    Demo-only evaluation path — NOT the official cross-subject protocol
+    (split_safesignal_by_fold). Every window of a given session (filename)
+    lands in exactly one of train/val/test, so there is no window-level leakage
+    across splits. Within each (subject, class) stratum the sessions are sorted
+    then shuffled with a seeded RNG; ``test_ratio`` of them go to test, then
+    ``val_ratio`` of the remaining train pool go to val. ``max(1, round(...))``
+    keeps small strata represented, with a guard (``min(.., n-1)``) that always
+    leaves at least one train session per stratum.
+
+    Side-fall sessions are already excluded by SafeSignalDataset.from_npz
+    (SIDE_FALL_MARKERS), so no extra filtering is needed here.
+    """
+    if not 0.0 < test_ratio < 1.0:
+        raise ValueError(f"test_ratio must be in (0, 1), got {test_ratio}")
+    if not 0.0 <= val_ratio < 1.0:
+        raise ValueError(f"val_ratio must be in [0, 1), got {val_ratio}")
+
+    # session (filename) -> window indices, and its single (subject, class) key.
+    session_indices: dict[str, list[int]] = {}
+    session_key: dict[str, tuple[int, int]] = {}
+    for idx, name in enumerate(dataset.filenames):
+        session_indices.setdefault(name, []).append(idx)
+        key = (dataset.subjects[idx], int(dataset.y[idx]))
+        prev = session_key.setdefault(name, key)
+        if prev != key:
+            raise ValueError(
+                f"session {name!r} spans multiple (subject, class): {prev} vs {key}"
+            )
+
+    # group sessions into (subject, class) strata.
+    strata: dict[tuple[int, int], list[str]] = {}
+    for name, key in session_key.items():
+        strata.setdefault(key, []).append(name)
+
+    rng = np.random.default_rng(seed)
+    train_idx: list[int] = []
+    val_idx: list[int] = []
+    test_idx: list[int] = []
+
+    for key in sorted(strata):
+        sessions = sorted(strata[key])  # sort first → deterministic shuffle below
+        rng.shuffle(sessions)
+        n = len(sessions)
+
+        n_test = max(1, int(round(n * test_ratio))) if n >= 2 else 0
+        n_test = min(n_test, n - 1) if n >= 1 else 0  # leave >=1 for the train pool
+        test_sessions = sessions[:n_test]
+        train_pool = sessions[n_test:]
+
+        m = len(train_pool)
+        n_val = max(1, int(round(m * val_ratio))) if m >= 2 else 0
+        n_val = min(n_val, m - 1) if m >= 1 else 0  # leave >=1 for train
+        val_sessions = train_pool[:n_val]
+        train_sessions = train_pool[n_val:]
+
+        for s in train_sessions:
+            train_idx.extend(session_indices[s])
+        for s in val_sessions:
+            val_idx.extend(session_indices[s])
+        for s in test_sessions:
+            test_idx.extend(session_indices[s])
+
+    if not train_idx:
+        raise ValueError("within_subject split produced an empty train set")
 
     return (
         torch.utils.data.Subset(dataset, train_idx),
@@ -634,6 +764,13 @@ def make_criterion(fall_weight: float, device: torch.device) -> nn.CrossEntropyL
     return nn.CrossEntropyLoss(weight=weights)
 
 
+def make_criterion_6class(fall_weight: float, device: torch.device) -> nn.CrossEntropyLoss:
+    """6-class(pretrained6) 전용 criterion. torch.ones(6), fall(0)에 fall_weight."""
+    weights = torch.ones(N_CLASSES_6, dtype=torch.float32, device=device)
+    weights[0] = float(fall_weight)
+    return nn.CrossEntropyLoss(weight=weights)
+
+
 def train_one_epoch(
     model: CNNGRUAttention,
     loader: DataLoader,
@@ -728,8 +865,10 @@ def evaluate_with_threshold(
     )
 
 
-def select_global_threshold(y_true: np.ndarray, probs: np.ndarray) -> ThresholdResult:
-    thresholds = np.round(np.arange(0.30, 0.7001, 0.05), 2)
+def select_global_threshold(
+    y_true: np.ndarray, probs: np.ndarray, threshold_min: float = 0.30
+) -> ThresholdResult:
+    thresholds = np.round(np.arange(threshold_min, 0.7001, 0.05), 2)
     scored = [(float(t), evaluate_with_threshold(y_true, probs, float(t))) for t in thresholds]
 
     stretch = [
@@ -828,6 +967,19 @@ def false_positive_by_class(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str,
     return out
 
 
+def false_positive_by_class_6class(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
+    """6-class(pretrained6) 전용 오탐 분포. 기존 false_positive_by_class는 무변경."""
+    out: dict[str, float] = {}
+    nonfall = y_true != 0
+    fp_total = int(((y_pred == 0) & nonfall).sum())
+    if fp_total == 0:
+        return {name: 0.0 for name in PRETRAINED6_CLASSES[1:]}
+    for idx, name in enumerate(PRETRAINED6_CLASSES[1:], start=1):
+        cls_fp = int(((y_true == idx) & (y_pred == 0)).sum())
+        out[name] = cls_fp / fp_total
+    return out
+
+
 def fold_flags(metrics: FallMetrics) -> list[str]:
     flags = []
     if metrics.far > 0.20:
@@ -860,6 +1012,24 @@ def summarize_fold_result(fold: int, threshold: float, y_true: np.ndarray, probs
     )
 
 
+def summarize_within_result(
+    threshold: float, y_true: np.ndarray, probs: np.ndarray
+) -> tuple[FallMetrics, list[str], dict[str, float]]:
+    """within_subject 6-class(pretrained6) 전용 요약 — summarize_fold_result의
+    6-class 평행본. fold 개념이 없어 FoldReport 대신 (metrics, flags, fp)를 반환.
+    confusion은 6×6, fall=index0 유지. 기존 summarize_fold_result는 무변경."""
+    y_pred = predict_with_fall_threshold(probs, threshold)
+    metrics = compute_metrics(
+        y_true,
+        y_pred,
+        classes=PRETRAINED6_CLASSES,
+        recall_target=OPERATING_RECALL_TARGET,
+        far_target=OPERATING_FAR_TARGET,
+        f1_target=OPERATING_F1_TARGET,
+    )
+    return metrics, fold_flags(metrics), false_positive_by_class_6class(y_true, y_pred)
+
+
 def make_loader(
     dataset: Dataset,
     batch_size: int,
@@ -883,8 +1053,20 @@ def run_training(args: argparse.Namespace) -> None:
     device = torch.device(args.device if args.device != "auto" else ("cuda" if torch.cuda.is_available() else "cpu"))
     LOG.info("device=%s seed=%d", device, args.seed)
 
+    # class policy: 7-class(finetune7, 기존 경로) vs 6-class(pretrained6, running 제외 평행 경로).
+    if args.class_policy == "pretrained6":
+        n_classes = N_CLASSES_6
+        class_weight_fn: Callable[[int, float], float] = safesignal_class_weight_6class
+    else:
+        n_classes = N_CLASSES
+        class_weight_fn = safesignal_class_weight
+
     safesignal = SafeSignalDataset.from_npz(args.safesignal_cache)
-    alsaify = AlsaifyDataset.from_npz(args.alsaify_cache)
+    if args.class_policy == "pretrained6":
+        alsaify = AlsaifyDataset.from_npz_6class(args.alsaify_cache)
+    else:
+        alsaify = AlsaifyDataset.from_npz(args.alsaify_cache)
+    LOG.info("class_policy=%s n_classes=%d", args.class_policy, n_classes)
     LOG.info("loaded SafeSignal=%d Alsaify=%d", len(safesignal), len(alsaify))
 
     if args.auto_sampler_preset:
@@ -896,9 +1078,15 @@ def run_training(args: argparse.Namespace) -> None:
         hard_weight = args.hard_weight
     LOG.info("sampler source_ratio SafeSignal=%.2f hard_weight=%.2f", source_ratio, hard_weight)
 
-    ss_train, ss_val, ss_test = split_safesignal_by_fold(
-        safesignal, fold=args.fold, val_ratio=args.val_ratio, seed=args.seed
-    )
+    if args.split == "within_subject":
+        LOG.info("within_subject split selected: --fold is ignored (got fold=%d)", args.fold)
+        ss_train, ss_val, ss_test = split_safesignal_within_subject(
+            safesignal, val_ratio=args.val_ratio, test_ratio=args.test_ratio, seed=args.seed
+        )
+    else:
+        ss_train, ss_val, ss_test = split_safesignal_by_fold(
+            safesignal, fold=args.fold, val_ratio=args.val_ratio, seed=args.seed
+        )
     alsaify_train, alsaify_val = split_alsaify_subject_holdout(
         alsaify, val_ratio=args.alsaify_val_ratio, seed=args.seed
     )
@@ -908,7 +1096,9 @@ def run_training(args: argparse.Namespace) -> None:
     ss_train_aug = TrainAugmentDataset(ss_train, augment=args.augment, base_seed=args.seed)
     train_dataset = ConcatDataset([alsaify_train, ss_train_aug])
     auxiliary_val = ConcatDataset([alsaify_val, ss_val])
-    sample_weights = build_sample_weights(train_dataset, source_ratio, hard_weight)
+    sample_weights = build_sample_weights(
+        train_dataset, source_ratio, hard_weight, class_weight_fn=class_weight_fn
+    )
     sampler = WeightedRandomSampler(
         weights=sample_weights,
         num_samples=len(sample_weights),
@@ -921,12 +1111,20 @@ def run_training(args: argparse.Namespace) -> None:
     auxiliary_val_loader = make_loader(auxiliary_val, args.batch_size, num_workers=args.num_workers)
     test_loader = make_loader(ss_test, args.batch_size, num_workers=args.num_workers)
 
-    model = CNNGRUAttention(n_classes=N_CLASSES).to(device)
-    if args.pretrained_ckpt is not None:
-        migrate_pretrained_head(model, args.pretrained_ckpt, device)
-        LOG.info("loaded pretrained 6-class checkpoint with 7-class head migration")
+    model = CNNGRUAttention(n_classes=n_classes).to(device)
+    if args.class_policy == "pretrained6":
+        if args.pretrained_ckpt is not None:
+            ckpt = torch.load(args.pretrained_ckpt, map_location=device)
+            state = ckpt["model"] if isinstance(ckpt, dict) and "model" in ckpt else ckpt
+            model.load_state_dict(state, strict=True)
+            LOG.info("loaded pretrained 6-class checkpoint (strict=True, no head migration)")
+        criterion = make_criterion_6class(args.fall_weight, device)
+    else:
+        if args.pretrained_ckpt is not None:
+            migrate_pretrained_head(model, args.pretrained_ckpt, device)
+            LOG.info("loaded pretrained 6-class checkpoint with 7-class head migration")
+        criterion = make_criterion(args.fall_weight, device)
     optimizer = build_optimizer(model, args)
-    criterion = make_criterion(args.fall_weight, device)
 
     args.ckpt_dir.mkdir(parents=True, exist_ok=True)
     best_operating: EpochResult | None = None
@@ -949,7 +1147,7 @@ def run_training(args: argparse.Namespace) -> None:
         aux_loss, aux_probs, aux_y, _, _ = evaluate_logits(
             model, auxiliary_val_loader, criterion, device
         )
-        threshold = select_global_threshold(primary_y, primary_probs)
+        threshold = select_global_threshold(primary_y, primary_probs, threshold_min=args.threshold_min)
         primary_metrics = threshold.metrics
         aux_metrics = evaluate_with_threshold(aux_y, aux_probs, threshold.threshold)
 
@@ -1026,33 +1224,92 @@ def run_training(args: argparse.Namespace) -> None:
         LOG.info("loaded best_operating.pt for sealed test evaluation")
 
     _, test_probs, test_y, _, _ = evaluate_logits(model, test_loader, criterion, device)
-    fold_report = summarize_fold_result(args.fold, operating_threshold, test_y, test_probs)
-    report = asdict(fold_report)
-    report["pass_fail"] = {
-        "official": (
-            fold_report.metrics.fall_recall >= OPERATING_RECALL_TARGET
-            and fold_report.metrics.far <= OPERATING_FAR_TARGET
-            and fold_report.metrics.fall_f1 >= OPERATING_F1_TARGET
-        ),
-        "stretch": (
-            fold_report.metrics.fall_recall >= STRETCH_RECALL_TARGET
-            and fold_report.metrics.far <= STRETCH_FAR_TARGET
-        ),
-    }
-    (args.ckpt_dir / f"fold{args.fold}_test_report.json").write_text(
-        json.dumps(report, indent=2, ensure_ascii=False),
-        encoding="utf-8",
-    )
-    LOG.info(
-        "test fold=%d threshold=%.2f R=%.3f F1=%.3f FAR=%.3f flags=%s",
-        args.fold,
-        operating_threshold,
-        fold_report.metrics.fall_recall,
-        fold_report.metrics.fall_f1,
-        fold_report.metrics.far,
-        ",".join(fold_report.flags) or "OK",
-    )
-    LOG.info("false positive pattern: %s", fold_report.false_positive_by_class)
+    if args.split == "within_subject":
+        # within_subject demo report (별도 분기). pass_fail에 D-011 공식 기준
+        # (0.85/0.15/0.85)을 official_d011 키로 추가; official(0.90)·stretch는 유지.
+        if args.class_policy == "pretrained6":
+            # 6-class 전용 요약 (summarize_within_result: 6×6 confusion, fall=index0).
+            test_metrics, flags, fp_by_class = summarize_within_result(
+                operating_threshold, test_y, test_probs
+            )
+        else:
+            test_pred = predict_with_fall_threshold(test_probs, operating_threshold)
+            test_metrics = compute_metrics(
+                test_y,
+                test_pred,
+                classes=FINETUNE_CLASSES,
+                recall_target=OPERATING_RECALL_TARGET,
+                far_target=OPERATING_FAR_TARGET,
+                f1_target=OPERATING_F1_TARGET,
+            )
+            fp_by_class = false_positive_by_class(test_y, test_pred)
+            flags = fold_flags(test_metrics)
+        report = {
+            "split": "within_subject",
+            "class_policy": args.class_policy,
+            "threshold": operating_threshold,
+            "metrics": asdict(test_metrics),
+            "flags": flags,
+            "false_positive_by_class": fp_by_class,
+            "pass_fail": {
+                "official_d011": (
+                    test_metrics.fall_recall >= D011_RECALL_TARGET
+                    and test_metrics.far <= D011_FAR_TARGET
+                    and test_metrics.fall_f1 >= D011_F1_TARGET
+                ),
+                "official": (
+                    test_metrics.fall_recall >= OPERATING_RECALL_TARGET
+                    and test_metrics.far <= OPERATING_FAR_TARGET
+                    and test_metrics.fall_f1 >= OPERATING_F1_TARGET
+                ),
+                "stretch": (
+                    test_metrics.fall_recall >= STRETCH_RECALL_TARGET
+                    and test_metrics.far <= STRETCH_FAR_TARGET
+                ),
+            },
+        }
+        (args.ckpt_dir / "within_subject_test_report.json").write_text(
+            json.dumps(report, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        LOG.info(
+            "test within_subject threshold=%.2f R=%.3f F1=%.3f FAR=%.3f flags=%s",
+            operating_threshold,
+            test_metrics.fall_recall,
+            test_metrics.fall_f1,
+            test_metrics.far,
+            ",".join(flags) or "OK",
+        )
+        LOG.info("false positive pattern: %s", fp_by_class)
+        LOG.info("running false-positive share (④): %.3f", fp_by_class.get("running", 0.0))
+    else:
+        fold_report = summarize_fold_result(args.fold, operating_threshold, test_y, test_probs)
+        report = asdict(fold_report)
+        report["pass_fail"] = {
+            "official": (
+                fold_report.metrics.fall_recall >= OPERATING_RECALL_TARGET
+                and fold_report.metrics.far <= OPERATING_FAR_TARGET
+                and fold_report.metrics.fall_f1 >= OPERATING_F1_TARGET
+            ),
+            "stretch": (
+                fold_report.metrics.fall_recall >= STRETCH_RECALL_TARGET
+                and fold_report.metrics.far <= STRETCH_FAR_TARGET
+            ),
+        }
+        (args.ckpt_dir / f"fold{args.fold}_test_report.json").write_text(
+            json.dumps(report, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        LOG.info(
+            "test fold=%d threshold=%.2f R=%.3f F1=%.3f FAR=%.3f flags=%s",
+            args.fold,
+            operating_threshold,
+            fold_report.metrics.fall_recall,
+            fold_report.metrics.fall_f1,
+            fold_report.metrics.far,
+            ",".join(fold_report.flags) or "OK",
+        )
+        LOG.info("false positive pattern: %s", fold_report.false_positive_by_class)
 
 
 def parse_args() -> argparse.Namespace:
@@ -1061,7 +1318,42 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--alsaify_cache", type=Path, required=True)
     parser.add_argument("--pretrained_ckpt", type=Path, default=None)
     parser.add_argument("--ckpt_dir", type=Path, default=_PROJECT_ROOT / "model" / "finetune" / "checkpoints")
+    parser.add_argument(
+        "--class_policy",
+        choices=["finetune7", "pretrained6"],
+        default="finetune7",
+        help=(
+            "Label policy. finetune7 (default): 7-class incl. running (기존 동작 100% 유지). "
+            "pretrained6: 6-class (running 제외), best.pt strict 로드 + 6-class 전용 경로."
+        ),
+    )
+    parser.add_argument(
+        "--split",
+        choices=["cross_subject", "within_subject"],
+        default="cross_subject",
+        help=(
+            "Evaluation protocol. cross_subject (default): official subject-sealed "
+            "fold (unchanged). within_subject: demo-only session-grouped, "
+            "(subject,class)-stratified split (--fold ignored)."
+        ),
+    )
     parser.add_argument("--fold", type=int, choices=sorted(FOLDS), default=1)
+    parser.add_argument(
+        "--test_ratio",
+        type=float,
+        default=0.20,
+        help="within_subject only: per-(subject,class) session fraction held out for test.",
+    )
+    parser.add_argument(
+        "--threshold_min",
+        type=float,
+        default=0.30,
+        help=(
+            "Lower bound of the global fall-threshold sweep (sweep is "
+            "[threshold_min, 0.70] step 0.05). Default 0.30 keeps existing behavior; "
+            "lower it (e.g. 0.20) for recall-friendly operating points."
+        ),
+    )
     parser.add_argument("--epochs", type=int, default=60)
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--num_workers", type=int, default=0)
