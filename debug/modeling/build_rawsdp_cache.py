@@ -77,7 +77,11 @@ class Tee:
         self._file = open(log_path, "a", encoding="utf-8", buffering=1)
 
     def write(self, s):
-        self._console.write(s)
+        try:
+            self._console.write(s)
+        except UnicodeEncodeError:
+            enc = getattr(self._console, "encoding", None) or "utf-8"
+            self._console.write(s.encode(enc, errors="replace").decode(enc, errors="replace"))
         self._file.write(s)
 
     def flush(self):
