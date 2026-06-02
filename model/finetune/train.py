@@ -820,7 +820,8 @@ def evaluate_logits(
             metas.append(meta)
 
     if not probs:
-        return 0.0, np.empty((0, N_CLASSES)), np.empty((0,), dtype=np.int64), np.empty((0,), dtype=np.int64), metas
+        n_classes = getattr(model.classifier[1], "out_features", N_CLASSES)
+        return 0.0, np.empty((0, n_classes)), np.empty((0,), dtype=np.int64), np.empty((0,), dtype=np.int64), metas
     return (
         total_loss / max(total_n, 1),
         np.concatenate(probs, axis=0),
@@ -940,12 +941,14 @@ def save_checkpoint(
     args: argparse.Namespace,
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    classes = PRETRAINED6_CLASSES if args.class_policy == "pretrained6" else FINETUNE_CLASSES
     torch.save(
         {
             "model": model.state_dict(),
             "optimizer": optimizer.state_dict(),
             "epoch": epoch_result.epoch,
-            "classes": list(FINETUNE_CLASSES),
+            "classes": list(classes),
+            "class_policy": args.class_policy,
             "threshold": epoch_result.threshold.threshold,
             "threshold_rule": epoch_result.threshold.rule,
             "primary_val_metrics": asdict(epoch_result.primary_val),
@@ -1323,7 +1326,7 @@ def parse_args() -> argparse.Namespace:
         choices=["finetune7", "pretrained6"],
         default="finetune7",
         help=(
-            "Label policy. finetune7 (default): 7-class incl. running (기존 동작 100% 유지). "
+            "Label policy. finetune7 (default): 7-class incl. running (기존 동작 100%% 유지). "
             "pretrained6: 6-class (running 제외), best.pt strict 로드 + 6-class 전용 경로."
         ),
     )
