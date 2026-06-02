@@ -22,6 +22,7 @@ model/pretrained/checkpoints_local_backup_*/
 model/pretrained/*.pt
 model/finetune/cache/
 model/finetune/checkpoints/
+model/finetune/checkpoints_*/
 *.onnx
 
 # Python
