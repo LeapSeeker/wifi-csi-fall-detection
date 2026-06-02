@@ -53,6 +53,9 @@ reports/
 tools/inspect_output/
 tools/inspect_output_*/
 
+# debug/modeling 진단 산출물 (CSV·png·npz·로그·텐서) — 스크립트만 추적
+debug/modeling/diag_out/
+
 # 사전학습 데이터셋 (폴더는 보존, 내용물만 제외)
 data/alsaify-raw/*
 !data/alsaify-raw/.gitkeep
