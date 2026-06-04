@@ -6,6 +6,15 @@ WiFi CSI 기반 낙상 감지 시스템. 카메라 없이 WiFi 신호 변화만�
 - 팀명: MATE | 데모: 2026-06-04 | 최종 발표: 2026-06-11
 - 추론 목표: 낙상 재현율(MVG) ≥ 85%, FAR ≤ 15%, F1 ≥ 0.85
 
+## 로컬 개발환경 재세팅 (kimjg PC 한정 — D드라이브만 영구, 재부팅 시 C 초기화)
+
+재부팅 후 PATH/venv가 사라지므로 **세션 시작 시 점-소싱**으로 부트스트랩:
+```powershell
+cd D:\Project\LastProject\wifi-csi-fall-detection
+. .\tools\env_bootstrap.ps1   # PATH+포터블Git+venv 활성화+검증 한 번에
+```
+상세/수동 절차/venv 재생성 → `docs/ENV_SETUP.md`. (다른 PC/팀원은 무시)
+
 ## 저장소 구조
 wifi-csi-fall-detection/
 ├── CLAUDE.md                  ← 현재 파일 (진입점)
