@@ -1,0 +1,4 @@
+﻿set,bottom_pct,n_train_val,hard_pct,total_review_pct,soft_increment_over_hard,WALK_B_review_pct,WALK_F_review_pct,SIT_F_review_pct,recommended
+A_10_90,10.0,287,33.4,43.6,29,67.3,57.4,31.7,YES
+B_15_85,15.0,287,33.4,50.2,48,73.1,61.7,43.9,
+C_20_80,20.0,287,33.4,59.2,74,84.6,72.3,53.7,

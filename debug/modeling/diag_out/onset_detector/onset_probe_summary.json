@@ -1,0 +1,263 @@
+{
+  "meta": {
+    "manifest_id": "onset_probe_2026-06-05",
+    "split_id": "within_subject_seed42_val0.2_test0.2_pretrained6",
+    "split_cache": "safesignal_e1234_pretrained6.npz",
+    "baseline": [
+      50,
+      150
+    ],
+    "search_nominal": [
+      190,
+      350
+    ],
+    "search_broad": [
+      180,
+      400
+    ],
+    "grid": {
+      "smooth": 5,
+      "k_mad": [
+        2.5,
+        3.0,
+        3.5
+      ],
+      "sustain": [
+        3,
+        5
+      ]
+    },
+    "note": "probe — search/k/M/soft threshold 미확정. soft reason은 train/val 분포 후속 결정."
+  },
+  "session_counts": {
+    "total": 360,
+    "by_split": {
+      "train": 230,
+      "val": 57,
+      "test": 72,
+      "out_of_scope": 1
+    },
+    "excluded_lt550": 11,
+    "by_subtype": {
+      "FALL_SIT_B": 60,
+      "FALL_SIT_F": 60,
+      "FALL_STD_B": 60,
+      "FALL_STD_F": 60,
+      "FALL_WALK_B": 60,
+      "FALL_WALK_F": 60
+    }
+  },
+  "onset_distribution": {
+    "rise_frame_clean": {
+      "n": 2788,
+      "median": 132.0,
+      "p25": 114.0,
+      "p75": 157.0,
+      "min": 100.0,
+      "max": 262.0
+    },
+    "peak_frame_clean": {
+      "n": 3714,
+      "median": 182.0,
+      "p25": 157.0,
+      "p75": 207.0,
+      "min": 100.0,
+      "max": 299.0
+    },
+    "by_subtype_rise_clean": {
+      "FALL_SIT_B": {
+        "n": 503,
+        "median": 133.0,
+        "p25": 116.0,
+        "p75": 151.0,
+        "min": 101.0,
+        "max": 253.0
+      },
+      "FALL_SIT_F": {
+        "n": 541,
+        "median": 130.0,
+        "p25": 112.0,
+        "p75": 148.0,
+        "min": 100.0,
+        "max": 213.0
+      },
+      "FALL_STD_B": {
+        "n": 570,
+        "median": 133.0,
+        "p25": 114.0,
+        "p75": 165.0,
+        "min": 100.0,
+        "max": 240.0
+      },
+      "FALL_STD_F": {
+        "n": 493,
+        "median": 132.0,
+        "p25": 113.0,
+        "p75": 154.0,
+        "min": 100.0,
+        "max": 203.0
+      },
+      "FALL_WALK_B": {
+        "n": 342,
+        "median": 122.0,
+        "p25": 107.0,
+        "p75": 162.0,
+        "min": 100.0,
+        "max": 262.0
+      },
+      "FALL_WALK_F": {
+        "n": 339,
+        "median": 146.0,
+        "p25": 117.0,
+        "p75": 175.0,
+        "min": 103.0,
+        "max": 200.0
+      }
+    }
+  },
+  "search_compare": {
+    "rise_outside_nominal_rate": 0.08691499522445081,
+    "nominal_broad_delta": {
+      "n": 3852,
+      "median": 0.0,
+      "p25": 0.0,
+      "p75": 0.0,
+      "min": -92.0,
+      "max": 0.0
+    },
+    "broad_only_session_rate": 0.011111111111111112
+  },
+  "param_stability": {
+    "param_sensitivity_range_overall": {
+      "n": 336,
+      "median": 10.0,
+      "p25": 1.0,
+      "p75": 33.0,
+      "min": 0.0,
+      "max": 139.0
+    },
+    "by_subtype": {
+      "FALL_SIT_B": {
+        "n": 58,
+        "median": 9.0,
+        "p25": 1.0,
+        "p75": 24.0,
+        "min": 0.0,
+        "max": 139.0
+      },
+      "FALL_SIT_F": {
+        "n": 56,
+        "median": 18.0,
+        "p25": 4.0,
+        "p75": 40.0,
+        "min": 0.0,
+        "max": 113.0
+      },
+      "FALL_STD_B": {
+        "n": 59,
+        "median": 15.0,
+        "p25": 1.0,
+        "p75": 48.0,
+        "min": 0.0,
+        "max": 99.0
+      },
+      "FALL_STD_F": {
+        "n": 58,
+        "median": 14.5,
+        "p25": 2.0,
+        "p75": 28.75,
+        "min": 0.0,
+        "max": 118.0
+      },
+      "FALL_WALK_B": {
+        "n": 55,
+        "median": 2.0,
+        "p25": 1.0,
+        "p75": 11.5,
+        "min": 0.0,
+        "max": 135.0
+      },
+      "FALL_WALK_F": {
+        "n": 50,
+        "median": 14.0,
+        "p25": 1.0,
+        "p75": 32.5,
+        "min": 0.0,
+        "max": 114.0
+      }
+    }
+  },
+  "needs_review": {
+    "hard_reason_param_row_counts": {
+      "topk_no_consensus_hard": 114,
+      "frame_mapping_failed": 1082,
+      "rise_in_beep_region": 1082,
+      "rise_too_early_original_lt_200": 1082,
+      "rise_not_found": 318,
+      "peak_in_beep_region": 156,
+      "peak_outside_expected_fall_original_200_400": 156
+    },
+    "sessions_any_hard": 195,
+    "review_priority_high_sessions": 213,
+    "high_by_subtype": {
+      "FALL_SIT_B": 29,
+      "FALL_SIT_F": 25,
+      "FALL_STD_B": 24,
+      "FALL_STD_F": 33,
+      "FALL_WALK_B": 60,
+      "FALL_WALK_F": 42
+    }
+  },
+  "baseline_quality": {
+    "noise_ratio": {
+      "n": 4188,
+      "median": 1.100820871585909,
+      "p25": 1.082482863708528,
+      "p75": 1.1278101577503528,
+      "min": 1.0517964746652875,
+      "max": 3.0572029460146517
+    },
+    "mad_ratio": {
+      "n": 4188,
+      "median": 0.05203764732410667,
+      "p25": 0.04416520295639803,
+      "p75": 0.06504443891219858,
+      "min": 0.02834284225358024,
+      "max": 0.184650900992475
+    }
+  },
+  "soft_components_raw_dist": {
+    "rise_strength": {
+      "n": 3870,
+      "median": 1.2004821140158226,
+      "p25": 1.1587449882402387,
+      "p75": 1.2562363327017285,
+      "min": 1.0764652262060401,
+      "max": 5.021730889832063
+    },
+    "rise_slope": {
+      "n": 3870,
+      "median": 0.03646806363376594,
+      "p25": 0.02285450534982004,
+      "p75": 0.058777933896003595,
+      "min": -0.14663270969175082,
+      "max": 0.642021792712759
+    },
+    "topk_spread": {
+      "n": 3870,
+      "median": 2.0,
+      "p25": 2.0,
+      "p75": 3.0,
+      "min": 0.0,
+      "max": 179.0
+    },
+    "confidence_ref": {
+      "n": 3714,
+      "median": 0.5895425171273684,
+      "p25": 0.5580254889863855,
+      "p75": 0.6202076206140255,
+      "min": 0.2436944997481294,
+      "max": 0.8702320736853993
+    }
+  }
+}

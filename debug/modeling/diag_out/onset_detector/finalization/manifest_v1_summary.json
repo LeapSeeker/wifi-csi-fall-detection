@@ -1,0 +1,128 @@
+{
+  "meta": {
+    "manifest_version": "v1_auto_reviewed",
+    "base_detector": {
+      "search_mode": "nominal",
+      "k_mad": "3.0",
+      "sustain_frames": "5"
+    },
+    "soft_set": "A",
+    "principle": "pending_manual onset은 Claude 미확정 — 진규 판정"
+  },
+  "classification": {
+    "total": 360,
+    "overall": {
+      "auto_reviewed": 214,
+      "auto_reviewed_rate": 0.5944444444444444,
+      "pending_manual": 135,
+      "pending_manual_rate": 0.375,
+      "excluded": 11,
+      "auto_exclude_candidate": 0,
+      "usable_for_training": 214,
+      "usable_rate": 0.5944444444444444
+    },
+    "by_subtype": {
+      "auto_reviewed": {
+        "FALL_SIT_B": 35,
+        "FALL_SIT_F": 42,
+        "FALL_STD_B": 46,
+        "FALL_STD_F": 42,
+        "FALL_WALK_B": 22,
+        "FALL_WALK_F": 27
+      },
+      "pending_manual": {
+        "FALL_SIT_B": 23,
+        "FALL_SIT_F": 14,
+        "FALL_STD_B": 14,
+        "FALL_STD_F": 16,
+        "FALL_WALK_B": 37,
+        "FALL_WALK_F": 31
+      },
+      "excluded": {
+        "FALL_SIT_B": 2,
+        "FALL_SIT_F": 4,
+        "FALL_STD_B": 0,
+        "FALL_STD_F": 2,
+        "FALL_WALK_B": 1,
+        "FALL_WALK_F": 2
+      },
+      "usable_for_training": {
+        "FALL_SIT_B": 35,
+        "FALL_SIT_F": 42,
+        "FALL_STD_B": 46,
+        "FALL_STD_F": 42,
+        "FALL_WALK_B": 22,
+        "FALL_WALK_F": 27
+      }
+    },
+    "by_split": {
+      "auto_reviewed": {
+        "train": 128,
+        "val": 35,
+        "test": 51,
+        "out_of_scope": 0
+      },
+      "pending_manual": {
+        "train": 95,
+        "val": 20,
+        "test": 20,
+        "out_of_scope": 0
+      },
+      "usable_for_training": {
+        "train": 128,
+        "val": 35,
+        "test": 51,
+        "out_of_scope": 0
+      }
+    },
+    "pending_manual_by_soft_count": {
+      "0": 44,
+      "1": 33,
+      "2": 45,
+      "3": 10,
+      "4": 3,
+      "5": 0
+    },
+    "note_test": "test split 비율은 기록만, 기준 변경 미사용."
+  },
+  "provisional_onset": {
+    "auto_reviewed_overall_median": 132.5,
+    "auto_reviewed_by_subtype_median": {
+      "FALL_SIT_B": 130.0,
+      "FALL_SIT_F": 132.0,
+      "FALL_STD_B": 142.0,
+      "FALL_STD_F": 135.5,
+      "FALL_WALK_B": 117.0,
+      "FALL_WALK_F": 145.0
+    },
+    "auto_reviewed_by_split_median": {
+      "train": 127.5,
+      "val": 143.0,
+      "test": 134.0,
+      "out_of_scope": null
+    },
+    "auto_reviewed_count_by_subtype": {
+      "FALL_SIT_B": 35,
+      "FALL_SIT_F": 42,
+      "FALL_STD_B": 46,
+      "FALL_STD_F": 42,
+      "FALL_WALK_B": 22,
+      "FALL_WALK_F": 27
+    },
+    "auto_reviewed_count_by_split": {
+      "train": 128,
+      "val": 35,
+      "test": 51,
+      "out_of_scope": 0
+    },
+    "note": "provisional — manual 검수(v2) 후 final onset median 재계산. onset-aligned crop은 세션별 onset 사용."
+  },
+  "priority_queue": {
+    "high_pending_manual_total": 115,
+    "train_val": 98,
+    "walk_b": 37,
+    "walk_f": 25,
+    "plots_generated": 98
+  },
+  "auto_exclude_candidates": 0
+}
