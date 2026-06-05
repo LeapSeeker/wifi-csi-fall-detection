@@ -17,7 +17,13 @@ FALL_LABELS: tuple[str, ...] = (
     "fall_backward",
     "fall_side",
 )
-FALL_THRESHOLD: float = 0.5
+FALL_THRESHOLD: float = 0.30  # 단일 모델 기준. 앙상블 사용 시 0.60~0.64
+
+# 이벤트 확정 연속 윈도우 수 (FallEventConfirmer).
+# N=1: 첫 positive 윈도우에서 즉시 발화 (시연 권장 — 지연 최소).
+# N=2: 2연속 positive 확인 후 발화 (stride=100 기준 +1s 지연, 오탐 감소).
+# diag_event_sweep.py 결과에서 최적값으로 교체할 것.
+N_CONFIRM: int = 1
 
 # 서브캐리어 수 (Rx1/Rx2 각각)
 N_SUBCARRIERS_EACH: int = 52
@@ -34,9 +40,16 @@ _PROJECT_ROOT: Path = Path(__file__).resolve().parents[2]
 #   Alsaify 테스트셋 기준 fall_recall 0.92 / FAR 0.03 (실 ESP32 도메인 갭 존재)
 # MODEL_PATH: Path = _PROJECT_ROOT / "model" / "pretrained" / "checkpoints" / "best.pt"
 
-# [예비 학습 모델] 자체수집 ESP32 데이터 파인튜닝 (track1_formal_global_s43, 미확정 임시본)
-#   within_subject 기준 fall_recall 0.778 / FAR 0.150 / F1 0.687 (threshold=0.1 측정)
+# [최종 파인튜닝 모델] ss_peak160 + aug_merged(raw+sdp_shift) + recall_first + sr=0.9
+#   단일 모델 (threshold=0.30): R=0.912 / FAR=0.075 / F1=0.835  → R,FAR 목표 달성
+#   앙상블 f1f+rcf_sr90 w=0.5 (threshold=0.60): R=0.861 / FAR=0.043 / F1=0.853  → 전 항목 달성
 MODEL_PATH: Path = (
     _PROJECT_ROOT
-    / "model" / "finetune" / "checkpoints_track1_formal_global_s43" / "best_operating.pt"
+    / "model" / "finetune" / "checkpoints_rcf_sdp_shift_sr90" / "best_operating.pt"
+)
+
+# 앙상블 2nd 모델 (선택적, 병렬 추론 후 softmax 평균)
+MODEL_PATH_2: Path = (
+    _PROJECT_ROOT
+    / "model" / "finetune" / "checkpoints_f1f_sdp_shift_t15" / "best_operating.pt"
 )

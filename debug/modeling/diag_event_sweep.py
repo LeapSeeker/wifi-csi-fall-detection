@@ -50,12 +50,16 @@ from model.preprocessing.window import WINDOW_SIZE, sliding_windows
 
 # ── 경로/상수 (cache builder · summary 기준) ──
 SUMMARY_JSON = PROJECT_ROOT / "model" / "finetune" / "cache" / "safesignal_e1234_finetune7.summary.json"
-PRETRAINED6_CACHE = PROJECT_ROOT / "model" / "finetune" / "cache" / "safesignal_e1234_pretrained6.npz"
+PRETRAINED6_CACHE = PROJECT_ROOT / "model" / "finetune" / "cache" / "ss_corrected_p6.npz"
 OUT_DIR = PROJECT_ROOT / "debug" / "modeling" / "diag_out"
 CKPT_CANDIDATES = [
-    # GPU full-run 6-class best_operating.pt 가 추가되면 여기 맨 앞에 둘 것.
+    PROJECT_ROOT / "model" / "finetune" / "checkpoints_peak_aug_t15" / "best_operating.pt",
+    PROJECT_ROOT / "model" / "finetune" / "checkpoints_peak_fw2" / "best_operating.pt",
+    PROJECT_ROOT / "model" / "finetune" / "checkpoints_fw2" / "best_operating.pt",
+    PROJECT_ROOT / "model" / "finetune" / "checkpoints" / "best_operating.pt",
     PROJECT_ROOT / "model" / "finetune" / "checkpoints_compare6_cpu" / "best_operating.pt",
 ]
+DEFAULT_SOURCE_DIR = PROJECT_ROOT / "dummy_src"
 
 RX = "both"
 TARGET_HZ = 100.0
@@ -218,7 +222,9 @@ class ConfigResult:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0, help="held-out 세션 수 제한 (0=전체, dry-run용)")
-    ap.add_argument("--workers", type=int, default=0, help="0=cpu_count-1")
+    ap.add_argument("--workers", type=int, default=1, help="0=cpu_count-1")
+    ap.add_argument("--source_dir", type=Path, default=None,
+                    help="SafeSignal CSV 루트 디렉터리 (미지정 시 summary.json 또는 DEFAULT_SOURCE_DIR 사용)")
     args = ap.parse_args()
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -227,9 +233,16 @@ def main() -> int:
     log("=" * 80)
 
     # ── 기준 경로/메타 ──
-    summary = json.loads(SUMMARY_JSON.read_text(encoding="utf-8"))
-    source_dir = Path(summary["source_dir"])
-    log(f"source_dir (finetune7 summary): {source_dir}")
+    if args.source_dir is not None:
+        source_dir = args.source_dir
+        log(f"source_dir (--source_dir 인자): {source_dir}")
+    elif SUMMARY_JSON.exists():
+        summary = json.loads(SUMMARY_JSON.read_text(encoding="utf-8"))
+        source_dir = Path(summary["source_dir"])
+        log(f"source_dir (finetune7 summary): {source_dir}")
+    else:
+        source_dir = DEFAULT_SOURCE_DIR
+        log(f"source_dir (기본값 dummy_src): {source_dir}")
     log(f"pretrained6 cache (split 재현용): {PRETRAINED6_CACHE.name}")
 
     cache = np.load(PRETRAINED6_CACHE, allow_pickle=True)
@@ -317,13 +330,13 @@ def main() -> int:
     if len(nonfall_sess) < 60:
         log(f"주의: 비낙상 held-out 세션 수가 적음({len(nonfall_sess)}) → event-FAR 분산 큼.")
 
-    # held-out CSV 경로 확인
+    # held-out CSV 경로 확인 (서브디렉터리 구조 지원: E1/S01/파일명.csv)
+    file_index = {p.name: p for p in source_dir.rglob("*.csv")}
     paths = []
     missing = []
     for f in test_sessions:
-        p = source_dir / f
-        if p.exists():
-            paths.append(p)
+        if f in file_index:
+            paths.append(file_index[f])
         else:
             missing.append(f)
     if missing:

@@ -16,6 +16,8 @@ from dashboard.app import start_dashboard, update_pair, update_fall, update_rpi4
 from logger.log_manager import log_info, log_warn, log_pair, log_fall, get_log_filepath
 from logger.fall_history import save_fall
 from inference.worker import InferenceWorker
+from inference.event_confirmer import FallEventConfirmer
+from inference.config import FALL_THRESHOLD, N_CONFIRM
 from collect_manager import CollectManager
 from dotenv import load_dotenv
 
@@ -28,6 +30,7 @@ packet_monitor: PacketMonitor = None
 pairing_buffer: PairingBuffer = None
 inference_worker: InferenceWorker = None
 collect_manager: CollectManager = None
+fall_event_confirmer: FallEventConfirmer = None
 fall_count: int = 0
 last_fall_pair = {"rx1": None, "rx2": None}
 
@@ -78,7 +81,24 @@ def record_activity_result(result: dict):
 
 
 def handle_inference_result(result: dict):
-    """InferenceWorker 결과를 낙상 알림과 일반 행동 저장 흐름으로 분기."""
+    """InferenceWorker 결과를 이벤트 확정기 → 낙상 알림 / 일반 행동 저장으로 분기."""
+    fall_prob = result.get("confidence", 0.0) if result.get("is_fall") else 0.0
+
+    if fall_event_confirmer is not None:
+        fired = fall_event_confirmer.push(
+            fall_prob=fall_prob,
+            is_fall=result.get("is_fall", False),
+        )
+        if fired:
+            on_fall_detected(
+                confidence=fall_prob,
+                seq_num=result.get("seq_num", 0),
+                timestamp_us=result.get("timestamp_us", 0),
+            )
+            fall_event_confirmer.reset()
+        return
+
+    # confirmer 미초기화 시 기존 동작 유지
     if result.get("is_fall"):
         on_fall_detected(
             confidence=result.get("confidence", 0.0),
@@ -156,7 +176,7 @@ def result_loop():
 
 
 def main():
-    global rpi_connection, fall_cooldown, packet_monitor, pairing_buffer, inference_worker, collect_manager
+    global rpi_connection, fall_cooldown, packet_monitor, pairing_buffer, inference_worker, collect_manager, fall_event_confirmer
 
     rpi_connection = RPiConnection(on_status_change=update_rpi4_status)
     load_dotenv()  # .env에서 환경 변수 로드
@@ -169,6 +189,7 @@ def main():
     # 영향과 input_queue full/drop 로그 제거). 기본값은 추론 활성.
     inference_disabled = _is_inference_disabled()
     inference_worker = None if inference_disabled else InferenceWorker()
+    fall_event_confirmer = FallEventConfirmer(threshold=FALL_THRESHOLD, n_confirm=N_CONFIRM)
     collect_manager = CollectManager()
 
     log_info("서버 시작")

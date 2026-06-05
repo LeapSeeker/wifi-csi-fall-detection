@@ -235,6 +235,45 @@ _AUGMENT_CACHE_HELP = (
 )
 
 
+class AugmentedSafeSignalDataset(TensorMetadataDataset):
+    """raw 진폭 단계 증강 후 파이프라인 재계산된 샘플 전용 데이터셋.
+
+    generate_dummy_fall_cache.py 로 생성한 캐시를 로드한다.
+    is_augmented=True 가 전체에 설정되어 있어야 한다.
+    train 세션만으로 만들어졌음은 build 시점(--split 옵션)에 보장되므로
+    이 클래스는 별도 split 검증을 하지 않는다.
+    """
+
+    @classmethod
+    def from_npz(cls, path: Path) -> "AugmentedSafeSignalDataset":
+        data = np.load(path, allow_pickle=True)
+
+        if "is_augmented" not in data.files:
+            raise ValueError(
+                f"is_augmented 키 없음: {path}. "
+                "generate_dummy_fall_cache.py 로 생성한 파일만 사용 가능."
+            )
+        flags = np.asarray(data["is_augmented"]).astype(bool)
+        if not flags.all():
+            n_false = int((~flags).sum())
+            raise ValueError(
+                f"AugmentedSafeSignalDataset: is_augmented=False 샘플 {n_false}개 포함. "
+                "generate_dummy_fall_cache.py --split 옵션으로 생성한 캐시를 사용할 것."
+            )
+
+        filenames = [str(x) for x in data["filename"].tolist()]
+        n = int(len(data["y"]))
+        sources = [SOURCE_SAFESIGNAL] * n
+        return cls(
+            X=data["X"],
+            y=data["y"],
+            subjects=data["subject"],
+            sources=sources,
+            envs=data["env"].tolist(),
+            filenames=filenames,
+        )
+
+
 def _assert_raw_only_safesignal_cache(data, filenames: list[str]) -> None:
     """Reject SafeSignal caches that already contain augmented samples.
 
@@ -464,7 +503,9 @@ def safesignal_class_weight(label: int, hard_weight: float) -> float:
     return 1.0
 
 
-def safesignal_class_weight_6class(label: int, hard_weight: float) -> float:
+def safesignal_class_weight_6class(
+    label: int, hard_weight: float, lying_weight: float = 1.05
+) -> float:
     """6-class(pretrained6) 전용 class weight. running이 없으므로 hard 클래스는
     picking/sit_stand. 기존 safesignal_class_weight(7-class)는 무변경."""
     name = PRETRAINED6_CLASSES[label]
@@ -473,7 +514,7 @@ def safesignal_class_weight_6class(label: int, hard_weight: float) -> float:
     if name == "walking":
         return hard_weight * 0.88
     if name == "lying":
-        return 1.05
+        return lying_weight
     return 1.0
 
 
@@ -758,16 +799,42 @@ def maybe_finish_warmup(
             LOG.info("warmup complete: backbone lr %.2e -> %.2e", old_lr, backbone_lr)
 
 
-def make_criterion(fall_weight: float, device: torch.device) -> nn.CrossEntropyLoss:
+class FocalLoss(nn.Module):
+    """Focal loss: down-weights easy examples to focus training on hard ones.
+
+    gamma=0 reduces to weighted CrossEntropy.
+    """
+
+    def __init__(self, weight: torch.Tensor | None = None, gamma: float = 2.0) -> None:
+        super().__init__()
+        self.weight = weight
+        self.gamma = gamma
+
+    def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        ce = nn.functional.cross_entropy(logits, targets, weight=self.weight, reduction="none")
+        pt = torch.exp(-ce)
+        focal = ((1 - pt) ** self.gamma) * ce
+        return focal.mean()
+
+
+def make_criterion(
+    fall_weight: float, device: torch.device, focal: bool = False, focal_gamma: float = 2.0
+) -> nn.Module:
     weights = torch.ones(N_CLASSES, dtype=torch.float32, device=device)
     weights[0] = float(fall_weight)
+    if focal:
+        return FocalLoss(weight=weights, gamma=focal_gamma)
     return nn.CrossEntropyLoss(weight=weights)
 
 
-def make_criterion_6class(fall_weight: float, device: torch.device) -> nn.CrossEntropyLoss:
+def make_criterion_6class(
+    fall_weight: float, device: torch.device, focal: bool = False, focal_gamma: float = 2.0
+) -> nn.Module:
     """6-class(pretrained6) 전용 criterion. torch.ones(6), fall(0)에 fall_weight."""
     weights = torch.ones(N_CLASSES_6, dtype=torch.float32, device=device)
     weights[0] = float(fall_weight)
+    if focal:
+        return FocalLoss(weight=weights, gamma=focal_gamma)
     return nn.CrossEntropyLoss(weight=weights)
 
 
@@ -897,7 +964,9 @@ def select_global_threshold(
     return ThresholdResult(threshold=t, metrics=m, rule="recall_first_far_over", exceeded_far=True)
 
 
-def is_better_operating(candidate: EpochResult, best: EpochResult | None) -> bool:
+def is_better_operating(
+    candidate: EpochResult, best: EpochResult | None, ckpt_policy: str = "f1_first"
+) -> bool:
     if best is None:
         return True
     c = candidate.primary_val
@@ -906,6 +975,10 @@ def is_better_operating(candidate: EpochResult, best: EpochResult | None) -> boo
     b_ok = b.fall_recall >= OPERATING_RECALL_TARGET and b.far <= OPERATING_FAR_TARGET
     if c_ok != b_ok:
         return c_ok
+    if ckpt_policy == "recall_first":
+        c_far_over = max(0.0, c.far - OPERATING_FAR_TARGET)
+        b_far_over = max(0.0, b.far - OPERATING_FAR_TARGET)
+        return (c.fall_recall, -c_far_over, c.fall_f1) > (b.fall_recall, -b_far_over, b.fall_f1)
     return (
         c.fall_f1,
         -c.far,
@@ -1059,7 +1132,8 @@ def run_training(args: argparse.Namespace) -> None:
     # class policy: 7-class(finetune7, 기존 경로) vs 6-class(pretrained6, running 제외 평행 경로).
     if args.class_policy == "pretrained6":
         n_classes = N_CLASSES_6
-        class_weight_fn: Callable[[int, float], float] = safesignal_class_weight_6class
+        _lying_w = float(args.lying_weight)
+        class_weight_fn: Callable[[int, float], float] = lambda lbl, hw: safesignal_class_weight_6class(lbl, hw, lying_weight=_lying_w)
     else:
         n_classes = N_CLASSES
         class_weight_fn = safesignal_class_weight
@@ -1096,8 +1170,42 @@ def run_training(args: argparse.Namespace) -> None:
 
     # Augmentation hook: train subset only ([D-019] scope). Currently a no-op;
     # see TrainAugmentDataset TODO for the SafeSignal augmentation contract.
+    # ── 더미 캐시 train-only 병합 (선택적) ──────────────────────────────
+    if args.dummy_cache is not None:
+        dummy_full = SafeSignalDataset.from_npz(args.dummy_cache)
+        dummy_idx = [
+            i for i, fn in enumerate(dummy_full.filenames)
+            if fn.upper().startswith("DUM")
+        ]
+        if dummy_idx:
+            dummy_train = torch.utils.data.Subset(dummy_full, dummy_idx)
+            LOG.info("dummy train-only samples: %d", len(dummy_idx))
+        else:
+            dummy_train = None
+            LOG.warning("dummy_cache 로드했으나 DUM* 파일명 샘플 없음")
+    else:
+        dummy_train = None
+
+    # raw 단계 증강 캐시 (AugmentedSafeSignalDataset) — train 전용
+    aug_train = None
+    if args.aug_cache is not None:
+        aug_full = AugmentedSafeSignalDataset.from_npz(args.aug_cache)
+        if args.max_aug_samples is not None and len(aug_full) > args.max_aug_samples:
+            rng_aug = np.random.default_rng(args.seed + 1)
+            aug_indices = rng_aug.choice(len(aug_full), size=args.max_aug_samples, replace=False).tolist()
+            aug_train = torch.utils.data.Subset(aug_full, aug_indices)
+            LOG.info("aug_cache capped: %d -> %d samples", len(aug_full), args.max_aug_samples)
+        else:
+            aug_train = aug_full
+        LOG.info("aug_cache (raw-level augmented): %d samples", len(aug_train))
+
     ss_train_aug = TrainAugmentDataset(ss_train, augment=args.augment, base_seed=args.seed)
-    train_dataset = ConcatDataset([alsaify_train, ss_train_aug])
+    components = [alsaify_train, ss_train_aug]
+    if dummy_train is not None:
+        components.append(dummy_train)
+    if aug_train is not None:
+        components.append(aug_train)
+    train_dataset = ConcatDataset(components)
     auxiliary_val = ConcatDataset([alsaify_val, ss_val])
     sample_weights = build_sample_weights(
         train_dataset, source_ratio, hard_weight, class_weight_fn=class_weight_fn
@@ -1121,12 +1229,12 @@ def run_training(args: argparse.Namespace) -> None:
             state = ckpt["model"] if isinstance(ckpt, dict) and "model" in ckpt else ckpt
             model.load_state_dict(state, strict=True)
             LOG.info("loaded pretrained 6-class checkpoint (strict=True, no head migration)")
-        criterion = make_criterion_6class(args.fall_weight, device)
+        criterion = make_criterion_6class(args.fall_weight, device, focal=args.focal_loss, focal_gamma=args.focal_gamma)
     else:
         if args.pretrained_ckpt is not None:
             migrate_pretrained_head(model, args.pretrained_ckpt, device)
             LOG.info("loaded pretrained 6-class checkpoint with 7-class head migration")
-        criterion = make_criterion(args.fall_weight, device)
+        criterion = make_criterion(args.fall_weight, device, focal=args.focal_loss, focal_gamma=args.focal_gamma)
     optimizer = build_optimizer(model, args)
 
     args.ckpt_dir.mkdir(parents=True, exist_ok=True)
@@ -1197,7 +1305,7 @@ def run_training(args: argparse.Namespace) -> None:
             best_val_loss = result
             save_checkpoint(args.ckpt_dir / "best_val_loss.pt", model, optimizer, result, args)
 
-        if epoch > args.warmup_epochs and is_better_operating(result, best_operating):
+        if epoch > args.warmup_epochs and is_better_operating(result, best_operating, ckpt_policy=args.ckpt_policy):
             best_operating = result
             stale_epochs = 0
             save_checkpoint(args.ckpt_dir / "best_operating.pt", model, optimizer, result, args)
@@ -1371,7 +1479,7 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Infer source_ratio/hard_weight from SafeSignal sample count presets.",
     )
-    parser.add_argument("--fall_weight", type=float, default=1.0, choices=[1.0, 1.2, 1.5])
+    parser.add_argument("--fall_weight", type=float, default=1.0)
     parser.add_argument("--warmup_epochs", type=int, default=5)
     parser.add_argument("--backbone_lr_warmup", type=float, default=1e-5)
     parser.add_argument("--backbone_lr", type=float, default=1e-4)
@@ -1387,6 +1495,34 @@ def parse_args() -> argparse.Namespace:
             "Enable SafeSignal train-only on-the-fly augmentation: per sample/epoch, "
             "draw one of jittering/scaling/time_warping/noise_scale uniformly "
             "(deterministic in (seed, idx, epoch)). Alsaify samples pass through untouched."
+        ),
+    )
+    parser.add_argument("--dummy_cache", type=Path, default=None,
+                        help="dummy cache path. DUM* samples added to train only.")
+    parser.add_argument("--aug_cache", type=Path, default=None,
+                        help="raw 단계 증강 캐시 (generate_dummy_fall_cache.py 출력). "
+                             "is_augmented=True 필수. train 전용으로만 병합.")
+    parser.add_argument("--lying_weight", type=float, default=1.05,
+                        help="6-class 전용: lying 클래스 sampler 가중치 (기본 1.05). "
+                             "높을수록 lying FP 감소 (예: 1.30 = hard_weight 수준).")
+    parser.add_argument("--max_aug_samples", type=int, default=None,
+                        help="aug_cache 최대 사용 샘플 수. None이면 전체 사용. "
+                             "aug 불균형 완화 목적 (예: 500 → ~3:1 ratio).")
+    parser.add_argument(
+        "--focal_loss",
+        action="store_true",
+        help="CrossEntropyLoss 대신 FocalLoss 사용. gamma는 --focal_gamma로 설정.",
+    )
+    parser.add_argument("--focal_gamma", type=float, default=2.0,
+                        help="FocalLoss gamma 파라미터 (default=2.0). --focal_loss 활성화 시에만 사용.")
+    parser.add_argument(
+        "--ckpt_policy",
+        choices=["f1_first", "recall_first"],
+        default="f1_first",
+        help=(
+            "체크포인트 선택 정책 (operating/stretch 기준 미달 시 폴백). "
+            "f1_first(기본): (F1, -FAR, -val_loss) 기준. "
+            "recall_first: (recall, -FAR_over, F1) 기준 — recall 최대화 우선."
         ),
     )
     parser.add_argument("--verbose", action="store_true")
