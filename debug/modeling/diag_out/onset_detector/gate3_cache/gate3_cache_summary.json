@@ -1,0 +1,94 @@
+{
+  "meta": {
+    "manifest_id": "onset_manifest_v2_2026-06-06",
+    "sessions": 360,
+    "loaded": 349,
+    "window": 300,
+    "clean_len": 400,
+    "pipeline": "clean400 concat (Gate1) → window_to_model_input(RPCA→ACF→SDP→z)",
+    "note_test": "test split 생성하되 설계/threshold/crop 통계 결정 미사용(분리표기)"
+  },
+  "generated": {
+    "fixed": 349,
+    "onset_primary": 175,
+    "onset_reduced": 233
+  },
+  "crop_out_of_bounds": {
+    "fixed": 0,
+    "onset_primary": 88,
+    "onset_reduced": 30
+  },
+  "onset_unusable": 65,
+  "data_invalid": 11,
+  "fixed_by_split": {
+    "test": 71,
+    "train": 223,
+    "val": 55
+  },
+  "fixed_by_subtype": {
+    "FALL_SIT_B": 58,
+    "FALL_SIT_F": 56,
+    "FALL_STD_B": 60,
+    "FALL_STD_F": 58,
+    "FALL_WALK_B": 59,
+    "FALL_WALK_F": 58
+  },
+  "onset_primary_by_split": {
+    "test": 35,
+    "train": 114,
+    "val": 26
+  },
+  "onset_primary_by_subtype": {
+    "FALL_SIT_B": 31,
+    "FALL_SIT_F": 33,
+    "FALL_STD_B": 32,
+    "FALL_WALK_B": 26,
+    "FALL_WALK_F": 21,
+    "FALL_STD_F": 32
+  },
+  "onset_reduced_by_split": {
+    "test": 48,
+    "train": 146,
+    "val": 39
+  },
+  "onset_reduced_by_subtype": {
+    "FALL_SIT_B": 37,
+    "FALL_SIT_F": 42,
+    "FALL_STD_B": 45,
+    "FALL_STD_F": 46,
+    "FALL_WALK_B": 30,
+    "FALL_WALK_F": 33
+  },
+  "coverage_fixed": {
+    "walk": 117,
+    "non_walk": 232,
+    "total": 349
+  },
+  "coverage_onset_primary": {
+    "walk": 47,
+    "non_walk": 128,
+    "total": 175
+  },
+  "paired_fixed_and_onset_primary": {
+    "total": 175,
+    "nonwalk_train_val": 101,
+    "walk_train_val": 39
+  },
+  "aborts": [],
+  "fixed_by_env_subject": {
+    "E1_S01": 60,
+    "E2_S02": 56,
+    "E3_S03": 57,
+    "E4_S01": 59,
+    "E4_S02": 58,
+    "E4_S03": 59
+  },
+  "onset_primary_by_env_subject": {
+    "E1_S01": 23,
+    "E2_S02": 26,
+    "E3_S03": 23,
+    "E4_S01": 29,
+    "E4_S02": 36,
+    "E4_S03": 38
+  }
+}
