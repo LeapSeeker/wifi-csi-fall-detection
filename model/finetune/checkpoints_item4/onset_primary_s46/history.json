@@ -1,0 +1,4732 @@
+[
+  {
+    "epoch": 1,
+    "train_loss": 1.356741580495251,
+    "primary_val_loss": 1.4644595104614702,
+    "threshold": 0.3,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.3946731234866828,
+      "fall_recall": 0.3076923076923077,
+      "fall_precision": 0.7272727272727273,
+      "fall_f1": 0.43243243243243246,
+      "far": 0.007751937984496124,
+      "tp": 8,
+      "fp": 3,
+      "fn": 18,
+      "tn": 384,
+      "confusion": [
+        [
+          8,
+          4,
+          5,
+          2,
+          2,
+          5,
+          0
+        ],
+        [
+          1,
+          25,
+          17,
+          33,
+          10,
+          4,
+          0
+        ],
+        [
+          1,
+          3,
+          51,
+          17,
+          2,
+          13,
+          0
+        ],
+        [
+          0,
+          8,
+          27,
+          40,
+          4,
+          11,
+          0
+        ],
+        [
+          0,
+          2,
+          18,
+          9,
+          22,
+          9,
+          0
+        ],
+        [
+          1,
+          3,
+          24,
+          7,
+          8,
+          17,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7722437137330754,
+      "fall_recall": 0.8554913294797688,
+      "fall_precision": 0.9426751592356688,
+      "fall_f1": 0.8969696969696971,
+      "far": 0.010452961672473868,
+      "tp": 296,
+      "fp": 18,
+      "fn": 50,
+      "tn": 1704,
+      "confusion": [
+        [
+          296,
+          4,
+          13,
+          6,
+          2,
+          25,
+          0
+        ],
+        [
+          1,
+          337,
+          20,
+          34,
+          11,
+          7,
+          0
+        ],
+        [
+          5,
+          3,
+          324,
+          19,
+          2,
+          22,
+          0
+        ],
+        [
+          1,
+          8,
+          27,
+          338,
+          24,
+          12,
+          0
+        ],
+        [
+          0,
+          5,
+          19,
+          116,
+          153,
+          14,
+          0
+        ],
+        [
+          11,
+          3,
+          42,
+          7,
+          8,
+          149,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 2,
+    "train_loss": 1.0013028553151708,
+    "primary_val_loss": 1.3870091758686462,
+    "threshold": 0.3,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.4261501210653753,
+      "fall_recall": 0.6538461538461539,
+      "fall_precision": 0.8095238095238095,
+      "fall_f1": 0.7234042553191489,
+      "far": 0.0103359173126615,
+      "tp": 17,
+      "fp": 4,
+      "fn": 9,
+      "tn": 383,
+      "confusion": [
+        [
+          17,
+          3,
+          3,
+          0,
+          1,
+          2,
+          0
+        ],
+        [
+          1,
+          43,
+          22,
+          9,
+          10,
+          5,
+          0
+        ],
+        [
+          2,
+          5,
+          52,
+          8,
+          4,
+          16,
+          0
+        ],
+        [
+          0,
+          12,
+          42,
+          11,
+          4,
+          21,
+          0
+        ],
+        [
+          0,
+          3,
+          16,
+          2,
+          30,
+          9,
+          0
+        ],
+        [
+          1,
+          6,
+          21,
+          2,
+          7,
+          23,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7833655705996132,
+      "fall_recall": 0.8872832369942196,
+      "fall_precision": 0.9359756097560976,
+      "fall_f1": 0.9109792284866469,
+      "far": 0.012195121951219513,
+      "tp": 307,
+      "fp": 21,
+      "fn": 39,
+      "tn": 1701,
+      "confusion": [
+        [
+          307,
+          3,
+          14,
+          2,
+          5,
+          15,
+          0
+        ],
+        [
+          3,
+          351,
+          24,
+          9,
+          14,
+          9,
+          0
+        ],
+        [
+          6,
+          5,
+          329,
+          9,
+          4,
+          22,
+          0
+        ],
+        [
+          0,
+          12,
+          43,
+          288,
+          46,
+          21,
+          0
+        ],
+        [
+          0,
+          5,
+          17,
+          74,
+          202,
+          9,
+          0
+        ],
+        [
+          12,
+          6,
+          48,
+          2,
+          9,
+          143,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 3,
+    "train_loss": 0.9338309111124382,
+    "primary_val_loss": 1.3616593582578203,
+    "threshold": 0.3,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.45036319612590797,
+      "fall_recall": 0.6538461538461539,
+      "fall_precision": 0.8947368421052632,
+      "fall_f1": 0.7555555555555555,
+      "far": 0.00516795865633075,
+      "tp": 17,
+      "fp": 2,
+      "fn": 9,
+      "tn": 385,
+      "confusion": [
+        [
+          17,
+          3,
+          3,
+          0,
+          0,
+          3,
+          0
+        ],
+        [
+          0,
+          45,
+          24,
+          10,
+          7,
+          4,
+          0
+        ],
+        [
+          2,
+          6,
+          65,
+          6,
+          0,
+          8,
+          0
+        ],
+        [
+          0,
+          10,
+          53,
+          11,
+          2,
+          14,
+          0
+        ],
+        [
+          0,
+          1,
+          25,
+          1,
+          26,
+          7,
+          0
+        ],
+        [
+          0,
+          6,
+          25,
+          3,
+          4,
+          22,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7833655705996132,
+      "fall_recall": 0.8786127167630058,
+      "fall_precision": 0.9353846153846154,
+      "fall_f1": 0.9061102831594636,
+      "far": 0.012195121951219513,
+      "tp": 304,
+      "fp": 21,
+      "fn": 42,
+      "tn": 1701,
+      "confusion": [
+        [
+          304,
+          4,
+          12,
+          1,
+          5,
+          20,
+          0
+        ],
+        [
+          0,
+          358,
+          27,
+          10,
+          8,
+          7,
+          0
+        ],
+        [
+          9,
+          6,
+          344,
+          7,
+          0,
+          9,
+          0
+        ],
+        [
+          0,
+          11,
+          54,
+          316,
+          15,
+          14,
+          0
+        ],
+        [
+          0,
+          4,
+          26,
+          104,
+          166,
+          7,
+          0
+        ],
+        [
+          12,
+          6,
+          60,
+          3,
+          7,
+          132,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 4,
+    "train_loss": 0.8913169496424771,
+    "primary_val_loss": 1.270418642219562,
+    "threshold": 0.3,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.48668280871670705,
+      "fall_recall": 0.6153846153846154,
+      "fall_precision": 0.8888888888888888,
+      "fall_f1": 0.7272727272727274,
+      "far": 0.00516795865633075,
+      "tp": 16,
+      "fp": 2,
+      "fn": 10,
+      "tn": 385,
+      "confusion": [
+        [
+          16,
+          2,
+          3,
+          1,
+          1,
+          3,
+          0
+        ],
+        [
+          0,
+          45,
+          14,
+          19,
+          10,
+          2,
+          0
+        ],
+        [
+          2,
+          4,
+          52,
+          14,
+          4,
+          11,
+          0
+        ],
+        [
+          0,
+          12,
+          24,
+          35,
+          9,
+          10,
+          0
+        ],
+        [
+          0,
+          0,
+          14,
+          6,
+          36,
+          4,
+          0
+        ],
+        [
+          0,
+          5,
+          26,
+          6,
+          6,
+          17,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7799806576402321,
+      "fall_recall": 0.9046242774566474,
+      "fall_precision": 0.9152046783625731,
+      "fall_f1": 0.9098837209302326,
+      "far": 0.01684088269454123,
+      "tp": 313,
+      "fp": 29,
+      "fn": 33,
+      "tn": 1693,
+      "confusion": [
+        [
+          313,
+          3,
+          7,
+          2,
+          2,
+          19,
+          0
+        ],
+        [
+          0,
+          362,
+          15,
+          19,
+          11,
+          3,
+          0
+        ],
+        [
+          15,
+          4,
+          307,
+          17,
+          4,
+          28,
+          0
+        ],
+        [
+          0,
+          13,
+          25,
+          342,
+          20,
+          10,
+          0
+        ],
+        [
+          0,
+          4,
+          14,
+          133,
+          150,
+          6,
+          0
+        ],
+        [
+          14,
+          5,
+          48,
+          6,
+          8,
+          139,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": true,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": true,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 5,
+    "train_loss": 0.8485576586532708,
+    "primary_val_loss": 1.2969854042547377,
+    "threshold": 0.3,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.5108958837772397,
+      "fall_recall": 0.5769230769230769,
+      "fall_precision": 0.8823529411764706,
+      "fall_f1": 0.6976744186046512,
+      "far": 0.00516795865633075,
+      "tp": 15,
+      "fp": 2,
+      "fn": 11,
+      "tn": 385,
+      "confusion": [
+        [
+          15,
+          3,
+          6,
+          1,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          49,
+          17,
+          19,
+          4,
+          1,
+          0
+        ],
+        [
+          2,
+          4,
+          58,
+          17,
+          1,
+          5,
+          0
+        ],
+        [
+          0,
+          10,
+          24,
+          45,
+          4,
+          7,
+          0
+        ],
+        [
+          0,
+          3,
+          16,
+          12,
+          28,
+          1,
+          0
+        ],
+        [
+          0,
+          5,
+          30,
+          7,
+          2,
+          16,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7954545454545454,
+      "fall_recall": 0.884393063583815,
+      "fall_precision": 0.9272727272727272,
+      "fall_f1": 0.9053254437869823,
+      "far": 0.013937282229965157,
+      "tp": 306,
+      "fp": 24,
+      "fn": 40,
+      "tn": 1698,
+      "confusion": [
+        [
+          306,
+          3,
+          14,
+          4,
+          2,
+          17,
+          0
+        ],
+        [
+          0,
+          367,
+          17,
+          19,
+          4,
+          3,
+          0
+        ],
+        [
+          14,
+          4,
+          327,
+          20,
+          1,
+          9,
+          0
+        ],
+        [
+          0,
+          11,
+          25,
+          339,
+          28,
+          7,
+          0
+        ],
+        [
+          0,
+          6,
+          17,
+          111,
+          172,
+          1,
+          0
+        ],
+        [
+          10,
+          5,
+          59,
+          7,
+          5,
+          134,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 6,
+    "train_loss": 0.7920532463681402,
+    "primary_val_loss": 1.3325365851058222,
+    "threshold": 0.3,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.4721549636803874,
+      "fall_recall": 0.6538461538461539,
+      "fall_precision": 0.8095238095238095,
+      "fall_f1": 0.7234042553191489,
+      "far": 0.0103359173126615,
+      "tp": 17,
+      "fp": 4,
+      "fn": 9,
+      "tn": 383,
+      "confusion": [
+        [
+          17,
+          3,
+          3,
+          1,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          56,
+          22,
+          8,
+          2,
+          2,
+          0
+        ],
+        [
+          2,
+          6,
+          65,
+          6,
+          0,
+          8,
+          0
+        ],
+        [
+          1,
+          14,
+          43,
+          14,
+          5,
+          13,
+          0
+        ],
+        [
+          1,
+          4,
+          24,
+          2,
+          24,
+          5,
+          0
+        ],
+        [
+          0,
+          6,
+          30,
+          3,
+          2,
+          19,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7828820116054158,
+      "fall_recall": 0.9248554913294798,
+      "fall_precision": 0.9142857142857143,
+      "fall_f1": 0.9195402298850575,
+      "far": 0.017421602787456445,
+      "tp": 320,
+      "fp": 30,
+      "fn": 26,
+      "tn": 1692,
+      "confusion": [
+        [
+          320,
+          3,
+          10,
+          2,
+          1,
+          10,
+          0
+        ],
+        [
+          1,
+          373,
+          24,
+          8,
+          2,
+          2,
+          0
+        ],
+        [
+          11,
+          6,
+          334,
+          7,
+          1,
+          16,
+          0
+        ],
+        [
+          1,
+          16,
+          44,
+          314,
+          22,
+          13,
+          0
+        ],
+        [
+          1,
+          8,
+          25,
+          116,
+          152,
+          5,
+          0
+        ],
+        [
+          16,
+          6,
+          63,
+          4,
+          5,
+          126,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": true,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": true,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 7,
+    "train_loss": 0.7112316111591207,
+    "primary_val_loss": 1.2939457942440782,
+    "threshold": 0.3,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.4915254237288136,
+      "fall_recall": 0.7307692307692307,
+      "fall_precision": 0.6333333333333333,
+      "fall_f1": 0.6785714285714285,
+      "far": 0.028423772609819122,
+      "tp": 19,
+      "fp": 11,
+      "fn": 7,
+      "tn": 376,
+      "confusion": [
+        [
+          19,
+          1,
+          3,
+          1,
+          0,
+          2,
+          0
+        ],
+        [
+          1,
+          56,
+          12,
+          15,
+          5,
+          1,
+          0
+        ],
+        [
+          4,
+          6,
+          45,
+          20,
+          1,
+          11,
+          0
+        ],
+        [
+          1,
+          10,
+          24,
+          34,
+          5,
+          16,
+          0
+        ],
+        [
+          1,
+          3,
+          13,
+          7,
+          28,
+          8,
+          0
+        ],
+        [
+          4,
+          5,
+          17,
+          8,
+          5,
+          21,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7877176015473888,
+      "fall_recall": 0.9335260115606936,
+      "fall_precision": 0.8729729729729729,
+      "fall_f1": 0.9022346368715083,
+      "far": 0.0272938443670151,
+      "tp": 323,
+      "fp": 47,
+      "fn": 23,
+      "tn": 1675,
+      "confusion": [
+        [
+          323,
+          1,
+          10,
+          1,
+          0,
+          11,
+          0
+        ],
+        [
+          1,
+          375,
+          13,
+          15,
+          5,
+          1,
+          0
+        ],
+        [
+          18,
+          6,
+          315,
+          21,
+          1,
+          14,
+          0
+        ],
+        [
+          4,
+          11,
+          25,
+          327,
+          27,
+          16,
+          0
+        ],
+        [
+          2,
+          8,
+          14,
+          115,
+          158,
+          10,
+          0
+        ],
+        [
+          22,
+          5,
+          46,
+          8,
+          8,
+          131,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": true,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": true,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 8,
+    "train_loss": 0.6771105651419355,
+    "primary_val_loss": 1.3103344073884424,
+    "threshold": 0.35,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.513317191283293,
+      "fall_recall": 0.7307692307692307,
+      "fall_precision": 0.76,
+      "fall_f1": 0.7450980392156863,
+      "far": 0.015503875968992248,
+      "tp": 19,
+      "fp": 6,
+      "fn": 7,
+      "tn": 381,
+      "confusion": [
+        [
+          19,
+          1,
+          3,
+          1,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          62,
+          11,
+          10,
+          4,
+          3,
+          0
+        ],
+        [
+          4,
+          7,
+          53,
+          10,
+          3,
+          10,
+          0
+        ],
+        [
+          1,
+          14,
+          30,
+          27,
+          4,
+          14,
+          0
+        ],
+        [
+          1,
+          1,
+          15,
+          6,
+          30,
+          7,
+          0
+        ],
+        [
+          0,
+          6,
+          20,
+          8,
+          5,
+          21,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7920696324951644,
+      "fall_recall": 0.8959537572254336,
+      "fall_precision": 0.9365558912386707,
+      "fall_f1": 0.9158050221565732,
+      "far": 0.012195121951219513,
+      "tp": 310,
+      "fp": 21,
+      "fn": 36,
+      "tn": 1701,
+      "confusion": [
+        [
+          310,
+          1,
+          13,
+          3,
+          1,
+          18,
+          0
+        ],
+        [
+          1,
+          378,
+          11,
+          10,
+          6,
+          4,
+          0
+        ],
+        [
+          8,
+          7,
+          319,
+          12,
+          6,
+          23,
+          0
+        ],
+        [
+          1,
+          15,
+          31,
+          327,
+          22,
+          14,
+          0
+        ],
+        [
+          1,
+          4,
+          15,
+          111,
+          167,
+          9,
+          0
+        ],
+        [
+          10,
+          6,
+          51,
+          8,
+          8,
+          137,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 9,
+    "train_loss": 0.6244727651831744,
+    "primary_val_loss": 1.310700767554036,
+    "threshold": 0.3,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.513317191283293,
+      "fall_recall": 0.7307692307692307,
+      "fall_precision": 0.6333333333333333,
+      "fall_f1": 0.6785714285714285,
+      "far": 0.028423772609819122,
+      "tp": 19,
+      "fp": 11,
+      "fn": 7,
+      "tn": 376,
+      "confusion": [
+        [
+          19,
+          2,
+          4,
+          1,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          65,
+          12,
+          8,
+          2,
+          2,
+          0
+        ],
+        [
+          4,
+          10,
+          49,
+          10,
+          3,
+          11,
+          0
+        ],
+        [
+          1,
+          18,
+          32,
+          23,
+          6,
+          10,
+          0
+        ],
+        [
+          1,
+          6,
+          10,
+          6,
+          34,
+          3,
+          0
+        ],
+        [
+          4,
+          4,
+          19,
+          7,
+          4,
+          22,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7935203094777563,
+      "fall_recall": 0.9335260115606936,
+      "fall_precision": 0.8825136612021858,
+      "fall_f1": 0.9073033707865169,
+      "far": 0.02497096399535424,
+      "tp": 323,
+      "fp": 43,
+      "fn": 23,
+      "tn": 1679,
+      "confusion": [
+        [
+          323,
+          2,
+          10,
+          3,
+          1,
+          7,
+          0
+        ],
+        [
+          1,
+          382,
+          12,
+          8,
+          4,
+          3,
+          0
+        ],
+        [
+          16,
+          10,
+          311,
+          11,
+          5,
+          22,
+          0
+        ],
+        [
+          1,
+          19,
+          33,
+          295,
+          52,
+          10,
+          0
+        ],
+        [
+          2,
+          10,
+          10,
+          81,
+          197,
+          7,
+          0
+        ],
+        [
+          23,
+          4,
+          46,
+          7,
+          7,
+          133,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": true,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": true,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 10,
+    "train_loss": 0.5425929732101747,
+    "primary_val_loss": 1.3737709626158559,
+    "threshold": 0.35,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.513317191283293,
+      "fall_recall": 0.7307692307692307,
+      "fall_precision": 0.8636363636363636,
+      "fall_f1": 0.7916666666666666,
+      "far": 0.007751937984496124,
+      "tp": 19,
+      "fp": 3,
+      "fn": 7,
+      "tn": 384,
+      "confusion": [
+        [
+          19,
+          1,
+          2,
+          1,
+          0,
+          3,
+          0
+        ],
+        [
+          0,
+          58,
+          16,
+          8,
+          6,
+          2,
+          0
+        ],
+        [
+          2,
+          5,
+          52,
+          10,
+          1,
+          17,
+          0
+        ],
+        [
+          0,
+          12,
+          28,
+          29,
+          6,
+          15,
+          0
+        ],
+        [
+          0,
+          1,
+          14,
+          4,
+          31,
+          10,
+          0
+        ],
+        [
+          1,
+          3,
+          20,
+          8,
+          5,
+          23,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7862669245647969,
+      "fall_recall": 0.8959537572254336,
+      "fall_precision": 0.9171597633136095,
+      "fall_f1": 0.9064327485380118,
+      "far": 0.016260162601626018,
+      "tp": 310,
+      "fp": 28,
+      "fn": 36,
+      "tn": 1694,
+      "confusion": [
+        [
+          310,
+          1,
+          13,
+          3,
+          1,
+          18,
+          0
+        ],
+        [
+          0,
+          375,
+          16,
+          8,
+          8,
+          3,
+          0
+        ],
+        [
+          13,
+          5,
+          318,
+          12,
+          2,
+          25,
+          0
+        ],
+        [
+          1,
+          13,
+          29,
+          320,
+          32,
+          15,
+          0
+        ],
+        [
+          1,
+          5,
+          15,
+          115,
+          160,
+          11,
+          0
+        ],
+        [
+          13,
+          3,
+          44,
+          9,
+          8,
+          143,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 11,
+    "train_loss": 0.5137667635005579,
+    "primary_val_loss": 1.4106521482329104,
+    "threshold": 0.3,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.5302663438256658,
+      "fall_recall": 0.6923076923076923,
+      "fall_precision": 0.8571428571428571,
+      "fall_f1": 0.7659574468085107,
+      "far": 0.007751937984496124,
+      "tp": 18,
+      "fp": 3,
+      "fn": 8,
+      "tn": 384,
+      "confusion": [
+        [
+          18,
+          2,
+          2,
+          1,
+          0,
+          3,
+          0
+        ],
+        [
+          0,
+          57,
+          11,
+          17,
+          3,
+          2,
+          0
+        ],
+        [
+          2,
+          5,
+          49,
+          14,
+          2,
+          15,
+          0
+        ],
+        [
+          0,
+          9,
+          21,
+          41,
+          5,
+          14,
+          0
+        ],
+        [
+          0,
+          4,
+          13,
+          6,
+          33,
+          4,
+          0
+        ],
+        [
+          1,
+          5,
+          20,
+          10,
+          3,
+          21,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7882011605415861,
+      "fall_recall": 0.9104046242774566,
+      "fall_precision": 0.9051724137931034,
+      "fall_f1": 0.9077809798270894,
+      "far": 0.01916376306620209,
+      "tp": 315,
+      "fp": 33,
+      "fn": 31,
+      "tn": 1689,
+      "confusion": [
+        [
+          315,
+          2,
+          5,
+          4,
+          1,
+          19,
+          0
+        ],
+        [
+          0,
+          374,
+          11,
+          17,
+          4,
+          4,
+          0
+        ],
+        [
+          16,
+          5,
+          300,
+          17,
+          3,
+          34,
+          0
+        ],
+        [
+          1,
+          10,
+          21,
+          341,
+          23,
+          14,
+          0
+        ],
+        [
+          1,
+          8,
+          13,
+          128,
+          149,
+          8,
+          0
+        ],
+        [
+          15,
+          5,
+          33,
+          11,
+          5,
+          151,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": true,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": true,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 12,
+    "train_loss": 0.4295268249179579,
+    "primary_val_loss": 1.4929744770105469,
+    "threshold": 0.35,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.4891041162227603,
+      "fall_recall": 0.7307692307692307,
+      "fall_precision": 0.8636363636363636,
+      "fall_f1": 0.7916666666666666,
+      "far": 0.007751937984496124,
+      "tp": 19,
+      "fp": 3,
+      "fn": 7,
+      "tn": 384,
+      "confusion": [
+        [
+          19,
+          0,
+          3,
+          2,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          57,
+          17,
+          9,
+          5,
+          2,
+          0
+        ],
+        [
+          3,
+          6,
+          46,
+          15,
+          1,
+          16,
+          0
+        ],
+        [
+          0,
+          11,
+          34,
+          27,
+          6,
+          12,
+          0
+        ],
+        [
+          0,
+          2,
+          17,
+          4,
+          32,
+          5,
+          0
+        ],
+        [
+          0,
+          5,
+          19,
+          6,
+          9,
+          21,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7828820116054158,
+      "fall_recall": 0.9017341040462428,
+      "fall_precision": 0.9203539823008849,
+      "fall_f1": 0.9109489051094891,
+      "far": 0.0156794425087108,
+      "tp": 312,
+      "fp": 27,
+      "fn": 34,
+      "tn": 1695,
+      "confusion": [
+        [
+          312,
+          0,
+          9,
+          4,
+          1,
+          20,
+          0
+        ],
+        [
+          0,
+          373,
+          17,
+          9,
+          7,
+          4,
+          0
+        ],
+        [
+          13,
+          6,
+          303,
+          16,
+          3,
+          34,
+          0
+        ],
+        [
+          0,
+          12,
+          35,
+          333,
+          18,
+          12,
+          0
+        ],
+        [
+          1,
+          7,
+          17,
+          122,
+          153,
+          7,
+          0
+        ],
+        [
+          13,
+          5,
+          37,
+          6,
+          14,
+          145,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": true,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": true,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 13,
+    "train_loss": 0.4115825414404878,
+    "primary_val_loss": 1.602580965286883,
+    "threshold": 0.3,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.47699757869249393,
+      "fall_recall": 0.8076923076923077,
+      "fall_precision": 0.6774193548387096,
+      "fall_f1": 0.7368421052631579,
+      "far": 0.025839793281653745,
+      "tp": 21,
+      "fp": 10,
+      "fn": 5,
+      "tn": 377,
+      "confusion": [
+        [
+          21,
+          1,
+          0,
+          2,
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          47,
+          14,
+          18,
+          6,
+          5,
+          0
+        ],
+        [
+          6,
+          3,
+          42,
+          16,
+          4,
+          16,
+          0
+        ],
+        [
+          1,
+          8,
+          27,
+          33,
+          5,
+          16,
+          0
+        ],
+        [
+          0,
+          3,
+          14,
+          5,
+          32,
+          6,
+          0
+        ],
+        [
+          3,
+          4,
+          15,
+          9,
+          7,
+          22,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7828820116054158,
+      "fall_recall": 0.9335260115606936,
+      "fall_precision": 0.8898071625344353,
+      "fall_f1": 0.9111424541607899,
+      "far": 0.023228803716608595,
+      "tp": 323,
+      "fp": 40,
+      "fn": 23,
+      "tn": 1682,
+      "confusion": [
+        [
+          323,
+          1,
+          4,
+          3,
+          3,
+          12,
+          0
+        ],
+        [
+          0,
+          364,
+          14,
+          18,
+          8,
+          6,
+          0
+        ],
+        [
+          16,
+          3,
+          307,
+          18,
+          6,
+          25,
+          0
+        ],
+        [
+          1,
+          8,
+          28,
+          277,
+          80,
+          16,
+          0
+        ],
+        [
+          1,
+          7,
+          14,
+          69,
+          208,
+          8,
+          0
+        ],
+        [
+          22,
+          4,
+          35,
+          9,
+          10,
+          140,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": true,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": true,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 14,
+    "train_loss": 0.3742019554292123,
+    "primary_val_loss": 1.6637959024230735,
+    "threshold": 0.3,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.48184019370460046,
+      "fall_recall": 0.5769230769230769,
+      "fall_precision": 0.7894736842105263,
+      "fall_f1": 0.6666666666666666,
+      "far": 0.0103359173126615,
+      "tp": 15,
+      "fp": 4,
+      "fn": 11,
+      "tn": 383,
+      "confusion": [
+        [
+          15,
+          4,
+          3,
+          2,
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          51,
+          15,
+          19,
+          3,
+          2,
+          0
+        ],
+        [
+          2,
+          2,
+          50,
+          21,
+          1,
+          11,
+          0
+        ],
+        [
+          0,
+          7,
+          34,
+          36,
+          5,
+          8,
+          0
+        ],
+        [
+          0,
+          3,
+          18,
+          4,
+          31,
+          4,
+          0
+        ],
+        [
+          2,
+          4,
+          23,
+          10,
+          5,
+          16,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7862669245647969,
+      "fall_recall": 0.8641618497109826,
+      "fall_precision": 0.9314641744548287,
+      "fall_f1": 0.896551724137931,
+      "far": 0.012775842044134728,
+      "tp": 299,
+      "fp": 22,
+      "fn": 47,
+      "tn": 1700,
+      "confusion": [
+        [
+          299,
+          4,
+          18,
+          4,
+          2,
+          19,
+          0
+        ],
+        [
+          0,
+          369,
+          15,
+          19,
+          4,
+          3,
+          0
+        ],
+        [
+          8,
+          2,
+          318,
+          22,
+          3,
+          22,
+          0
+        ],
+        [
+          0,
+          8,
+          36,
+          316,
+          42,
+          8,
+          0
+        ],
+        [
+          1,
+          7,
+          19,
+          88,
+          186,
+          6,
+          0
+        ],
+        [
+          13,
+          4,
+          47,
+          10,
+          8,
+          138,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 15,
+    "train_loss": 0.32020248199216816,
+    "primary_val_loss": 1.6810964778895527,
+    "threshold": 0.7,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.5084745762711864,
+      "fall_recall": 0.6538461538461539,
+      "fall_precision": 0.8947368421052632,
+      "fall_f1": 0.7555555555555555,
+      "far": 0.00516795865633075,
+      "tp": 17,
+      "fp": 2,
+      "fn": 9,
+      "tn": 385,
+      "confusion": [
+        [
+          17,
+          2,
+          4,
+          1,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          63,
+          11,
+          8,
+          6,
+          2,
+          0
+        ],
+        [
+          2,
+          6,
+          47,
+          11,
+          4,
+          17,
+          0
+        ],
+        [
+          0,
+          13,
+          33,
+          24,
+          5,
+          15,
+          0
+        ],
+        [
+          0,
+          2,
+          15,
+          4,
+          32,
+          7,
+          0
+        ],
+        [
+          0,
+          3,
+          19,
+          8,
+          3,
+          27,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7833655705996132,
+      "fall_recall": 0.8641618497109826,
+      "fall_precision": 0.934375,
+      "fall_f1": 0.897897897897898,
+      "far": 0.012195121951219513,
+      "tp": 299,
+      "fp": 21,
+      "fn": 47,
+      "tn": 1701,
+      "confusion": [
+        [
+          299,
+          2,
+          18,
+          4,
+          2,
+          21,
+          0
+        ],
+        [
+          0,
+          378,
+          11,
+          8,
+          8,
+          5,
+          0
+        ],
+        [
+          11,
+          6,
+          318,
+          12,
+          6,
+          22,
+          0
+        ],
+        [
+          0,
+          14,
+          34,
+          302,
+          45,
+          15,
+          0
+        ],
+        [
+          1,
+          6,
+          16,
+          99,
+          176,
+          9,
+          0
+        ],
+        [
+          9,
+          3,
+          47,
+          8,
+          6,
+          147,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 16,
+    "train_loss": 0.29889107275774524,
+    "primary_val_loss": 1.7498086335872622,
+    "threshold": 0.45,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.5012106537530266,
+      "fall_recall": 0.6538461538461539,
+      "fall_precision": 0.8095238095238095,
+      "fall_f1": 0.7234042553191489,
+      "far": 0.0103359173126615,
+      "tp": 17,
+      "fp": 4,
+      "fn": 9,
+      "tn": 383,
+      "confusion": [
+        [
+          17,
+          2,
+          2,
+          2,
+          1,
+          2,
+          0
+        ],
+        [
+          0,
+          59,
+          11,
+          11,
+          7,
+          2,
+          0
+        ],
+        [
+          3,
+          5,
+          45,
+          19,
+          4,
+          11,
+          0
+        ],
+        [
+          0,
+          11,
+          25,
+          37,
+          6,
+          11,
+          0
+        ],
+        [
+          0,
+          3,
+          14,
+          6,
+          31,
+          6,
+          0
+        ],
+        [
+          1,
+          5,
+          17,
+          14,
+          5,
+          18,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7819148936170213,
+      "fall_recall": 0.8554913294797688,
+      "fall_precision": 0.9221183800623053,
+      "fall_f1": 0.8875562218890556,
+      "far": 0.014518002322880372,
+      "tp": 296,
+      "fp": 25,
+      "fn": 50,
+      "tn": 1697,
+      "confusion": [
+        [
+          296,
+          3,
+          21,
+          5,
+          2,
+          19,
+          0
+        ],
+        [
+          0,
+          377,
+          11,
+          11,
+          8,
+          3,
+          0
+        ],
+        [
+          9,
+          5,
+          317,
+          22,
+          6,
+          16,
+          0
+        ],
+        [
+          0,
+          12,
+          25,
+          322,
+          40,
+          11,
+          0
+        ],
+        [
+          1,
+          7,
+          14,
+          106,
+          171,
+          8,
+          0
+        ],
+        [
+          15,
+          5,
+          42,
+          14,
+          10,
+          134,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 17,
+    "train_loss": 0.29391710642501845,
+    "primary_val_loss": 1.755546225473898,
+    "threshold": 0.35,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.5181598062953995,
+      "fall_recall": 0.7307692307692307,
+      "fall_precision": 0.7307692307692307,
+      "fall_f1": 0.7307692307692306,
+      "far": 0.01808785529715762,
+      "tp": 19,
+      "fp": 7,
+      "fn": 7,
+      "tn": 380,
+      "confusion": [
+        [
+          19,
+          1,
+          1,
+          2,
+          1,
+          2,
+          0
+        ],
+        [
+          0,
+          58,
+          8,
+          17,
+          5,
+          2,
+          0
+        ],
+        [
+          3,
+          3,
+          55,
+          11,
+          1,
+          14,
+          0
+        ],
+        [
+          0,
+          9,
+          27,
+          32,
+          6,
+          16,
+          0
+        ],
+        [
+          0,
+          4,
+          16,
+          4,
+          31,
+          5,
+          0
+        ],
+        [
+          4,
+          3,
+          17,
+          11,
+          6,
+          19,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.789651837524178,
+      "fall_recall": 0.8872832369942196,
+      "fall_precision": 0.9002932551319648,
+      "fall_f1": 0.893740902474527,
+      "far": 0.019744483159117306,
+      "tp": 307,
+      "fp": 34,
+      "fn": 39,
+      "tn": 1688,
+      "confusion": [
+        [
+          307,
+          1,
+          11,
+          4,
+          2,
+          21,
+          0
+        ],
+        [
+          0,
+          375,
+          8,
+          17,
+          6,
+          4,
+          0
+        ],
+        [
+          15,
+          3,
+          315,
+          12,
+          3,
+          27,
+          0
+        ],
+        [
+          0,
+          10,
+          28,
+          293,
+          63,
+          16,
+          0
+        ],
+        [
+          1,
+          8,
+          17,
+          74,
+          199,
+          8,
+          0
+        ],
+        [
+          18,
+          3,
+          34,
+          11,
+          10,
+          144,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 18,
+    "train_loss": 0.26207804383110955,
+    "primary_val_loss": 1.8445012130691123,
+    "threshold": 0.45,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.5302663438256658,
+      "fall_recall": 0.6153846153846154,
+      "fall_precision": 0.8421052631578947,
+      "fall_f1": 0.7111111111111111,
+      "far": 0.007751937984496124,
+      "tp": 16,
+      "fp": 3,
+      "fn": 10,
+      "tn": 384,
+      "confusion": [
+        [
+          16,
+          3,
+          3,
+          1,
+          1,
+          2,
+          0
+        ],
+        [
+          0,
+          66,
+          8,
+          10,
+          3,
+          3,
+          0
+        ],
+        [
+          2,
+          5,
+          43,
+          20,
+          3,
+          14,
+          0
+        ],
+        [
+          0,
+          10,
+          18,
+          41,
+          6,
+          15,
+          0
+        ],
+        [
+          0,
+          4,
+          15,
+          5,
+          30,
+          6,
+          0
+        ],
+        [
+          1,
+          4,
+          17,
+          10,
+          5,
+          23,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7911025145067698,
+      "fall_recall": 0.861271676300578,
+      "fall_precision": 0.9197530864197531,
+      "fall_f1": 0.8895522388059701,
+      "far": 0.015098722415795587,
+      "tp": 298,
+      "fp": 26,
+      "fn": 48,
+      "tn": 1696,
+      "confusion": [
+        [
+          298,
+          3,
+          15,
+          4,
+          3,
+          23,
+          0
+        ],
+        [
+          0,
+          384,
+          8,
+          10,
+          4,
+          4,
+          0
+        ],
+        [
+          13,
+          5,
+          308,
+          23,
+          4,
+          22,
+          0
+        ],
+        [
+          0,
+          11,
+          19,
+          336,
+          29,
+          15,
+          0
+        ],
+        [
+          1,
+          8,
+          16,
+          111,
+          164,
+          7,
+          0
+        ],
+        [
+          12,
+          4,
+          40,
+          11,
+          7,
+          146,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 19,
+    "train_loss": 0.21829514177476617,
+    "primary_val_loss": 2.038396865923237,
+    "threshold": 0.4,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.513317191283293,
+      "fall_recall": 0.5384615384615384,
+      "fall_precision": 0.7777777777777778,
+      "fall_f1": 0.6363636363636364,
+      "far": 0.0103359173126615,
+      "tp": 14,
+      "fp": 4,
+      "fn": 12,
+      "tn": 383,
+      "confusion": [
+        [
+          14,
+          7,
+          2,
+          2,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          72,
+          2,
+          13,
+          2,
+          1,
+          0
+        ],
+        [
+          2,
+          12,
+          42,
+          18,
+          5,
+          8,
+          0
+        ],
+        [
+          0,
+          20,
+          21,
+          35,
+          6,
+          8,
+          0
+        ],
+        [
+          0,
+          5,
+          14,
+          8,
+          32,
+          1,
+          0
+        ],
+        [
+          2,
+          5,
+          13,
+          14,
+          9,
+          17,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7911025145067698,
+      "fall_recall": 0.8439306358381503,
+      "fall_precision": 0.9419354838709677,
+      "fall_f1": 0.8902439024390243,
+      "far": 0.010452961672473868,
+      "tp": 292,
+      "fp": 18,
+      "fn": 54,
+      "tn": 1704,
+      "confusion": [
+        [
+          292,
+          7,
+          21,
+          6,
+          3,
+          17,
+          0
+        ],
+        [
+          0,
+          390,
+          2,
+          13,
+          3,
+          2,
+          0
+        ],
+        [
+          7,
+          12,
+          315,
+          20,
+          6,
+          15,
+          0
+        ],
+        [
+          0,
+          21,
+          22,
+          320,
+          39,
+          8,
+          0
+        ],
+        [
+          1,
+          9,
+          15,
+          93,
+          187,
+          2,
+          0
+        ],
+        [
+          10,
+          5,
+          46,
+          14,
+          13,
+          132,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 20,
+    "train_loss": 0.20181924296302697,
+    "primary_val_loss": 1.9909722314331202,
+    "threshold": 0.3,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.5326876513317191,
+      "fall_recall": 0.7307692307692307,
+      "fall_precision": 0.6551724137931034,
+      "fall_f1": 0.6909090909090909,
+      "far": 0.025839793281653745,
+      "tp": 19,
+      "fp": 10,
+      "fn": 7,
+      "tn": 377,
+      "confusion": [
+        [
+          19,
+          2,
+          1,
+          2,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          65,
+          6,
+          15,
+          3,
+          1,
+          0
+        ],
+        [
+          5,
+          9,
+          43,
+          20,
+          2,
+          8,
+          0
+        ],
+        [
+          1,
+          10,
+          18,
+          44,
+          6,
+          11,
+          0
+        ],
+        [
+          0,
+          3,
+          15,
+          9,
+          30,
+          3,
+          0
+        ],
+        [
+          4,
+          4,
+          16,
+          14,
+          3,
+          19,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7872340425531915,
+      "fall_recall": 0.9046242774566474,
+      "fall_precision": 0.8942857142857142,
+      "fall_f1": 0.8994252873563219,
+      "far": 0.02148664343786295,
+      "tp": 313,
+      "fp": 37,
+      "fn": 33,
+      "tn": 1685,
+      "confusion": [
+        [
+          313,
+          3,
+          13,
+          4,
+          1,
+          12,
+          0
+        ],
+        [
+          0,
+          379,
+          6,
+          15,
+          6,
+          4,
+          0
+        ],
+        [
+          14,
+          9,
+          310,
+          22,
+          4,
+          16,
+          0
+        ],
+        [
+          1,
+          11,
+          19,
+          305,
+          63,
+          11,
+          0
+        ],
+        [
+          1,
+          7,
+          15,
+          85,
+          194,
+          5,
+          0
+        ],
+        [
+          21,
+          4,
+          47,
+          14,
+          7,
+          127,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": true,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": true,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 21,
+    "train_loss": 0.2044604858540355,
+    "primary_val_loss": 2.0233258381305537,
+    "threshold": 0.3,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.5012106537530266,
+      "fall_recall": 0.7307692307692307,
+      "fall_precision": 0.6785714285714286,
+      "fall_f1": 0.7037037037037038,
+      "far": 0.023255813953488372,
+      "tp": 19,
+      "fp": 9,
+      "fn": 7,
+      "tn": 378,
+      "confusion": [
+        [
+          19,
+          3,
+          2,
+          1,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          54,
+          12,
+          19,
+          3,
+          2,
+          0
+        ],
+        [
+          4,
+          5,
+          51,
+          14,
+          4,
+          9,
+          0
+        ],
+        [
+          0,
+          9,
+          28,
+          37,
+          7,
+          9,
+          0
+        ],
+        [
+          1,
+          4,
+          17,
+          6,
+          28,
+          4,
+          0
+        ],
+        [
+          4,
+          3,
+          20,
+          10,
+          5,
+          18,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7857833655705996,
+      "fall_recall": 0.9364161849710982,
+      "fall_precision": 0.8756756756756757,
+      "fall_f1": 0.9050279329608939,
+      "far": 0.026713124274099883,
+      "tp": 324,
+      "fp": 46,
+      "fn": 22,
+      "tn": 1676,
+      "confusion": [
+        [
+          324,
+          3,
+          5,
+          2,
+          0,
+          12,
+          0
+        ],
+        [
+          0,
+          371,
+          12,
+          19,
+          3,
+          5,
+          0
+        ],
+        [
+          18,
+          5,
+          316,
+          15,
+          5,
+          16,
+          0
+        ],
+        [
+          1,
+          10,
+          29,
+          334,
+          26,
+          10,
+          0
+        ],
+        [
+          2,
+          8,
+          17,
+          124,
+          149,
+          7,
+          0
+        ],
+        [
+          25,
+          3,
+          44,
+          10,
+          7,
+          131,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": true,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": true,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  },
+  {
+    "epoch": 22,
+    "train_loss": 0.19474398911829646,
+    "primary_val_loss": 2.0224821590626787,
+    "threshold": 0.45,
+    "threshold_rule": "recall_first_far_over",
+    "primary_val": {
+      "accuracy": 0.5157384987893463,
+      "fall_recall": 0.6923076923076923,
+      "fall_precision": 0.782608695652174,
+      "fall_f1": 0.7346938775510203,
+      "far": 0.012919896640826873,
+      "tp": 18,
+      "fp": 5,
+      "fn": 8,
+      "tn": 382,
+      "confusion": [
+        [
+          18,
+          1,
+          1,
+          3,
+          1,
+          2,
+          0
+        ],
+        [
+          0,
+          65,
+          5,
+          17,
+          2,
+          1,
+          0
+        ],
+        [
+          2,
+          7,
+          41,
+          24,
+          2,
+          11,
+          0
+        ],
+        [
+          0,
+          8,
+          20,
+          45,
+          7,
+          10,
+          0
+        ],
+        [
+          0,
+          5,
+          13,
+          10,
+          27,
+          5,
+          0
+        ],
+        [
+          3,
+          4,
+          16,
+          13,
+          7,
+          17,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 26,
+        "walking": 90,
+        "sit_stand": 87,
+        "lying": 90,
+        "standing": 60,
+        "running": 60,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": false,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    },
+    "auxiliary_val": {
+      "accuracy": 0.7935203094777563,
+      "fall_recall": 0.8786127167630058,
+      "fall_precision": 0.9440993788819876,
+      "fall_f1": 0.9101796407185628,
+      "far": 0.010452961672473868,
+      "tp": 304,
+      "fp": 18,
+      "fn": 42,
+      "tn": 1704,
+      "confusion": [
+        [
+          304,
+          1,
+          15,
+          5,
+          3,
+          18,
+          0
+        ],
+        [
+          0,
+          380,
+          5,
+          17,
+          5,
+          3,
+          0
+        ],
+        [
+          6,
+          7,
+          312,
+          26,
+          3,
+          21,
+          0
+        ],
+        [
+          0,
+          9,
+          21,
+          329,
+          41,
+          10,
+          0
+        ],
+        [
+          1,
+          8,
+          14,
+          103,
+          175,
+          6,
+          0
+        ],
+        [
+          11,
+          4,
+          40,
+          13,
+          11,
+          141,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "classes": [
+        "fall",
+        "walking",
+        "sit_stand",
+        "lying",
+        "standing",
+        "running",
+        "picking"
+      ],
+      "counts": {
+        "fall": 346,
+        "walking": 410,
+        "sit_stand": 375,
+        "lying": 410,
+        "standing": 307,
+        "running": 220,
+        "picking": 0
+      },
+      "fall_label": 0,
+      "meets_recall_target": false,
+      "meets_far_target": true,
+      "meets_f1_target": true,
+      "meets_all_targets": false,
+      "targets": {
+        "fall_recall_target": 0.9,
+        "far_target": 0.1,
+        "f1_target": 0.85
+      }
+    }
+  }
+]

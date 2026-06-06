@@ -132,7 +132,7 @@ def forward_fire(fwd_items, prob, thr, mval, mmode):
 # ── config 평가 (세션 집합) ──────────────────────────────────────────────────
 def eval_config(prob_cache, fall_fns, nonfall_fns, onset, cfg):
     thr, N, (mmode, mval) = cfg["thr"], cfg["N"], cfg["margin"]
-    rec = {"fired": {}, "lat": {}}
+    rec = {"fired": {}, "lat": {}, "fwd_fired": {}, "nf_fired": {}}
     tp = 0
     lat_list = []
     early = timely3 = timely4 = late = fwd_tp = 0
@@ -157,10 +157,19 @@ def eval_config(prob_cache, fall_fns, nonfall_fns, onset, cfg):
                     timely4 += 1
                 else:
                     late += 1
-        if forward_fire(pc["forward"], pc["forward_prob"], thr, mval, mmode):
+        ff = forward_fire(pc["forward"], pc["forward_prob"], thr, mval, mmode)
+        rec["fwd_fired"][fn] = ff
+        if ff:
             fwd_tp += 1
-    fp = sum(1 for fn in nonfall_fns if prob_cache.get(fn) and
-             session_fire(prob_cache[fn]["sweep"], prob_cache[fn]["sweep_prob"], thr, N, mval, mmode)[0])
+    fp = 0
+    for fn in nonfall_fns:
+        pcn = prob_cache.get(fn)
+        if pcn is None:
+            continue
+        nfired = session_fire(pcn["sweep"], pcn["sweep_prob"], thr, N, mval, mmode)[0]
+        rec["nf_fired"][fn] = nfired
+        if nfired:
+            fp += 1
     nfall = len([fn for fn in fall_fns if fn in prob_cache])
     nnon = len([fn for fn in nonfall_fns if fn in prob_cache])
     recall = tp / nfall if nfall else float("nan")
@@ -177,6 +186,7 @@ def eval_config(prob_cache, fall_fns, nonfall_fns, onset, cfg):
         "latency_p90": float(np.percentile(lat_list, 90)) if lat_list else None,
         "n_fall": nfall, "n_nonfall": nnon, "tp": tp, "fp": fp,
         "fired": rec["fired"], "lat": rec["lat"],
+        "fwd_fired": rec["fwd_fired"], "nf_fired": rec["nf_fired"],
     }
 
 
@@ -353,26 +363,38 @@ def main():
             pmc = min(1.0, sum(comb(n, i) for i in range(k + 1)) / (2 ** n) * 2)
         else:
             pmc = 1.0
-        # paired bootstrap CI on metric diffs (resample sessions, mean over seeds)
+        # paired bootstrap CI — fall metrics: resample 27 paired fall 세션 (mean over seeds)
         rng = np.random.default_rng(42)
-        diffs = {k: [] for k in ["recall", "early_fire_rate", "timely_4s", "far", "f1", "forward_recall"]}
+        fall_keys = ["recall", "early_fire_rate", "timely_4s", "forward_recall"]
+        diffs = {k: [] for k in fall_keys}
         sess = unit_sessions
+        nonfall = test_nonfall
+        far_diffs = []
         for _ in range(2000):
-            samp = rng.choice(len(sess), len(sess), replace=True) if sess else []
-            ss = [sess[i] for i in samp]
-            for k in diffs:
+            ss = [sess[i] for i in rng.choice(len(sess), len(sess), replace=True)] if sess else []
+            for k in fall_keys:
                 fx_v, on_v = [], []
                 for seed in SEEDS:
                     if ("fixed", seed) not in per:
                         continue
-                    fxm = agg["fixed"]["_per_seed"][seed]
-                    onm = agg["onset_primary"]["_per_seed"][seed]
-                    fx_v.append(_rate_on(fxm, k, ss))
-                    on_v.append(_rate_on(onm, k, ss))
+                    fx_v.append(_rate_on(agg["fixed"]["_per_seed"][seed], k, ss))
+                    on_v.append(_rate_on(agg["onset_primary"]["_per_seed"][seed], k, ss))
                 diffs[k].append(np.nanmean(on_v) - np.nanmean(fx_v))
+            # FAR: resample non-fall 세션 (별도 모분)
+            ns = [nonfall[i] for i in rng.choice(len(nonfall), len(nonfall), replace=True)] if nonfall else []
+            fx_far, on_far = [], []
+            for seed in SEEDS:
+                if ("fixed", seed) not in per:
+                    continue
+                fxnf = agg["fixed"]["_per_seed"][seed]["nf_fired"]
+                onnf = agg["onset_primary"]["_per_seed"][seed]["nf_fired"]
+                fx_far.append(np.mean([1 if fxnf.get(s) else 0 for s in ns]) if ns else np.nan)
+                on_far.append(np.mean([1 if onnf.get(s) else 0 for s in ns]) if ns else np.nan)
+            far_diffs.append(np.nanmean(on_far) - np.nanmean(fx_far))
         ci = {k: [float(np.percentile(v, 2.5)), float(np.percentile(v, 97.5)), float(np.mean(v))] for k, v in diffs.items()}
+        ci["far"] = [float(np.percentile(far_diffs, 2.5)), float(np.percentile(far_diffs, 97.5)), float(np.mean(far_diffs))]
         stats[mode] = {"mcnemar": {"b_fixed_only": b, "c_onset_only": c, "p": pmc},
-                       "bootstrap_ci_onset_minus_fixed": ci, "n_sessions": len(sess)}
+                       "bootstrap_ci_onset_minus_fixed": ci, "n_sessions": len(sess), "n_nonfall": len(nonfall)}
     results["stats_fixed_vs_onset_primary_nonwalk_paired"] = stats
 
     (OUTDIR / "item4_eval_results.json").write_text(json.dumps(results, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
@@ -394,9 +416,8 @@ def _rate_on(m, key, sessions):
     if key == "timely_4s":
         return sum(1 for s in sessions if fired.get(s) and 0 <= lat.get(s, -9) <= 4.0) / nf
     if key == "forward_recall":
-        return m["forward_recall"]
-    if key in ("far", "f1"):
-        return m[key]
+        fwd = m["fwd_fired"]
+        return sum(1 for s in sessions if fwd.get(s)) / nf
     return float("nan")
 
 
