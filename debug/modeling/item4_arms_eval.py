@@ -21,7 +21,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "debug/modeling"))
-os.environ["ITEM4_CKPT_DIR"] = "checkpoints_item4_arms"
+os.environ.setdefault("ITEM4_CKPT_DIR", "checkpoints_item4_arms")  # env 우선(통제 ckpt 전환 가능)
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 except Exception:
@@ -30,7 +30,7 @@ except Exception:
 import item4_event_eval as E  # noqa: E402  (CKPT=checkpoints_item4_arms 적용됨)
 
 ITEM4 = ROOT / "debug/modeling/diag_out/onset_detector/item4"
-OUTDIR = ITEM4 / "arms_results"
+OUTDIR = ITEM4 / ("arms_results_ctrl" if "ctrl" in os.environ.get("ITEM4_CKPT_DIR", "") else "arms_results")
 SEEDS = E.SEEDS
 ARMS = ["fixed", "onset_primary", "fixed_aug", "onset_primary_aug"]
 LABEL = {"fixed": "A_fixed_original", "onset_primary": "B_onset_original",
