@@ -77,3 +77,11 @@ AGENTS.md
 *.LOCAL_BACKUP
 # 서버 측 원본 CSV 데이터/로그
 server/data/
+
+# 데모용 더미 CSV — 추적 안 함 (스크립트/메타만 추적)
+demo_file/**/*.csv
+# 데모 폴더는 자체 .git 가진 중첩 repo(26k+ 파일) — 통째로 추적 제외
+demo_file/
+
+# 대용량 빌드 산출물 (capstone2.egg ~3.1GB 등) — 절대 커밋 금지
+*.egg
