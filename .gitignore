@@ -89,3 +89,5 @@ demo_file/
 # 더미 생성 대용량 산출물 (스크립트·lineage만 추적)
 debug/dummy_gen/out/*.npz
 debug/dummy_gen/out/validation/
+debug/dummy_gen/out2/*.npz
+debug/dummy_gen/out2/validation/

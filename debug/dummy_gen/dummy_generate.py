@@ -8,6 +8,7 @@ expected(해석적) vs detected(clean400 detector) onset 교차검증 → 사용
 학습 시작 금지. read-only(원본·manifest·동결파일 무수정).
 """
 from __future__ import annotations
+import argparse
 import csv
 import sys
 from collections import Counter
@@ -29,12 +30,9 @@ import dummy_clean400_lib as L  # noqa: E402
 
 V2 = ROOT / "debug/modeling/diag_out/onset_detector/finalization/manifest_v2_manual_augmented.csv"
 CLEANED = ROOT / "data/cleaned"
-OUT = ROOT / "debug/dummy_gen/out"
 WALK = {"FALL_WALK_F", "FALL_WALK_B"}
-AUG_PER_ORIGIN = 3
-PROFILES = [{"body_size": b, "fall_speed": s}
-            for b, s in product(["small", "medium", "large"], ["fast", "normal", "slow"])]  # 9
 NOISE_HI = 1.30  # baseline_noise_ratio flag
+BODIES = ["small", "medium", "large"]
 
 
 def select_origins():
@@ -94,16 +92,28 @@ def _worker(task):
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--speeds", nargs="+", default=["fast", "normal", "slow"])
+    ap.add_argument("--out-subdir", default="out")
+    ap.add_argument("--per-origin", type=int, default=0,
+                    help="0=각 origin에 전체 profile 1회씩(×len(profiles)). >0=round-robin 그만큼.")
+    args = ap.parse_args()
+    OUT = ROOT / "debug/dummy_gen" / args.out_subdir
     OUT.mkdir(parents=True, exist_ok=True)
+    PROFILES = [{"body_size": b, "fall_speed": s} for b, s in product(BODIES, args.speeds)]
     origins = select_origins()
-    print(f"[origin] {len(origins)} train non-WALK fall (auto/manual) → ×{AUG_PER_ORIGIN} = {len(origins)*AUG_PER_ORIGIN}")
-    # ×3 profile 균등 round-robin (warp 비중 균형: normal 1/3, fast 1/3, slow 1/3)
+    mode = "all" if args.per_origin == 0 else f"roundrobin{args.per_origin}"
+    n_per = len(PROFILES) if args.per_origin == 0 else args.per_origin
+    print(f"[origin] {len(origins)} train non-WALK fall | speeds={args.speeds} profiles={len(PROFILES)} "
+          f"mode={mode} → ×{n_per} = {len(origins)*n_per} | out={OUT.name}")
     tasks = []
     pc = 0
     for r in sorted(origins, key=lambda r: r["filename"]):
         on = int(float(r["onset_frame_clean"]))
-        for k in range(AUG_PER_ORIGIN):
-            prof = PROFILES[pc % len(PROFILES)]; pc += 1
+        profs = PROFILES if args.per_origin == 0 else [PROFILES[(pc + k) % len(PROFILES)] for k in range(args.per_origin)]
+        if args.per_origin:
+            pc += args.per_origin
+        for k, prof in enumerate(profs):
             seed = (abs(hash(r["filename"])) % (2**31)) + k * 7919
             tasks.append((r["filename"], on, r["subtype"], r["subject"], r["env"],
                           r["onset_status"], prof, k, seed))

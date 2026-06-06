@@ -29,14 +29,18 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import dummy_clean400_lib as L  # noqa: E402
 
-OUT = ROOT / "debug/dummy_gen/out"
 CLEANED = ROOT / "data/cleaned"
-VDIR = OUT / "validation"
 SPLICE = (100, 300)
 CLEAN_LEN = 400
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--subdir", default="out")
+    args = ap.parse_args()
+    OUT = ROOT / "debug/dummy_gen" / args.subdir
+    VDIR = OUT / "validation"
     VDIR.mkdir(parents=True, exist_ok=True)
     d = np.load(OUT / "dummies_clean400.npz", allow_pickle=True)
     X = d["X"]; names = [str(x) for x in d["aug_filename"]]
