@@ -40,17 +40,20 @@ from model.pretrained.model import CNNGRUAttention  # noqa: E402
 ITEM4 = ROOT / "debug/modeling/diag_out/onset_detector/item4"
 GATE3 = ROOT / "debug/modeling/diag_out/onset_detector/gate3_cache"
 FINAL = ROOT / "debug/modeling/diag_out/onset_detector/finalization"
-CKPT = ROOT / "model/finetune/checkpoints_item4"
+import os as _os  # noqa: E402
+CKPT = ROOT / "model/finetune" / _os.environ.get("ITEM4_CKPT_DIR", "checkpoints_item4")
 WIN_PKL = ITEM4 / "eval_windows.pkl"
 OUTDIR = ITEM4 / "results"
 SEEDS = [42, 43, 44, 45, 46]
 POLICIES = ["fixed", "onset_primary", "onset_reduced"]
 WALK = {"FALL_WALK_F", "FALL_WALK_B"}
 WINDOW = 300
-THRS = [0.10, 0.15, 0.20, 0.25, 0.30]
-NS = [1, 2]
-MARGINS = [("off", 0.0), ("on_m0.1", 0.1), ("on_m0.2", 0.2)]
+THRS = [round(0.10 + 0.05 * i, 2) for i in range(13)]  # 0.10 .. 0.70 (배포 FAR 운영점 탐색)
+NS = [1, 2, 3]
+MARGINS = [("off", 0.0), ("on_m0.1", 0.1), ("on_m0.2", 0.2), ("on_m0.3", 0.3)]
 DEV = "cuda" if torch.cuda.is_available() else "cpu"
+import os  # noqa: E402
+CKPT_NAME = os.environ.get("ITEM4_CKPT", "best_operating.pt")  # best_val_loss.pt 로 전환 가능
 
 
 def clean_to_orig(c):
@@ -84,7 +87,7 @@ def load_meta():
 
 # ── 모델 forward → 세션별 window 확률 ────────────────────────────────────────
 def load_model(policy, seed):
-    p = CKPT / f"{policy}_s{seed}" / "best_operating.pt"
+    p = CKPT / f"{policy}_s{seed}" / CKPT_NAME
     ck = torch.load(p, map_location=DEV, weights_only=False)
     state = ck["model"] if isinstance(ck, dict) and "model" in ck else ck
     m = CNNGRUAttention(n_classes=6).to(DEV)
@@ -264,7 +267,7 @@ def main():
     for policy in POLICIES:
         for seed in SEEDS:
             key = (policy, seed)
-            mp = CKPT / f"{policy}_s{seed}" / "best_operating.pt"
+            mp = CKPT / f"{policy}_s{seed}" / CKPT_NAME
             if not mp.exists():
                 print(f"[경고] 모델 없음 {key} → skip")
                 continue
@@ -287,7 +290,8 @@ def main():
             # val grid (D-023 selection) — val 전체 fall/nonfall 기준
             val_grid = [(c, eval_config(pcache, val_fall, val_nonfall, onset, c)) for c in grid]
             sel = d023_select(val_grid)
-            per[key] = {"pcache": pcache, "selected": sel}
+            light_grid = [(c, {"recall": m["recall"], "far": m["far"], "f1": m["f1"]}) for c, m in val_grid]
+            per[key] = {"pcache": pcache, "selected": sel, "val_grid": light_grid}
             print(f"  [{policy} s{seed}] selected thr={sel['thr']} N={sel['N']} margin={sel['margin'][0]}", flush=True)
 
     # fixed_baseline config: seed별 fixed selected
@@ -397,7 +401,40 @@ def main():
                        "bootstrap_ci_onset_minus_fixed": ci, "n_sessions": len(sess), "n_nonfall": len(nonfall)}
     results["stats_fixed_vs_onset_primary_nonwalk_paired"] = stats
 
+    # ── val recall–FAR frontier (배포 운영점 달성 가능성 진단) ──────────────
+    frontier = {}
+    for policy in POLICIES:
+        grids = [per[(policy, s)]["val_grid"] for s in SEEDS if (policy, s) in per]
+        if not grids:
+            continue
+        pooled = []
+        for ci, cfg in enumerate(grid):
+            rec = float(np.mean([g[ci][1]["recall"] for g in grids]))
+            far = float(np.mean([g[ci][1]["far"] for g in grids]))
+            f1 = float(np.mean([g[ci][1]["f1"] for g in grids]))
+            pooled.append({"cfg": f"thr{cfg['thr']}_N{cfg['N']}_{cfg['margin'][0]}", "recall": rec, "far": far, "f1": f1})
+        caps = {}
+        for cap in (0.10, 0.15, 0.20, 0.30, 0.40):
+            cs = [p for p in pooled if p["far"] <= cap]
+            best = max(cs, key=lambda p: p["recall"]) if cs else None
+            caps[f"FAR<={cap}"] = best
+        frontier[policy] = {"best_recall_at_far_cap": caps,
+                            "max_f1_config": max(pooled, key=lambda p: p["f1"])}
+    results["val_frontier"] = frontier
+
     (OUTDIR / "item4_eval_results.json").write_text(json.dumps(results, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+    print("\n===== VAL recall–FAR frontier (배포 가능성 진단) =====")
+    for policy in POLICIES:
+        if policy not in frontier:
+            continue
+        print(f"\n[{policy}] FAR 상한별 최대 recall (val, 5-seed mean):")
+        for cap, best in frontier[policy]["best_recall_at_far_cap"].items():
+            if best:
+                print(f"  {cap}: recall={best['recall']:.3f} (FAR={best['far']:.3f}, F1={best['f1']:.3f}, {best['cfg']})")
+            else:
+                print(f"  {cap}: 달성 config 없음")
+        mf = frontier[policy]["max_f1_config"]
+        print(f"  max-F1: {mf['f1']:.3f} (recall={mf['recall']:.3f} FAR={mf['far']:.3f} {mf['cfg']})")
     print(f"\n[생성] {OUTDIR/'item4_eval_results.json'}")
     _write_report(results, stats, UNITS, test_nonfall)
     return 0

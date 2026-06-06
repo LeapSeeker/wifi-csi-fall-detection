@@ -49,7 +49,7 @@ def frozen_split_factory(split_map):
     return _frozen
 
 
-def make_args(cache, ckpt_dir, seed, epochs, augment):
+def make_args(cache, ckpt_dir, seed, epochs, augment, weight_decay, patience, early_stop_start):
     return Namespace(
         safesignal_cache=cache, alsaify_cache=ALSAIFY, pretrained_ckpt=PRETRAINED,
         ckpt_dir=ckpt_dir, class_policy="pretrained6", split="within_subject", fold=1,
@@ -57,18 +57,19 @@ def make_args(cache, ckpt_dir, seed, epochs, augment):
         seed=seed, device="auto", val_ratio=0.2, alsaify_val_ratio=0.2, source_ratio=0.60,
         hard_weight=1.30, auto_sampler_preset=False, fall_weight=1.0, warmup_epochs=5,
         backbone_lr_warmup=1e-5, backbone_lr=1e-4, attention_lr=3e-4, head_lr=1e-3,
-        weight_decay=0.0, early_stop_start=10, patience=12, augment=augment, verbose=False,
+        weight_decay=weight_decay, early_stop_start=early_stop_start, patience=patience,
+        augment=augment, verbose=False,
     )
 
 
-def run_one(policy, seed, epochs, augment):
+def run_one(policy, seed, epochs, augment, ckpt_root, weight_decay, patience, early_stop_start):
     cache = ITEM4 / f"item4_cache_{policy}.npz"
     d = np.load(cache, allow_pickle=True)
     split_map = {str(fn): str(sp) for fn, sp in zip(d["filename"], d["split_assignment"])}
     T.split_safesignal_within_subject = frozen_split_factory(split_map)  # monkeypatch (동결 split)
-    ckpt_dir = CKPT_ROOT / f"{policy}_s{seed}"
+    ckpt_dir = ckpt_root / f"{policy}_s{seed}"
     ckpt_dir.mkdir(parents=True, exist_ok=True)
-    args = make_args(cache, ckpt_dir, seed, epochs, augment)
+    args = make_args(cache, ckpt_dir, seed, epochs, augment, weight_decay, patience, early_stop_start)
     t0 = time.time()
     print(f"\n===== TRAIN policy={policy} seed={seed} epochs={epochs} augment={augment} =====", flush=True)
     T.run_training(args)
@@ -78,8 +79,8 @@ def run_one(policy, seed, epochs, augment):
            "split": "within_subject(frozen: fall=manifest, non-fall=canonical seed42)",
            "source_ratio": 0.60, "hard_weight": 1.30, "fall_weight": 1.0,
            "lr": {"backbone": 1e-4, "attention": 3e-4, "head": 1e-3, "warmup": 1e-5},
-           "warmup_epochs": 5, "early_stop_start": 10, "patience": 12,
-           "elapsed_s": round(time.time() - t0, 1)}
+           "warmup_epochs": 5, "early_stop_start": early_stop_start, "patience": patience,
+           "weight_decay": weight_decay, "elapsed_s": round(time.time() - t0, 1)}
     (ckpt_dir / "run_config.json").write_text(json.dumps(cfg, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"[done] {policy} s{seed} {cfg['elapsed_s']}s → {ckpt_dir}", flush=True)
 
@@ -91,21 +92,26 @@ def main():
     ap.add_argument("--seeds", nargs="+", type=int, default=SEEDS)
     ap.add_argument("--epochs", type=int, default=60)
     ap.add_argument("--no-augment", dest="augment", action="store_false")
+    ap.add_argument("--ckpt-root", default="checkpoints_item4", help="model/finetune/ 하위 디렉토리명")
+    ap.add_argument("--weight-decay", type=float, default=0.0)
+    ap.add_argument("--patience", type=int, default=12)
+    ap.add_argument("--early-stop-start", type=int, default=10)
     ap.set_defaults(augment=True)
     args = ap.parse_args()
+    ckpt_root = ROOT / "model/finetune" / args.ckpt_root
 
     T.setup_logging(False)
     if args.smoke:
-        run_one("onset_primary", 42, epochs=2, augment=args.augment)
+        run_one("onset_primary", 42, 2, args.augment, ckpt_root, args.weight_decay, args.patience, args.early_stop_start)
         print("\n[SMOKE OK] 파이프라인 검증 완료. 전체 실행: python debug/modeling/item4_train.py")
         return 0
 
     runs = [(p, s) for p in args.policies for s in args.seeds]
-    print(f"[전체] {len(runs)} runs: policies={args.policies} seeds={args.seeds} epochs={args.epochs}")
+    print(f"[전체] {len(runs)} runs root={args.ckpt_root} wd={args.weight_decay} patience={args.patience} epochs={args.epochs}")
     t0 = time.time()
     for i, (p, s) in enumerate(runs, 1):
         print(f"\n######## run {i}/{len(runs)} ########", flush=True)
-        run_one(p, s, args.epochs, args.augment)
+        run_one(p, s, args.epochs, args.augment, ckpt_root, args.weight_decay, args.patience, args.early_stop_start)
     print(f"\n[전체 완료] {len(runs)} runs | {(time.time()-t0)/60:.1f} min")
     return 0
 
