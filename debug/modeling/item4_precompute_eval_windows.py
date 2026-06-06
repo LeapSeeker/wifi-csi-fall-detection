@@ -9,9 +9,11 @@ val+test 세션(fall+non-fall)을 full resampled 좌표에서 stride-50 sliding 
 제약(read-only): 원본 CSV·동결파일 무수정. 신규 캐시만.
 """
 from __future__ import annotations
+import multiprocessing as mp
 import pickle
 import sys
 import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 import numpy as np
@@ -53,18 +55,24 @@ def main():
 
     store = {}
     t0 = time.time()
-    for i, s in enumerate(sessions, 1):
-        if s not in paths:
-            continue
-        res = _process_session((paths[s], [STRIDE]))
-        if res.get("error"):
-            print(f"  [skip] {s}: {res['error']}")
-            continue
-        sweep = [(int(st), int(en), sdp.astype(np.float32)) for (st, en, sdp) in res["sweep"].get(STRIDE, [])]
-        forward = [(kd, int(st), int(en), sdp.astype(np.float32)) for (kd, st, en, sdp) in res["pair"]]
-        store[s] = {"n_frames": int(res["n_frames"]), "sweep50": sweep, "forward": forward}
-        if i % 40 == 0 or i == len(sessions):
-            print(f"  [{i}/{len(sessions)}] cached={len(store)} elapsed={time.time()-t0:.0f}s", flush=True)
+    items = [(s, paths[s]) for s in sessions if s in paths]
+    n_workers = min(16, max(1, mp.cpu_count() - 2))
+    print(f"[병렬] {n_workers} workers × {len(items)} 세션", flush=True)
+    done = 0
+    with ProcessPoolExecutor(max_workers=n_workers) as pool:
+        futs = {pool.submit(_process_session, (p, [STRIDE])): s for (s, p) in items}
+        for fut in as_completed(futs):
+            s = futs[fut]
+            done += 1
+            res = fut.result()
+            if res.get("error"):
+                print(f"  [skip] {s}: {res['error']}", flush=True)
+                continue
+            sweep = [(int(st), int(en), sdp.astype(np.float32)) for (st, en, sdp) in res["sweep"].get(STRIDE, [])]
+            forward = [(kd, int(st), int(en), sdp.astype(np.float32)) for (kd, st, en, sdp) in res["pair"]]
+            store[s] = {"n_frames": int(res["n_frames"]), "sweep50": sweep, "forward": forward}
+            if done % 40 == 0 or done == len(items):
+                print(f"  [{done}/{len(items)}] cached={len(store)} elapsed={time.time()-t0:.0f}s", flush=True)
 
     OUT.write_bytes(pickle.dumps(store, protocol=4))
     nwin = sum(len(v["sweep50"]) for v in store.values())
