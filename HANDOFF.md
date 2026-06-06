@@ -9,7 +9,10 @@
   운영점(frontier, 정규화): FAR≤0.15→recall0.77 / recall85%→FAR~0.20 / max-F1 0.71. 목표(recall≥85 AND FAR≤15) 동시 미달, F1≥0.85는 event-level(180:27) 구조상 불가.
 - **더미 4-arm (A/B/C/D × 5seed) 완료**: 더미가 onset FAR을 강화 못함 — B→D **ΔFAR +0.11(악화)**, Δrecall ns.
   원인=class 불균형(fall:non 0.078→0.259, fall 3배). → **(B) class-ratio 통제 재검증** 진행.
-- **(B) 통제 결과: [학습 완료 후 채움]**
+- **(B) 통제 결과 (fall effective mass 원본 고정: fixed_aug 0.426/onset_aug 0.300)**:
+  B→D ΔFAR **+0.110(유의) → +0.028 [−0.014,+0.071] 유의차 미검출**, 결합 (D−C)−(B−A) +0.118→+0.026(ns), Δrecall −0.044(ns).
+  → **"더미가 onset FAR 악화"는 class 불균형 artifact 확정.** 통제 후 더미 효과 = **null(중립)** — 도움도 해도 안 됨(N=27 under-powered).
+  D_ctrl: recall 0.874 / FAR 0.388 vs B 0.919 / 0.360. **결론: 현재 in-domain 더미(fall만)는 onset-aligned 성능을 강화하지 못함(중립).** 개선하려면 비낙상 포함 균형 증강 필요.
 
 ## 2. 더미 생성 맥락 (왜 이렇게 했나)
 - **직접 생성**: 팀원 6/7.py 로직을 clean400 좌표로 이식. **factor/scale/crop_offset/snr 전부 lineage 저장**
@@ -30,7 +33,9 @@
 - 스크립트: `debug/modeling/{build_gate3_cache,item4_build_policy_cache,item4_train,item4_precompute_eval_windows,item4_event_eval,item4_build_arm_caches,item4_arms_eval,build_manifest_v2,analyze_exclude_reasons,paired_n_report,sanity_gate_item4}.py`, `debug/dummy_gen/{dummy_clean400_lib,dummy_sanity,dummy_generate,dummy_validate}.py`
 - 결과/리포트: `.../item4/results/`, `.../item4/arms_results/`, `gate3_cache/*.md|json|crop_index.csv`, `finalization/manifest_v2_*`, `review_tool*/review_decisions*.csv`, `dummy_gen/out*/lineage.csv`
 - run config/history(.json), HANDOFF.md, STATE(ai-workspace)
-### B. Google Drive (무거움) — MCP 업로드 불가(payload), **수동 업로드 필요**
+### B. Google Drive (무거움) — **수동 업로드 필요**
+> 자동 업로드 불가 2가지 이유: ① MCP create_file는 base64 인자라 100MB npz 전송 불가(payload), ② 보안 classifier가 private 데이터 외부반출을 하드 차단. → 사용자가 직접 Drive에 올려야 함.
+> 생성된 Drive 폴더(top): **https://drive.google.com/drive/folders/1T5w4WSszqm7Pfsqf053Fe1Tq9Ra_ORoD** (`SafeSignal_handoff_20260606`). 여기에 아래 파일들을 수동 업로드(cache/dummy/ckpt 하위 폴더 만들어 정리 권장).
 | 로컬 경로 | 용량 | 용도 |
 |---|---|---|
 | `model/pretrained/checkpoints/best.pt` | 1.5MB | fine-tune init |
