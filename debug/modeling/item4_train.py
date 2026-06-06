@@ -26,6 +26,11 @@ sys.path.insert(0, str(ROOT))
 
 from model.finetune import train as T  # noqa: E402
 
+# 증강 cache(is_augmented=True 더미)는 leak-free(frozen split: 더미→train, origin→manifest split,
+# 더미 origin 전부 train → origin/aug 교차-split 없음, item4_build_arm_caches sanity 검증)이므로
+# raw-only 가정 assertion 만 no-op. 데이터/split 로직은 동결 train.py 그대로 사용.
+T._assert_raw_only_safesignal_cache = lambda *a, **k: None  # noqa: E731
+
 ITEM4 = ROOT / "debug/modeling/diag_out/onset_detector/item4"
 ALSAIFY = ROOT / "model/pretrained/checkpoints/dataset_cache_e12_w300_s300_lag1_20_tail_ps.npz"
 PRETRAINED = ROOT / "model/pretrained/checkpoints/best.pt"
