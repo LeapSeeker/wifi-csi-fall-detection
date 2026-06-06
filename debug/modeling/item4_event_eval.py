@@ -493,6 +493,21 @@ def _write_report(results, stats, UNITS, test_nonfall):
             if p in agg:
                 a = agg[p]["early_fire_rate"]
                 L.append(f"- [{mode}] {p}: early_fire_rate {a['mean']:.3f}±{a['std']:.3f}")
+    fr = results.get("val_frontier", {})
+    if fr:
+        L.append("\n## ★ val recall–FAR frontier (배포 운영점별 달성 가능 최대 recall, 5-seed mean)")
+        L.append("policy | FAR≤0.15 | FAR≤0.20 | FAR≤0.30 | max-F1")
+        L.append("---|---|---|---|---")
+        for p in POLICIES:
+            if p not in fr:
+                continue
+            cap = fr[p]["best_recall_at_far_cap"]; mf = fr[p]["max_f1_config"]
+            def c(k):
+                b = cap.get(k)
+                return f"R{b['recall']:.3f}/FAR{b['far']:.3f}" if b else "none"
+            L.append(f"{p} | {c('FAR<=0.15')} | {c('FAR<=0.2')} | {c('FAR<=0.3')} | "
+                     f"F1{mf['f1']:.3f}(R{mf['recall']:.3f}/FAR{mf['far']:.3f})")
+        L.append("\n> 배포 운영점은 frontier에서 선택. D-023 selected 표는 목표(FAR≤0.15) 미달 시 max-recall fallback이라 FAR 높음.")
     L.append("\n## Gate3 발견 반영")
     L.append("- onset_primary OOB 88 > onset_reduced 30 (늦은 onset, onset+250>clean400 끝)")
     L.append("- usable_for_onset_aligned 264 중 clean onset 263 (1건 beep구간 수동 onset null)")
