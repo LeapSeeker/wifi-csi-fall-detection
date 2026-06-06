@@ -85,3 +85,7 @@ demo_file/
 
 # 대용량 빌드 산출물 (capstone2.egg ~3.1GB 등) — 절대 커밋 금지
 *.egg
+
+# 더미 생성 대용량 산출물 (스크립트·lineage만 추적)
+debug/dummy_gen/out/*.npz
+debug/dummy_gen/out/validation/
