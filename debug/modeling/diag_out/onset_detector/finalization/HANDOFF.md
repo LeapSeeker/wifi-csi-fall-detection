@@ -53,3 +53,49 @@ git checkout feature/event-centered-gate1   # 다른 PC면 git fetch 먼저
 - WALK onset baseline contamination: baseline window가 걷기 잡음. 현재 처리=수동검수 수용.
   future options(보류): ① WALK 전용 baseline window ② WALK onset용 다른 신호.
 - 항목 4 진행 시 주의: auto_reviewed가 WALK 과소대표라 onset-aligned 효과가 실제보다 좋게 보일 위험 → subtype별 분리 평가 + WALK는 v2 후 재평가.
+
+## balanced 증강 실험 (2026-06-08 준비, 학교 PC 실행 대기)
+
+목적: 기존 fall-only 더미의 class-ratio artifact 통제 — fall 더미 + **신규 non-fall 더미**(C/D 공유)를
+추가해 6-class effective share 를 원본(A/B)으로 보존(A의 fixed/B의 onset target). 동결 train.py 무수정.
+
+### 구현 완료 스크립트 (노트북 작성·검증, GPU 실행은 학교 PC)
+- `debug/dummy_gen/balanced/nonfall_dummy_generate.py` — train non-fall raw window 재생성
+  (preprocess_safesignal_file: rx=both/stride300/tail_window/max_gap100)→cache allclose 검증→
+  perturb(6 profile, body×speed)→window_to_model_input. robust distance p97.5 gate + amp ratio[0.5,2.0].
+- `debug/modeling/item4_build_balanced_caches.py` — base + 기존 fall 더미 crop + non-fall shared →
+  item4_cache_{fixed,onset_primary}_balanced_aug.npz. assert: 더미 train-only/val·test 0/origin train/C·D nf set 동일.
+- `debug/modeling/item4_train_balanced.py` — frozen split + 더미 온라인증강 skip + arm별 target_share/n_c
+  class weight(effective share tol 1e-3) + runtime counter. A/B 재사용 점검(`--check-ab-reuse`)/재학습(`--retrain-ab`).
+- `debug/modeling/item4_balanced_eval.py` — A/B/C/D, arm별 ckpt root(A/B=checkpoints_item4_reg→없으면 balanced),
+  Primary D−B/Secondary C−A/Interaction, frontier(FAR≤0.15/0.20/0.30/maxF1), 판정(supported/directional/null),
+  low_diversity 결론부 자동.
+
+### 실행 순서 (학교 PC, GPU)
+```
+python debug/dummy_gen/balanced/nonfall_dummy_generate.py          # ① non-fall 더미
+python debug/modeling/item4_build_balanced_caches.py              # ② balanced cache 2개
+python debug/modeling/item4_train_balanced.py --smoke            # ③ smoke(preflight/share/counter/1ep)
+python debug/modeling/item4_train_balanced.py --policies fixed_balanced_aug onset_primary_balanced_aug \
+  --seeds 42 43 44 45 46 --epochs 40 --weight-decay 1e-4 --patience 8 --early-stop-start 8 \
+  --ckpt-root checkpoints_item4_balanced                          # ④ 본학습 C/D
+python debug/modeling/item4_balanced_eval.py                     # ⑤ 평가
+```
+A/B 재사용 불가 시(`--check-ab-reuse` 리포트 확인): `item4_train_balanced.py --retrain-ab --seeds ... --ckpt-root checkpoints_item4_balanced`.
+
+### ★ preflight 주의 (스펙 0-1) — 없으면 fail-fast
+- `debug/dummy_gen/out2/dummies_clean400.npz` **git에 없음(대용량 ignore)** → Drive/백업 복원 필수.
+  lineage(696)/use(301) 정합 확인 후 진행. 복구 불가로 재생성 시 fall 더미 bit-identical 미보장 → report 명시.
+- `debug/modeling/diag_out/onset_detector/item4/eval_windows.pkl` 도 ignore → 없으면
+  `item4_precompute_eval_windows.py` 재생성 후 평가.
+
+### 산출물 / Drive 업로드 대상 (대용량 = Drive, 추적은 스크립트·lineage·report 만)
+- git 추적: 스크립트 4개, `debug/dummy_gen/balanced/nonfall_lineage.csv`, `*nonfall_quality_report*`,
+  `debug/modeling/balanced_aug/*.json|md|csv`, 본 HANDOFF.
+- Drive 업로드(ignore): `debug/dummy_gen/balanced/nonfall_dummies.npz`,
+  `item4_cache_{fixed,onset_primary}_balanced_aug.npz`, `model/finetune/checkpoints_item4_balanced/`.
+
+### 완료 조건 체크 (스펙 §10)
+preflight 통과 / dummies_clean400 정합 / nonfall 더미 생성 / balanced cache 2개 / smoke 통과 /
+C·D 5seed ckpt / dummy online aug 0 / val·test dummy 0 / effective share tol 1e-3 / eval report / HANDOFF.
+범위 밖: slow v2, post-only/Q2, multi-window, threshold/test 튜닝.
