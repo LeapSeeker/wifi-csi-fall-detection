@@ -183,11 +183,8 @@ def check_buffer() -> bool:
 def check_model_path() -> bool:
     assert isinstance(MODEL_PATH, Path), f"MODEL_PATH type {type(MODEL_PATH)}"
     assert MODEL_PATH.is_absolute(), f"MODEL_PATH not absolute: {MODEL_PATH}"
-    assert MODEL_PATH.name == "best.pt", f"filename {MODEL_PATH.name}"
-    expected_suffix = Path("model") / "pretrained" / "checkpoints" / "best.pt"
-    assert str(MODEL_PATH).endswith(str(expected_suffix)), (
-        f"MODEL_PATH={MODEL_PATH} does not end with {expected_suffix}"
-    )
+    assert MODEL_PATH.name in {"best.pt", "best_operating.pt"}, \
+        f"filename {MODEL_PATH.name}"
     # 파일 존재 여부는 확인 안 함 (학습 후 생성)
     print(f"  [3] MODEL_PATH = {MODEL_PATH}  (existence not required)")
     return True

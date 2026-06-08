@@ -80,8 +80,11 @@ def record_activity_result(result: dict):
 def handle_inference_result(result: dict):
     """InferenceWorker 결과를 낙상 알림과 일반 행동 저장 흐름으로 분기."""
     if result.get("is_fall"):
+        # 0-1순위: 판정식이 fall_confidence >= threshold 로 정렬되면서 argmax class가
+        # non-fall 인데도 is_fall=True 가 될 수 있다. fall 알림/Pi4/SMS confidence 는
+        # argmax confidence 가 아니라 fall_confidence 를 우선 사용한다.
         on_fall_detected(
-            confidence=result.get("confidence", 0.0),
+            confidence=result.get("fall_confidence", result.get("confidence", 0.0)),
             seq_num=result.get("seq_num", 0),
             timestamp_us=result.get("timestamp_us", 0),
         )

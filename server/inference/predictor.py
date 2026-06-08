@@ -5,7 +5,6 @@ child process 내부에서만 import (worker.py top-level import 금지).
 from __future__ import annotations
 
 import sys
-import warnings
 from pathlib import Path
 from typing import Union
 
@@ -21,9 +20,30 @@ import torch  # noqa: E402
 import torch.nn.functional as F  # noqa: E402
 
 from model.pretrained.model import CLASSES, CNNGRUAttention  # noqa: E402
-from model.preprocessing.pipeline import window_to_model_input  # noqa: E402
 
-from .config import FALL_LABELS, FALL_THRESHOLD, MODEL_PATH
+from .energy import ENERGY_METRICS, compute_window_energy
+from .config import (
+    ENERGY_GATE_ENABLED,
+    ENERGY_GATE_METRIC,
+    ENERGY_GATE_THRESHOLD,
+    FALL_CONSECUTIVE_N,
+    FALL_LABELS,
+    FALL_THRESHOLD,
+    MODEL_PATH,
+)
+
+
+def _model_input_and_energy(
+    window: np.ndarray,
+) -> tuple[np.ndarray, dict[str, float]]:
+    """window_to_model_input()과 동일 경로로 z-score 전 SDP energy를 함께 계산.
+
+    energy 계산은 calibrate 도구와 공유하는 단일 helper(compute_window_energy)에
+    위임한다(RPCA 1회). 반환된 SDP를 여기서 z-score 하여 모델 입력으로 만든다.
+    """
+    sdp, metrics = compute_window_energy(window)
+    sdp_z = (sdp - sdp.mean()) / (sdp.std() + 1e-6)
+    return sdp_z[None, ...], metrics
 
 
 class FallPredictor:
@@ -44,28 +64,45 @@ class FallPredictor:
 
         ckpt = torch.load(model_path, map_location=self.device)
         ckpt_classes = ckpt.get("classes")
-        if ckpt_classes is not None:
-            if len(ckpt_classes) != len(CLASSES) or tuple(ckpt_classes) != tuple(CLASSES):
-                warnings.warn(
-                    f"[FallPredictor] checkpoint classes {ckpt_classes} "
-                    f"!= model CLASSES {CLASSES}. 7-class fine-tuned model? "
-                    "현재 inference는 pretrained 6-class 기준입니다."
-                )
+        if ckpt_classes is None:
+            raise ValueError(
+                "[FallPredictor] checkpoint has no 'classes'. "
+                f"Expected pretrained6 classes {CLASSES}."
+            )
+        if tuple(ckpt_classes) != tuple(CLASSES):
+            raise ValueError(
+                f"[FallPredictor] checkpoint classes {tuple(ckpt_classes)} "
+                f"!= expected pretrained6 classes {CLASSES}."
+            )
 
-        self.classes = tuple(ckpt_classes) if ckpt_classes else CLASSES
+        self.classes = tuple(ckpt_classes)
         self.fall_class_indices = tuple(
             i for i, name in enumerate(self.classes) if name in FALL_LABELS
         )
-        if not self.fall_class_indices:
-            warnings.warn(
-                f"[FallPredictor] checkpoint classes {self.classes} contain no "
-                f"fall labels from {FALL_LABELS}. is_fall will always be False."
+        if self.fall_class_indices != (0,):
+            raise ValueError(
+                f"[FallPredictor] fall_class_indices={self.fall_class_indices}, "
+                "expected (0,) for pretrained6 inference."
             )
 
         self.model = CNNGRUAttention(n_classes=len(self.classes))
-        self.model.load_state_dict(ckpt["model"])
+        self.model.load_state_dict(ckpt["model"], strict=True)
         self.model.eval()
         self.model.to(self.device)
+        self.threshold = float(FALL_THRESHOLD)
+        self.consecutive_n = int(FALL_CONSECUTIVE_N)
+        self.energy_gate_enabled = bool(ENERGY_GATE_ENABLED)
+        self.energy_gate_metric = str(ENERGY_GATE_METRIC)
+        self.energy_gate_threshold = float(ENERGY_GATE_THRESHOLD)
+        self._consecutive_fire = 0
+        self.energy_gate_skipped = 0
+        self.energy_gate_passed = 0
+
+        if self.energy_gate_metric not in ENERGY_METRICS:
+            raise ValueError(
+                f"Unknown ENERGY_GATE_METRIC={self.energy_gate_metric!r}. "
+                f"valid={sorted(ENERGY_METRICS)}"
+            )
 
     @torch.no_grad()
     def predict(self, window: np.ndarray) -> dict:
@@ -73,7 +110,35 @@ class FallPredictor:
         if window.ndim != 2:
             raise ValueError(f"2D input required (n_t, n_sc). got {window.shape}")
 
-        model_input = window_to_model_input(window)        # (1, 28, 20)
+        model_input, energy = _model_input_and_energy(window)  # (1, 28, 20)
+        gate_value = float(energy[self.energy_gate_metric])
+        if self.energy_gate_enabled and gate_value < self.energy_gate_threshold:
+            self.energy_gate_skipped += 1
+            self._consecutive_fire = 0
+            return {
+                "class": "non_fall_energy_gate",
+                "confidence": 0.0,
+                "is_fall": False,
+                "raw_is_fall": False,
+                "fall_confidence": 0.0,
+                "probabilities": {name: 0.0 for name in self.classes},
+                "energy_gate": {
+                    "enabled": True,
+                    "skipped": True,
+                    "metric": self.energy_gate_metric,
+                    "value": gate_value,
+                    "threshold": self.energy_gate_threshold,
+                    "skipped_count": self.energy_gate_skipped,
+                    "passed_count": self.energy_gate_passed,
+                    "metrics": energy,
+                },
+                "fall_consecutive": {
+                    "n": self.consecutive_n,
+                    "count": self._consecutive_fire,
+                },
+            }
+        self.energy_gate_passed += 1
+
         x = torch.from_numpy(model_input).float()          # (1, 28, 20)
         x = x.unsqueeze(0).to(self.device)                 # (1, 1, 28, 20)
 
@@ -87,12 +152,37 @@ class FallPredictor:
             float(max(probs[i] for i in self.fall_class_indices))
             if self.fall_class_indices else 0.0
         )
-        is_fall = (class_name in FALL_LABELS) and (fall_conf >= FALL_THRESHOLD)
+        # 0순위 판정식 정렬: 학습 평가 predict_with_fall_threshold()와 동일하게
+        # argmax class와 무관하게 fall_confidence >= threshold 면 raw fall로 본다.
+        # (기존 argmax==fall AND 조건은 평가식과 불일치 → 제거. 정적 오발은
+        #  energy gate / N consecutive 로 막는다.)
+        raw_is_fall = fall_conf >= self.threshold
+        if raw_is_fall:
+            self._consecutive_fire += 1
+        else:
+            self._consecutive_fire = 0
+        is_fall = raw_is_fall and self._consecutive_fire >= self.consecutive_n
 
         return {
             "class": class_name,
             "confidence": confidence,
             "is_fall": is_fall,
+            "raw_is_fall": raw_is_fall,
             "fall_confidence": fall_conf,
             "probabilities": {self.classes[i]: float(probs[i]) for i in range(len(self.classes))},
+            "threshold": self.threshold,
+            "energy_gate": {
+                "enabled": self.energy_gate_enabled,
+                "skipped": False,
+                "metric": self.energy_gate_metric,
+                "value": gate_value,
+                "threshold": self.energy_gate_threshold,
+                "skipped_count": self.energy_gate_skipped,
+                "passed_count": self.energy_gate_passed,
+                "metrics": energy,
+            },
+            "fall_consecutive": {
+                "n": self.consecutive_n,
+                "count": self._consecutive_fire,
+            },
         }
