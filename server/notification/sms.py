@@ -19,15 +19,15 @@ def reload_config():
     SENDER = os.getenv("SOLAPI_SENDER")
     RECEIVER = os.getenv("SOLAPI_RECEIVER")
     SMS_ENABLED = os.getenv("SMS_ENABLED", "true").lower() == "true"
-    print(f"[SMS] 설정 재로드 완료 — SMS_ENABLED={SMS_ENABLED}, RECEIVER={RECEIVER}")
+    print(f"[SMS] 설정 재로드 완료 - SMS_ENABLED={SMS_ENABLED}, RECEIVER={RECEIVER}")
 
 def send_fall_sms():
     if not SMS_ENABLED:
-        print("[SMS] SMS 비활성화 상태 — 발송 생략")
+        print("[SMS] SMS 비활성화 상태 - 발송 생략")
         return
 
     if not RECEIVER:
-        print("[SMS] 수신 번호 없음 — 발송 생략")
+        print("[SMS] 수신 번호 없음 - 발송 생략")
         return
 
     try:

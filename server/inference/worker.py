@@ -110,7 +110,7 @@ class InferenceWorker:
         except queue.Full:
             self._drop_count += 1
             if self._drop_count % 100 == 1:
-                print(f"[InferenceWorker] input_queue full — drop #{self._drop_count}")
+                print(f"[InferenceWorker] input_queue full - drop #{self._drop_count}")
 
     def get_result(self) -> Optional[dict]:
         try:

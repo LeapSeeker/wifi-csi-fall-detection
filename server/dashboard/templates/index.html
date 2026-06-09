@@ -183,6 +183,7 @@
         <h1>🛡️ Fall Detection System</h1>
         <span>LIVE</span>
     </div>
+    <button class="trigger-btn" onclick="triggerFall()">⚠️ 낙상 감지 시뮬레이션</button>
     <div class="uptime">가동 시간: <span id="uptime">00:00:00</span></div>
 </header>
 
@@ -222,62 +223,48 @@
             <div class="sub">초 전</div>
         </div>
     </div>
-    <div style="display:flex; justify-content:flex-end;">
-        <button class="trigger-btn" onclick="triggerFall()">⚠️ 낙상 감지 시뮬레이션</button>
-    </div>
-    <div class="content-row">
-        <div class="panel">
-            <div class="panel-header"><h3>RX1 패킷 손실률</h3><span class="badge" id="rx1LossRate">0.00%</span></div>
-            <div class="panel-body">
-                <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;">
-                    <span style="color:#8b949e">수신: <span id="rx1Received" style="color:#e6edf3">0</span></span>
-                    <span style="color:#8b949e">손실: <span id="rx1Lost" style="color:#ff4d4d">0</span></span>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start;">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="panel">
+                <div class="panel-header"><h3>패킷 손실률</h3></div>
+                <div class="panel-body">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                        <div>
+                            <div style="font-size:12px; color:#8b949e; font-weight:600; margin-bottom:8px;">RX1</div>
+                            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;">
+                                <span style="color:#8b949e">수신: <span id="rx1Received" style="color:#e6edf3">0</span></span>
+                                <span style="color:#8b949e">손실: <span id="rx1Lost" style="color:#ff4d4d">0</span></span>
+                                <span class="badge" id="rx1LossRate">0.00%</span>
+                            </div>
+                            <div class="loss-bar-wrap"><div class="loss-bar loss-good" id="rx1Bar" style="width:0%"></div></div>
+                        </div>
+                        <div>
+                            <div style="font-size:12px; color:#8b949e; font-weight:600; margin-bottom:8px;">RX2</div>
+                            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;">
+                                <span style="color:#8b949e">수신: <span id="rx2Received" style="color:#e6edf3">0</span></span>
+                                <span style="color:#8b949e">손실: <span id="rx2Lost" style="color:#ff4d4d">0</span></span>
+                                <span class="badge" id="rx2LossRate">0.00%</span>
+                            </div>
+                            <div class="loss-bar-wrap"><div class="loss-bar loss-good" id="rx2Bar" style="width:0%"></div></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="loss-bar-wrap"><div class="loss-bar loss-good" id="rx1Bar" style="width:0%"></div></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header"><h3>낙상 감지 타임라인</h3><span class="badge" id="fallBadge">0건</span></div>
+                <div style="height:300px; overflow-y:auto; padding:20px;"><div class="timeline" id="fallTimeline"><div class="empty-state">낙상 감지 이력 없음</div></div></div>
             </div>
         </div>
         <div class="panel">
-            <div class="panel-header"><h3>RX2 패킷 손실률</h3><span class="badge" id="rx2LossRate">0.00%</span></div>
-            <div class="panel-body">
-                <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;">
-                    <span style="color:#8b949e">수신: <span id="rx2Received" style="color:#e6edf3">0</span></span>
-                    <span style="color:#8b949e">손실: <span id="rx2Lost" style="color:#ff4d4d">0</span></span>
-                </div>
-                <div class="loss-bar-wrap"><div class="loss-bar loss-good" id="rx2Bar" style="width:0%"></div></div>
+            <div class="panel-header"><h3>📟 RPi 실시간 로그</h3><span class="badge" id="rpiLogBadge">0</span></div>
+            <div id="rpiLogBox" style="height:460px; overflow-y:auto; font-family:monospace; font-size:12px; padding:10px; display:flex; flex-direction:column; gap:2px;">
+                <div class="empty-state">RPi 연결 대기 중...</div>
             </div>
-        </div>
-    </div>
-    <div class="content-row">
-        <div class="panel">
-            <div class="panel-header"><h3>최근 페어링 기록</h3><span class="badge" id="pairBadge">0 / 10</span></div>
-            <div class="panel-body" style="padding:0;">
-                <table><thead><tr><th>시간</th><th>SEQ</th><th>RX1 RSSI</th><th>RX2 RSSI</th><th>RX1 서브캐리어</th><th>RX2 서브캐리어</th></tr></thead>
-                <tbody id="pairTable"><tr><td colspan="6" class="empty-state">수신 대기 중...</td></tr></tbody></table>
-            </div>
-        </div>
-        <div class="panel">
-            <div class="panel-header"><h3>낙상 감지 타임라인</h3><span class="badge" id="fallBadge">0건</span></div>
-            <div class="panel-body"><div class="timeline" id="fallTimeline"><div class="empty-state">낙상 감지 이력 없음</div></div></div>
         </div>
     </div>
     <div class="content-row">
         <div class="panel"><div class="panel-header"><h3>RSSI 실시간 차트</h3></div><div class="panel-body"><div class="chart-wrap"><canvas id="rssiChart"></canvas></div></div></div>
         <div class="panel"><div class="panel-header"><h3>초당 패킷 수신 (PPS)</h3><span class="badge" id="ppsBadge">0 pps</span></div><div class="panel-body"><div class="chart-wrap"><canvas id="ppsChart"></canvas></div></div></div>
-    </div>
-    <div class="content-row">
-        <div class="panel"><div class="panel-header"><h3>서브캐리어 수 실시간 차트</h3></div><div class="panel-body"><div class="chart-wrap"><canvas id="subChart"></canvas></div></div></div>
-        <div class="panel"><div class="panel-header"><h3>시스템 정보</h3></div>
-            <div class="panel-body"><table>
-                <tr><td style="color:#8b949e">UDP 포트</td><td>5005</td></tr>
-                <tr><td style="color:#8b949e">WebSocket 포트 (Pi4)</td><td>8765</td></tr>
-                <tr><td style="color:#8b949e">대시보드 포트</td><td>8080</td></tr>
-                <tr><td style="color:#8b949e">유효 서브캐리어 수</td><td>52 (LLTF)</td></tr>
-                <tr><td style="color:#8b949e">샘플링 레이트</td><td>10 Hz</td></tr>
-                <tr><td style="color:#8b949e">전처리 파이프라인</td><td>RPCA → ACF → SDP → z-score</td></tr>
-                <tr><td style="color:#8b949e">AI 모델</td><td>CNN + GRU + Attention</td></tr>
-                <tr><td style="color:#8b949e">알림 방식</td><td>SMS (Solapi)</td></tr>
-            </table></div>
-        </div>
     </div>
 </div>
 </div>
@@ -326,19 +313,19 @@
                     <button class="collect-discard-btn" id="collectDiscardBtn" onclick="collectStop(false)" disabled>🗑 폐기</button>
                 </div>
 
-                <!-- 수집 품질 요약 (저장 참고용, report-only) -->
+                <!-- 수집 품질 요약 (저장/폐기 판단용, report-only) -->
                 <div class="collect-quality-box" id="collectQualityBox" style="display:none; margin-top:10px; padding:10px 12px; background:#161b22; border:1px solid #30363d; border-radius:8px; font-size:12px; color:#8b949e;">
-                    <div style="color:#e6edf3; font-weight:600; margin-bottom:6px;">📊 수집 품질 (저장 참고)</div>
+                    <div style="color:#e6edf3; font-weight:600; margin-bottom:6px;">📊 수집 품질 (저장/폐기 판단)</div>
                     <div id="qVerdict" style="margin-bottom:8px; padding:6px 8px; border-radius:6px; font-weight:700; font-size:13px; background:#21262d; color:#8b949e;">종합 판정: -</div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px 16px;">
                         <div>페어 수: <span id="qPairCount" style="color:#e6edf3;">-</span></div>
-                        <div>seq 손실률: <span id="qLoss" style="color:#e6edf3;">-</span></div>
+                        <div>손실률: <span id="qLoss" style="color:#e6edf3;">-</span></div>
                         <div>pair rate: <span id="qRate" style="color:#e6edf3;">-</span></div>
                         <div>capture ratio: <span id="qCapture" style="color:#e6edf3;">-</span></div>
                         <div style="grid-column:1 / -1;">pair_dt: <span id="qPairDt">-</span></div>
                         <div style="grid-column:1 / -1;">ts gap: <span id="qGap">-</span></div>
                     </div>
-                    <div style="margin-top:6px; font-size:11px; color:#6e7681;">※ seq 손실률은 진단용입니다. <span style="color:#3fb950">초록</span>=저장 권장 / <span style="color:#d29922">노랑</span>=저장 가능, 품질 주의 / <span style="color:#ff4d4d">빨강</span>=재수집 권장</div>
+                    <div style="margin-top:6px; font-size:11px; color:#6e7681;">※ <span style="color:#d29922">노랑</span>=경고 / <span style="color:#ff4d4d">빨강</span>=불량 | pair_dt p50&gt;10ms 또는 ts_gap p95&gt;30ms 시 재수집 권장</div>
                 </div>
             </div>
 
@@ -441,26 +428,16 @@
         ]},
         options: { responsive: true, maintainAspectRatio: false, animation: false,
             plugins: { legend: { labels: { color: '#8b949e', font: { size: 11 } } } },
-            scales: { x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } }, y: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' }, min: -90, max: -20 } } }
+            scales: { x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } }, y: { ticks: { color: '#8b949e', font: { size: 10 }, stepSize: 10 }, grid: { color: '#21262d' }, min: -50, max: -20 } } }
     });
     const ppsChart = new Chart(document.getElementById('ppsChart').getContext('2d'), {
         type: 'bar', data: { labels: [], datasets: [{ label: 'PPS', data: [], backgroundColor: '#58a6ff44', borderColor: '#58a6ff', borderWidth: 1 }]},
         options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } },
-            scales: { x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } }, y: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' }, min: 0, max: 20 } } }
-    });
-    const subChart = new Chart(document.getElementById('subChart').getContext('2d'), {
-        type: 'line', data: { labels: [], datasets: [
-            { label: 'RX1', data: [], borderColor: '#58a6ff', backgroundColor: '#58a6ff22', tension: 0.4, pointRadius: 2, fill: true },
-            { label: 'RX2', data: [], borderColor: '#3fb950', backgroundColor: '#3fb95022', tension: 0.4, pointRadius: 2, fill: true }
-        ]},
-        options: { responsive: true, maintainAspectRatio: false, animation: false,
-            plugins: { legend: { labels: { color: '#8b949e', font: { size: 11 } } } },
-            scales: { x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } }, y: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' }, min: 0, max: 64 } } }
+            scales: { x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } }, y: { ticks: { color: '#8b949e', font: { size: 10 }, stepSize: 30 }, grid: { color: '#21262d' }, min: 0, max: 150 } } }
     });
 
     function syncStatus(data) {
         document.getElementById('pairCount').textContent = data.pair_count;
-        document.getElementById('pairBadge').textContent = `${Math.min(data.pair_count, 10)} / 10`;
         document.getElementById('fallCount').textContent = data.fall_count;
         if (data.last_fall_time) document.getElementById('lastFallTime').textContent = `마지막: ${data.last_fall_time}`;
         updateRpi4(data.rpi4_connected);
@@ -478,7 +455,6 @@
     // ── 초기 상태 ─────────────────────────────────────────
     fetch('/status').then(r => r.json()).then(data => {
         syncStatus(data);
-        data.recent_pairs.forEach(addPairRow);
     });
 
     // CDN/Socket.IO client를 사용할 수 없는 오프라인 공유기 환경에서도
@@ -494,9 +470,7 @@
     socket.on('pair_update', (data) => {
         const count = parseInt(document.getElementById('pairCount').textContent) + 1;
         document.getElementById('pairCount').textContent = count;
-        document.getElementById('pairBadge').textContent = `${Math.min(count, 10)} / 10`;
         lastPacketTime = Date.now();
-        addPairRow(data);
         rssiChart.data.labels.push(data.time); rssiChart.data.datasets[0].data.push(data.rx1_rssi); rssiChart.data.datasets[1].data.push(data.rx2_rssi);
         if (rssiChart.data.labels.length > 20) { rssiChart.data.labels.shift(); rssiChart.data.datasets.forEach(d => d.data.shift()); }
         rssiChart.update();
@@ -504,9 +478,6 @@
         if (ppsChart.data.labels.length > 20) { ppsChart.data.labels.shift(); ppsChart.data.datasets[0].data.shift(); }
         ppsChart.update();
         document.getElementById('ppsBadge').textContent = `${data.pps} pps`;
-        subChart.data.labels.push(data.time); subChart.data.datasets[0].data.push(data.rx1_subs); subChart.data.datasets[1].data.push(data.rx2_subs);
-        if (subChart.data.labels.length > 20) { subChart.data.labels.shift(); subChart.data.datasets.forEach(d => d.data.shift()); }
-        subChart.update();
     });
     socket.on('fall_detected', (data) => {
         document.getElementById('fallCount').textContent = data.fall_count;
@@ -517,6 +488,14 @@
         setTimeout(() => banner.style.display = 'none', 5000);
         addFallTimeline(data.time, data.fall_count);
     });
+    socket.on('rescue_requested', (data) => {
+        const timeline = document.getElementById('fallTimeline');
+        if (timeline.querySelector('.empty-state')) timeline.innerHTML = '';
+        const item = document.createElement('div');
+        item.className = 'timeline-item';
+        item.innerHTML = `<div class="timeline-dot" style="background:#ff4d4d"></div><div class="timeline-content"><div class="time">${data.time}</div><div class="event" style="color:#ff4d4d">구조 요청 #${data.rescue_count} — Pi4 알림</div></div>`;
+        timeline.insertBefore(item, timeline.firstChild);
+    });
     socket.on('rpi4_status', (data) => updateRpi4(data.connected, data.message));
     socket.on('rpi4_disconnected', (data) => {
         const banner = document.createElement('div');
@@ -526,6 +505,27 @@
         setTimeout(() => banner.remove(), 5000);
     });
     socket.on('packet_stats', (data) => updatePacketStats(data));
+
+    let _rpiLogCount = 0;
+    socket.on('rpi_log', (data) => {
+        const box = document.getElementById('rpiLogBox');
+        // 첫 메시지면 empty-state 제거
+        const empty = box.querySelector('.empty-state');
+        if (empty) empty.remove();
+
+        _rpiLogCount++;
+        document.getElementById('rpiLogBadge').textContent = _rpiLogCount;
+
+        const colors = { warn: '#ff4d4d', info: '#58a6ff' };
+        const line = document.createElement('div');
+        line.style.cssText = `color:${colors[data.level] || '#e6edf3'};white-space:pre-wrap;`;
+        line.textContent = `${data.time}  ${data.message}`;
+        box.appendChild(line);
+
+        // 최대 100줄 유지
+        while (box.children.length > 100) box.removeChild(box.firstChild);
+        box.scrollTop = box.scrollHeight;
+    });
     socket.on('collect_pair_count', (data) => {
         document.getElementById('collectPairCount').textContent = data.count;
     });
@@ -607,109 +607,98 @@
         document.getElementById('stageDisplay').style.display = 'none';
         setBanner('finished', `✅ 수집 완료 — 저장 또는 폐기 선택`);
         document.getElementById('collectPairCount').textContent = data.pair_count;
-        setButtons('finished');
 
-        const lossMsg = data.warn ? ` ⚠️ seq 손실률 ${data.loss_rate}%` : ` seq 손실률 ${data.loss_rate}%`;
+        const lossMsg = data.warn ? ` ⚠️ 손실률 ${data.loss_rate}%` : ` 손실률 ${data.loss_rate}%`;
         addCollectLog(`수집 완료: ${data.pair_count}개 페어${lossMsg}`, data.warn ? 'warn' : 'ok');
 
-        try {
-            // 품질 요약 박스 채우기 (저장 참고용, report-only)
-            // 로그용 plain text
-            const pairDtStr = `p50=${fmtMs(data.pair_dt_p50_us)} p95=${fmtMs(data.pair_dt_p95_us)} p99=${fmtMs(data.pair_dt_p99_us)} max=${fmtMs(data.pair_dt_max_us)}`;
-            const gapStr = `p95=${fmtMs(data.gap_p95_us)} max=${fmtMs(data.gap_max_us)}`;
+        // 품질 요약 박스 채우기 (저장/폐기 판단용, report-only)
+        // 로그용 plain text
+        const pairDtStr = `p50=${fmtMs(data.pair_dt_p50_us)} p95=${fmtMs(data.pair_dt_p95_us)} p99=${fmtMs(data.pair_dt_p99_us)} max=${fmtMs(data.pair_dt_max_us)}`;
+        const gapStr = `p95=${fmtMs(data.gap_p95_us)} max=${fmtMs(data.gap_max_us)}`;
 
-            // 페어 수
-            document.getElementById('qPairCount').textContent = data.pair_count;
+        // 페어 수
+        document.getElementById('qPairCount').textContent = data.pair_count;
 
-            // seq 손실률 (진단용)
-            const qLoss = document.getElementById('qLoss');
-            qLoss.textContent = `${data.loss_rate}%`;
-            qLoss.style.color = data.loss_rate >= 30 ? '#ff4d4d' : data.loss_rate >= 15 ? '#d29922' : '#e6edf3';
+        // 손실률 (기존 로직 유지)
+        const qLoss = document.getElementById('qLoss');
+        qLoss.textContent = `${data.loss_rate}%`;
+        qLoss.style.color = data.warn ? '#f0883e' : '#e6edf3';
 
-            // pair rate
-            const rateEl = document.getElementById('qRate');
-            const hz = data.pair_rate_hz;
-            rateEl.textContent = fmtNum(hz, 1, ' Hz');
-            rateEl.style.color = (hz === null || hz === undefined) ? '#8b949e' : hz < 75 ? '#ff4d4d' : hz < 85 ? '#d29922' : '#e6edf3';
+        // pair rate
+        const rateEl = document.getElementById('qRate');
+        const hz = data.pair_rate_hz;
+        rateEl.textContent = fmtNum(hz, 1, ' Hz');
+        rateEl.style.color = (hz === null || hz === undefined) ? '#8b949e' : hz < 85 ? '#ff4d4d' : hz < 95 ? '#d29922' : '#e6edf3';
 
-            // capture ratio
-            const capEl = document.getElementById('qCapture');
-            const cap = data.capture_ratio;
-            capEl.textContent = fmtNum(cap, 2);
-            capEl.style.color = (cap === null || cap === undefined) ? '#8b949e' : cap < 0.75 ? '#ff4d4d' : cap < 0.85 ? '#d29922' : '#e6edf3';
+        // capture ratio
+        const capEl = document.getElementById('qCapture');
+        const cap = data.capture_ratio;
+        capEl.textContent = fmtNum(cap, 2);
+        capEl.style.color = (cap === null || cap === undefined) ? '#8b949e' : (cap < 0.90 || cap > 1.10) ? '#ff4d4d' : (cap < 0.95 || cap > 1.05) ? '#d29922' : '#e6edf3';
 
-            // pair_dt — 항목별 개별 색상
-            const dt50  = qualColor(data.pair_dt_p50_us,  { warn: 10, bad: 20 });
-            const dt95  = qualColor(data.pair_dt_p95_us,  { warn: 20, bad: 50 });
-            const dt99  = qualColor(data.pair_dt_p99_us,  { warn: 30, bad: 70 });
-            const dtMax = qualColor(data.pair_dt_max_us,  { warn: 50, bad: 100 });
-            document.getElementById('qPairDt').innerHTML =
-                `p50=<span style="color:${dt50.color}">${dt50.text}</span> ` +
-                `p95=<span style="color:${dt95.color}">${dt95.text}</span> ` +
-                `p99=<span style="color:${dt99.color}">${dt99.text}</span> ` +
-                `max=<span style="color:${dtMax.color}">${dtMax.text}</span>`;
+        // pair_dt — 항목별 개별 색상
+        const dt50  = qualColor(data.pair_dt_p50_us,  { warn: 5,  bad: 10 });
+        const dt95  = qualColor(data.pair_dt_p95_us,  { warn: 10, bad: 15 });
+        const dt99  = qualColor(data.pair_dt_p99_us,  { warn: 15, bad: 30 });
+        const dtMax = qualColor(data.pair_dt_max_us,  { warn: 30, bad: 50 });
+        document.getElementById('qPairDt').innerHTML =
+            `p50=<span style="color:${dt50.color}">${dt50.text}</span> ` +
+            `p95=<span style="color:${dt95.color}">${dt95.text}</span> ` +
+            `p99=<span style="color:${dt99.color}">${dt99.text}</span> ` +
+            `max=<span style="color:${dtMax.color}">${dtMax.text}</span>`;
 
-            // ts_gap — 항목별 개별 색상
-            const gp95 = qualColor(data.gap_p95_us, { warn: 30, bad: 50 });
-            const gpMax = qualColor(data.gap_max_us, { warn: 100, bad: 200 });
-            document.getElementById('qGap').innerHTML =
-                `p95=<span style="color:${gp95.color}">${gp95.text}</span> ` +
-                `max=<span style="color:${gpMax.color}">${gpMax.text}</span>`;
+        // ts_gap — 항목별 개별 색상
+        const gp95 = qualColor(data.gap_p95_us, { warn: 15, bad: 30 });
+        const gpMax = qualColor(data.gap_max_us, { warn: 30, bad: 60 });
+        document.getElementById('qGap').innerHTML =
+            `p95=<span style="color:${gp95.color}">${gp95.text}</span> ` +
+            `max=<span style="color:${gpMax.color}">${gpMax.text}</span>`;
 
-            // 종합 판정 (저장 권장/저장 가능/재수집) — 수집률 중심, seq 손실은 진단용.
-            // 🔴 capture<0.75 | seq_loss>=30% | pair_dt p95>50ms | ts_gap p95>50ms
-            // 🟡 capture<0.85 | seq_loss>=15% | pair_dt p95>20ms | ts_gap p95>30ms
-            const loss = data.loss_rate;
-            const lossOk = !(loss === null || loss === undefined || Number.isNaN(loss));
-            const capture = data.capture_ratio;
-            const captureOk = !(capture === null || capture === undefined || Number.isNaN(capture));
-            const p95ms = (data.pair_dt_p95_us === null || data.pair_dt_p95_us === undefined) ? null : data.pair_dt_p95_us / 1000;
-            const g95ms = (data.gap_p95_us === null || data.gap_p95_us === undefined) ? null : data.gap_p95_us / 1000;
-            const badReasons = [];
-            const warnReasons = [];
+        // 종합 판정 (저장/검토/폐기) — 손실+페어링 종합
+        // 🔴 손실≥20% | p50>10ms | gap_p95>30ms  → 폐기·재수집
+        // 🟡 손실≥5%  | p50>5ms  | gap_p95>15ms   → 검토 후 저장
+        const loss = data.loss_rate;
+        const lossOk = !(loss === null || loss === undefined || Number.isNaN(loss));
+        const p50ms = (data.pair_dt_p50_us === null || data.pair_dt_p50_us === undefined) ? null : data.pair_dt_p50_us / 1000;
+        const g95ms = (data.gap_p95_us === null || data.gap_p95_us === undefined) ? null : data.gap_p95_us / 1000;
+        const badReasons = [];
+        const warnReasons = [];
 
-            // 지표별로 정확히 한 버킷에만 분류 (bad 우선)
-            if (captureOk) {
-                if (capture < 0.75)      badReasons.push(`수집률 ${capture.toFixed(2)}`);
-                else if (capture < 0.85) warnReasons.push(`수집률 ${capture.toFixed(2)}`);
-            }
-            if (lossOk) {
-                if (loss >= 30)      badReasons.push(`seq 손실 ${loss}%`);
-                else if (loss >= 15) warnReasons.push(`seq 손실 ${loss}%`);
-            }
-            if (p95ms !== null) {
-                if (p95ms > 50)      badReasons.push(`pair_dt p95 ${p95ms.toFixed(1)}ms`);
-                else if (p95ms > 20) warnReasons.push(`pair_dt p95 ${p95ms.toFixed(1)}ms`);
-            }
-            if (g95ms !== null) {
-                if (g95ms > 50)      badReasons.push(`ts_gap p95 ${g95ms.toFixed(1)}ms`);
-                else if (g95ms > 30) warnReasons.push(`ts_gap p95 ${g95ms.toFixed(1)}ms`);
-            }
-
-            const level = badReasons.length ? 'bad' : warnReasons.length ? 'warn' : 'ok';
-            // 🔴면 bad 사유 + 함께 걸린 warn 사유까지 모두 표시, 🟡면 warn 사유만
-            const reasons = level === 'bad' ? badReasons.concat(warnReasons) : warnReasons;
-
-            const verdictMap = {
-                ok:   { text: '🟢 저장 권장',             color: '#3fb950', bg: '#13251a', log: 'ok' },
-                warn: { text: '🟡 저장 가능 (품질 주의)', color: '#d29922', bg: '#2b2412', log: 'warn' },
-                bad:  { text: '🔴 재수집 권장',           color: '#ff4d4d', bg: '#2d1414', log: 'err' },
-            };
-            const v = verdictMap[level];
-            const reasonStr = reasons.length ? ` (${reasons.join(', ')})` : '';
-            const verdictEl = document.getElementById('qVerdict');
-            verdictEl.textContent = `종합 판정: ${v.text}${reasonStr}`;
-            verdictEl.style.color = v.color;
-            verdictEl.style.background = v.bg;
-
-            document.getElementById('collectQualityBox').style.display = 'block';
-            addCollectLog(`품질 요약 → pair_dt ${pairDtStr} | ts_gap ${gapStr}`);
-            addCollectLog(`종합 판정: ${v.text}${reasonStr}`, v.log);
-        } catch (err) {
-            console.error('collect quality render failed', err);
-            addCollectLog('품질 박스 표시 실패 — 저장은 가능합니다', 'warn');
+        // 지표별로 정확히 한 버킷에만 분류 (bad 우선)
+        if (lossOk) {
+            if (loss >= 20)     badReasons.push(`손실 ${loss}%`);
+            else if (loss >= 5) warnReasons.push(`손실 ${loss}%`);
+        }
+        if (p50ms !== null) {
+            if (p50ms > 10)     badReasons.push(`pair_dt p50 ${p50ms.toFixed(1)}ms`);
+            else if (p50ms > 5) warnReasons.push(`pair_dt p50 ${p50ms.toFixed(1)}ms`);
+        }
+        if (g95ms !== null) {
+            if (g95ms > 30)      badReasons.push(`ts_gap p95 ${g95ms.toFixed(1)}ms`);
+            else if (g95ms > 15) warnReasons.push(`ts_gap p95 ${g95ms.toFixed(1)}ms`);
         }
 
+        const level = badReasons.length ? 'bad' : warnReasons.length ? 'warn' : 'ok';
+        // 🔴면 bad 사유 + 함께 걸린 warn 사유까지 모두 표시, 🟡면 warn 사유만
+        const reasons = level === 'bad' ? badReasons.concat(warnReasons) : warnReasons;
+
+        const verdictMap = {
+            ok:   { text: '🟢 저장 권장',       color: '#3fb950', bg: '#13251a', log: 'ok' },
+            warn: { text: '🟡 검토 후 저장',     color: '#d29922', bg: '#2b2412', log: 'warn' },
+            bad:  { text: '🔴 폐기·재수집 권장', color: '#ff4d4d', bg: '#2d1414', log: 'err' },
+        };
+        const v = verdictMap[level];
+        const reasonStr = reasons.length ? ` (${reasons.join(', ')})` : '';
+        const verdictEl = document.getElementById('qVerdict');
+        verdictEl.textContent = `종합 판정: ${v.text}${reasonStr}`;
+        verdictEl.style.color = v.color;
+        verdictEl.style.background = v.bg;
+
+        document.getElementById('collectQualityBox').style.display = 'block';
+        addCollectLog(`품질 요약 → pair_dt ${pairDtStr} | ts_gap ${gapStr}`);
+        addCollectLog(`종합 판정: ${v.text}${reasonStr}`, v.log);
+
+        setButtons('finished');
         loadActivityCounts();
     });
 
@@ -718,7 +707,7 @@
         document.getElementById('collectQualityBox').style.display = 'none';
         setBanner('idle', '대기 중 — 활동을 선택하고 시작하세요');
         if (data.saved) {
-            addCollectLog(`저장 완료: ${data.message} | 페어: ${data.pair_count} | seq 손실률: ${data.loss_rate}%`, 'ok');
+            addCollectLog(`저장 완료: ${data.message} | 페어: ${data.pair_count} | 손실률: ${data.loss_rate}%`, 'ok');
         } else {
             addCollectLog(`폐기됨 (페어: ${data.pair_count})`, 'warn');
         }
@@ -729,7 +718,6 @@
     // ── 수집 탭 ──────────────────────────────────────────
     let activityLabels = [];
     let selectedActivity = null;
-    let collectUiState = 'idle';
 
     function setBanner(state, text) {
         const el = document.getElementById('collectStatusBanner');
@@ -741,7 +729,6 @@
     }
 
     function setButtons(state) {
-        collectUiState = state;
         const startBtn = document.getElementById('collectStartBtn');
         const saveBtn = document.getElementById('collectSaveBtn');
         const discardBtn = document.getElementById('collectDiscardBtn');
@@ -838,30 +825,6 @@
         });
     }
 
-    function recoverCollectState() {
-        if (collectUiState !== 'recording' && collectUiState !== 'countdown') return;
-        fetch('/collect/status')
-            .then(r => r.json())
-            .then(data => {
-                if (data.error) return;
-                if (data.is_recording) {
-                    document.getElementById('collectPairCount').textContent = data.pair_count || 0;
-                    return;
-                }
-                if (data.has_pending) {
-                    if (_stageTimer) { clearInterval(_stageTimer); _stageTimer = null; }
-                    document.getElementById('stageDisplay').style.display = 'none';
-                    document.getElementById('countdownDisplay').style.display = 'none';
-                    document.getElementById('collectPairCount').textContent = data.pending_pair_count || 0;
-                    setBanner('finished', '✅ 수집 완료 — 저장 또는 폐기 선택');
-                    setButtons('finished');
-                    addCollectLog('상태 복구: 서버에 완료된 수집 데이터가 있어 저장 버튼을 활성화했습니다', 'warn');
-                }
-            })
-            .catch(() => {});
-    }
-    setInterval(recoverCollectState, 1000);
-
     function addCollectLog(msg, type = '') {
         const body = document.getElementById('collectLogBody');
         const now = new Date().toLocaleTimeString();
@@ -929,20 +892,12 @@
         bar.style.width = `${Math.min(data.loss_rate, 100)}%`;
         bar.className = 'loss-bar ' + (data.loss_rate < 5 ? 'loss-good' : data.loss_rate < 20 ? 'loss-mid' : 'loss-bad');
     }
-    function addPairRow(data) {
-        const tbody = document.getElementById('pairTable');
-        if (tbody.querySelector('.empty-state')) tbody.innerHTML = '';
-        const row = document.createElement('tr');
-        row.innerHTML = `<td>${data.time}</td><td style="color:#8b949e">${data.seq}</td><td style="color:#58a6ff">${data.rx1_rssi} dBm</td><td style="color:#3fb950">${data.rx2_rssi} dBm</td><td style="color:#58a6ff">${data.rx1_subs}</td><td style="color:#3fb950">${data.rx2_subs}</td>`;
-        tbody.insertBefore(row, tbody.firstChild);
-        if (tbody.children.length > 10) tbody.removeChild(tbody.lastChild);
-    }
     function addFallTimeline(time, count) {
         const timeline = document.getElementById('fallTimeline');
         if (timeline.querySelector('.empty-state')) timeline.innerHTML = '';
         const item = document.createElement('div');
         item.className = 'timeline-item';
-        item.innerHTML = `<div class="timeline-dot"></div><div class="timeline-content"><div class="time">${time}</div><div class="event">낙상 감지 #${count} — Pi4 알림 + SMS 발송 완료</div></div>`;
+        item.innerHTML = `<div class="timeline-dot"></div><div class="timeline-content"><div class="time">${time}</div><div class="event">낙상 감지 #${count} — Pi4 알림</div></div>`;
         timeline.insertBefore(item, timeline.firstChild);
     }
     function updateRpi4(connected, message) {

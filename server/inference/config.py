@@ -50,6 +50,9 @@ ENERGY_GATE_ENABLED: bool = _env_bool("SAFESIGNAL_ENERGY_GATE_ENABLED", False)
 ENERGY_GATE_THRESHOLD: float = _env_float("SAFESIGNAL_ENERGY_GATE_THRESHOLD", 0.0)
 ENERGY_GATE_METRIC: str = os.getenv("SAFESIGNAL_ENERGY_GATE_METRIC", "sdp_mean_abs").strip()
 
+# RPCA 반복 횟수. 낮출수록 latency 감소, 기본 200은 원래 동작 보존.
+RPCA_MAX_ITER: int = _env_int("SAFESIGNAL_RPCA_MAX_ITER", 200)
+
 # 서브캐리어 수 (Rx1/Rx2 각각)
 N_SUBCARRIERS_EACH: int = 52
 
