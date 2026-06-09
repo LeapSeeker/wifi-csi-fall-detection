@@ -30,6 +30,7 @@ from .config import (
     FALL_LABELS,
     FALL_THRESHOLD,
     MODEL_PATH,
+    RPCA_MAX_ITER,
 )
 
 
@@ -41,7 +42,7 @@ def _model_input_and_energy(
     energy 계산은 calibrate 도구와 공유하는 단일 helper(compute_window_energy)에
     위임한다(RPCA 1회). 반환된 SDP를 여기서 z-score 하여 모델 입력으로 만든다.
     """
-    sdp, metrics = compute_window_energy(window)
+    sdp, metrics = compute_window_energy(window, rpca_max_iter=RPCA_MAX_ITER, rpca_tol=None)
     sdp_z = (sdp - sdp.mean()) / (sdp.std() + 1e-6)
     return sdp_z[None, ...], metrics
 

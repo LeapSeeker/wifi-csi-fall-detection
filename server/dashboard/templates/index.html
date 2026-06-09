@@ -183,6 +183,7 @@
         <h1>🛡️ Fall Detection System</h1>
         <span>LIVE</span>
     </div>
+    <button class="trigger-btn" onclick="triggerFall()">⚠️ 낙상 감지 시뮬레이션</button>
     <div class="uptime">가동 시간: <span id="uptime">00:00:00</span></div>
 </header>
 
@@ -222,62 +223,48 @@
             <div class="sub">초 전</div>
         </div>
     </div>
-    <div style="display:flex; justify-content:flex-end;">
-        <button class="trigger-btn" onclick="triggerFall()">⚠️ 낙상 감지 시뮬레이션</button>
-    </div>
-    <div class="content-row">
-        <div class="panel">
-            <div class="panel-header"><h3>RX1 패킷 손실률</h3><span class="badge" id="rx1LossRate">0.00%</span></div>
-            <div class="panel-body">
-                <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;">
-                    <span style="color:#8b949e">수신: <span id="rx1Received" style="color:#e6edf3">0</span></span>
-                    <span style="color:#8b949e">손실: <span id="rx1Lost" style="color:#ff4d4d">0</span></span>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start;">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="panel">
+                <div class="panel-header"><h3>패킷 손실률</h3></div>
+                <div class="panel-body">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                        <div>
+                            <div style="font-size:12px; color:#8b949e; font-weight:600; margin-bottom:8px;">RX1</div>
+                            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;">
+                                <span style="color:#8b949e">수신: <span id="rx1Received" style="color:#e6edf3">0</span></span>
+                                <span style="color:#8b949e">손실: <span id="rx1Lost" style="color:#ff4d4d">0</span></span>
+                                <span class="badge" id="rx1LossRate">0.00%</span>
+                            </div>
+                            <div class="loss-bar-wrap"><div class="loss-bar loss-good" id="rx1Bar" style="width:0%"></div></div>
+                        </div>
+                        <div>
+                            <div style="font-size:12px; color:#8b949e; font-weight:600; margin-bottom:8px;">RX2</div>
+                            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;">
+                                <span style="color:#8b949e">수신: <span id="rx2Received" style="color:#e6edf3">0</span></span>
+                                <span style="color:#8b949e">손실: <span id="rx2Lost" style="color:#ff4d4d">0</span></span>
+                                <span class="badge" id="rx2LossRate">0.00%</span>
+                            </div>
+                            <div class="loss-bar-wrap"><div class="loss-bar loss-good" id="rx2Bar" style="width:0%"></div></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="loss-bar-wrap"><div class="loss-bar loss-good" id="rx1Bar" style="width:0%"></div></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header"><h3>낙상 감지 타임라인</h3><span class="badge" id="fallBadge">0건</span></div>
+                <div style="height:300px; overflow-y:auto; padding:20px;"><div class="timeline" id="fallTimeline"><div class="empty-state">낙상 감지 이력 없음</div></div></div>
             </div>
         </div>
         <div class="panel">
-            <div class="panel-header"><h3>RX2 패킷 손실률</h3><span class="badge" id="rx2LossRate">0.00%</span></div>
-            <div class="panel-body">
-                <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;">
-                    <span style="color:#8b949e">수신: <span id="rx2Received" style="color:#e6edf3">0</span></span>
-                    <span style="color:#8b949e">손실: <span id="rx2Lost" style="color:#ff4d4d">0</span></span>
-                </div>
-                <div class="loss-bar-wrap"><div class="loss-bar loss-good" id="rx2Bar" style="width:0%"></div></div>
+            <div class="panel-header"><h3>📟 RPi 실시간 로그</h3><span class="badge" id="rpiLogBadge">0</span></div>
+            <div id="rpiLogBox" style="height:460px; overflow-y:auto; font-family:monospace; font-size:12px; padding:10px; display:flex; flex-direction:column; gap:2px;">
+                <div class="empty-state">RPi 연결 대기 중...</div>
             </div>
-        </div>
-    </div>
-    <div class="content-row">
-        <div class="panel">
-            <div class="panel-header"><h3>최근 페어링 기록</h3><span class="badge" id="pairBadge">0 / 10</span></div>
-            <div class="panel-body" style="padding:0;">
-                <table><thead><tr><th>시간</th><th>SEQ</th><th>RX1 RSSI</th><th>RX2 RSSI</th><th>RX1 서브캐리어</th><th>RX2 서브캐리어</th></tr></thead>
-                <tbody id="pairTable"><tr><td colspan="6" class="empty-state">수신 대기 중...</td></tr></tbody></table>
-            </div>
-        </div>
-        <div class="panel">
-            <div class="panel-header"><h3>낙상 감지 타임라인</h3><span class="badge" id="fallBadge">0건</span></div>
-            <div class="panel-body"><div class="timeline" id="fallTimeline"><div class="empty-state">낙상 감지 이력 없음</div></div></div>
         </div>
     </div>
     <div class="content-row">
         <div class="panel"><div class="panel-header"><h3>RSSI 실시간 차트</h3></div><div class="panel-body"><div class="chart-wrap"><canvas id="rssiChart"></canvas></div></div></div>
         <div class="panel"><div class="panel-header"><h3>초당 패킷 수신 (PPS)</h3><span class="badge" id="ppsBadge">0 pps</span></div><div class="panel-body"><div class="chart-wrap"><canvas id="ppsChart"></canvas></div></div></div>
-    </div>
-    <div class="content-row">
-        <div class="panel"><div class="panel-header"><h3>서브캐리어 수 실시간 차트</h3></div><div class="panel-body"><div class="chart-wrap"><canvas id="subChart"></canvas></div></div></div>
-        <div class="panel"><div class="panel-header"><h3>시스템 정보</h3></div>
-            <div class="panel-body"><table>
-                <tr><td style="color:#8b949e">UDP 포트</td><td>5005</td></tr>
-                <tr><td style="color:#8b949e">WebSocket 포트 (Pi4)</td><td>8765</td></tr>
-                <tr><td style="color:#8b949e">대시보드 포트</td><td>8080</td></tr>
-                <tr><td style="color:#8b949e">유효 서브캐리어 수</td><td>52 (LLTF)</td></tr>
-                <tr><td style="color:#8b949e">샘플링 레이트</td><td>10 Hz</td></tr>
-                <tr><td style="color:#8b949e">전처리 파이프라인</td><td>RPCA → ACF → SDP → z-score</td></tr>
-                <tr><td style="color:#8b949e">AI 모델</td><td>CNN + GRU + Attention</td></tr>
-                <tr><td style="color:#8b949e">알림 방식</td><td>SMS (Solapi)</td></tr>
-            </table></div>
-        </div>
     </div>
 </div>
 </div>
@@ -441,26 +428,16 @@
         ]},
         options: { responsive: true, maintainAspectRatio: false, animation: false,
             plugins: { legend: { labels: { color: '#8b949e', font: { size: 11 } } } },
-            scales: { x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } }, y: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' }, min: -90, max: -20 } } }
+            scales: { x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } }, y: { ticks: { color: '#8b949e', font: { size: 10 }, stepSize: 10 }, grid: { color: '#21262d' }, min: -50, max: -20 } } }
     });
     const ppsChart = new Chart(document.getElementById('ppsChart').getContext('2d'), {
         type: 'bar', data: { labels: [], datasets: [{ label: 'PPS', data: [], backgroundColor: '#58a6ff44', borderColor: '#58a6ff', borderWidth: 1 }]},
         options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } },
-            scales: { x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } }, y: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' }, min: 0, max: 20 } } }
-    });
-    const subChart = new Chart(document.getElementById('subChart').getContext('2d'), {
-        type: 'line', data: { labels: [], datasets: [
-            { label: 'RX1', data: [], borderColor: '#58a6ff', backgroundColor: '#58a6ff22', tension: 0.4, pointRadius: 2, fill: true },
-            { label: 'RX2', data: [], borderColor: '#3fb950', backgroundColor: '#3fb95022', tension: 0.4, pointRadius: 2, fill: true }
-        ]},
-        options: { responsive: true, maintainAspectRatio: false, animation: false,
-            plugins: { legend: { labels: { color: '#8b949e', font: { size: 11 } } } },
-            scales: { x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } }, y: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' }, min: 0, max: 64 } } }
+            scales: { x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } }, y: { ticks: { color: '#8b949e', font: { size: 10 }, stepSize: 30 }, grid: { color: '#21262d' }, min: 0, max: 150 } } }
     });
 
     function syncStatus(data) {
         document.getElementById('pairCount').textContent = data.pair_count;
-        document.getElementById('pairBadge').textContent = `${Math.min(data.pair_count, 10)} / 10`;
         document.getElementById('fallCount').textContent = data.fall_count;
         if (data.last_fall_time) document.getElementById('lastFallTime').textContent = `마지막: ${data.last_fall_time}`;
         updateRpi4(data.rpi4_connected);
@@ -478,7 +455,6 @@
     // ── 초기 상태 ─────────────────────────────────────────
     fetch('/status').then(r => r.json()).then(data => {
         syncStatus(data);
-        data.recent_pairs.forEach(addPairRow);
     });
 
     // CDN/Socket.IO client를 사용할 수 없는 오프라인 공유기 환경에서도
@@ -494,9 +470,7 @@
     socket.on('pair_update', (data) => {
         const count = parseInt(document.getElementById('pairCount').textContent) + 1;
         document.getElementById('pairCount').textContent = count;
-        document.getElementById('pairBadge').textContent = `${Math.min(count, 10)} / 10`;
         lastPacketTime = Date.now();
-        addPairRow(data);
         rssiChart.data.labels.push(data.time); rssiChart.data.datasets[0].data.push(data.rx1_rssi); rssiChart.data.datasets[1].data.push(data.rx2_rssi);
         if (rssiChart.data.labels.length > 20) { rssiChart.data.labels.shift(); rssiChart.data.datasets.forEach(d => d.data.shift()); }
         rssiChart.update();
@@ -504,9 +478,6 @@
         if (ppsChart.data.labels.length > 20) { ppsChart.data.labels.shift(); ppsChart.data.datasets[0].data.shift(); }
         ppsChart.update();
         document.getElementById('ppsBadge').textContent = `${data.pps} pps`;
-        subChart.data.labels.push(data.time); subChart.data.datasets[0].data.push(data.rx1_subs); subChart.data.datasets[1].data.push(data.rx2_subs);
-        if (subChart.data.labels.length > 20) { subChart.data.labels.shift(); subChart.data.datasets.forEach(d => d.data.shift()); }
-        subChart.update();
     });
     socket.on('fall_detected', (data) => {
         document.getElementById('fallCount').textContent = data.fall_count;
@@ -517,6 +488,14 @@
         setTimeout(() => banner.style.display = 'none', 5000);
         addFallTimeline(data.time, data.fall_count);
     });
+    socket.on('rescue_requested', (data) => {
+        const timeline = document.getElementById('fallTimeline');
+        if (timeline.querySelector('.empty-state')) timeline.innerHTML = '';
+        const item = document.createElement('div');
+        item.className = 'timeline-item';
+        item.innerHTML = `<div class="timeline-dot" style="background:#ff4d4d"></div><div class="timeline-content"><div class="time">${data.time}</div><div class="event" style="color:#ff4d4d">구조 요청 #${data.rescue_count} — Pi4 알림</div></div>`;
+        timeline.insertBefore(item, timeline.firstChild);
+    });
     socket.on('rpi4_status', (data) => updateRpi4(data.connected, data.message));
     socket.on('rpi4_disconnected', (data) => {
         const banner = document.createElement('div');
@@ -526,6 +505,27 @@
         setTimeout(() => banner.remove(), 5000);
     });
     socket.on('packet_stats', (data) => updatePacketStats(data));
+
+    let _rpiLogCount = 0;
+    socket.on('rpi_log', (data) => {
+        const box = document.getElementById('rpiLogBox');
+        // 첫 메시지면 empty-state 제거
+        const empty = box.querySelector('.empty-state');
+        if (empty) empty.remove();
+
+        _rpiLogCount++;
+        document.getElementById('rpiLogBadge').textContent = _rpiLogCount;
+
+        const colors = { warn: '#ff4d4d', info: '#58a6ff' };
+        const line = document.createElement('div');
+        line.style.cssText = `color:${colors[data.level] || '#e6edf3'};white-space:pre-wrap;`;
+        line.textContent = `${data.time}  ${data.message}`;
+        box.appendChild(line);
+
+        // 최대 100줄 유지
+        while (box.children.length > 100) box.removeChild(box.firstChild);
+        box.scrollTop = box.scrollHeight;
+    });
     socket.on('collect_pair_count', (data) => {
         document.getElementById('collectPairCount').textContent = data.count;
     });
@@ -892,20 +892,12 @@
         bar.style.width = `${Math.min(data.loss_rate, 100)}%`;
         bar.className = 'loss-bar ' + (data.loss_rate < 5 ? 'loss-good' : data.loss_rate < 20 ? 'loss-mid' : 'loss-bad');
     }
-    function addPairRow(data) {
-        const tbody = document.getElementById('pairTable');
-        if (tbody.querySelector('.empty-state')) tbody.innerHTML = '';
-        const row = document.createElement('tr');
-        row.innerHTML = `<td>${data.time}</td><td style="color:#8b949e">${data.seq}</td><td style="color:#58a6ff">${data.rx1_rssi} dBm</td><td style="color:#3fb950">${data.rx2_rssi} dBm</td><td style="color:#58a6ff">${data.rx1_subs}</td><td style="color:#3fb950">${data.rx2_subs}</td>`;
-        tbody.insertBefore(row, tbody.firstChild);
-        if (tbody.children.length > 10) tbody.removeChild(tbody.lastChild);
-    }
     function addFallTimeline(time, count) {
         const timeline = document.getElementById('fallTimeline');
         if (timeline.querySelector('.empty-state')) timeline.innerHTML = '';
         const item = document.createElement('div');
         item.className = 'timeline-item';
-        item.innerHTML = `<div class="timeline-dot"></div><div class="timeline-content"><div class="time">${time}</div><div class="event">낙상 감지 #${count} — Pi4 알림 + SMS 발송 완료</div></div>`;
+        item.innerHTML = `<div class="timeline-dot"></div><div class="timeline-content"><div class="time">${time}</div><div class="event">낙상 감지 #${count} — Pi4 알림</div></div>`;
         timeline.insertBefore(item, timeline.firstChild);
     }
     function updateRpi4(connected, message) {

@@ -100,6 +100,13 @@ def update_packet_stats(stats: dict):
     state["packet_stats"] = stats
     socketio.emit("packet_stats", stats)
 
+def emit_rpi_log(message: str, level: str = "info"):
+    socketio.emit("rpi_log", {
+        "message": message,
+        "level": level,
+        "time": datetime.datetime.now().strftime("%H:%M:%S"),
+    })
+
 # -----------------------------------------------
 # 라우트 — 대시보드
 # -----------------------------------------------
@@ -247,4 +254,4 @@ def start_dashboard(on_fall_detected=None, collect_manager=None):
     # socketio.emit 주입
     if collect_manager is not None:
         collect_manager.set_emit(socketio.emit)
-    socketio.run(app, host="0.0.0.0", port=8080, debug=False)
+    socketio.run(app, host="0.0.0.0", port=8080, debug=False, allow_unsafe_werkzeug=True)

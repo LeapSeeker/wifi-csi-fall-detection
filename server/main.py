@@ -12,7 +12,7 @@ from utils.cooldown import FallCooldown
 from utils.packet_monitor import PacketMonitor
 from ws_handler.rpi_connection import RPiConnection
 from notification.sms import send_fall_sms
-from dashboard.app import start_dashboard, update_pair, update_fall, update_rpi4_status, update_packet_stats
+from dashboard.app import start_dashboard, update_pair, update_fall, update_rpi4_status, update_packet_stats, emit_rpi_log
 from logger.log_manager import log_info, log_warn, log_pair, log_fall, get_log_filepath
 from logger.fall_history import save_fall
 from inference.worker import InferenceWorker
@@ -49,7 +49,7 @@ def on_fall_detected(
         return
 
     fall_count += 1
-    log_fall(fall_count)
+    log_fall(fall_count, confidence=confidence)
     update_fall()
     rpi_connection.send_fall_alert(
         confidence=confidence,
@@ -161,7 +161,11 @@ def result_loop():
 def main():
     global rpi_connection, fall_cooldown, packet_monitor, pairing_buffer, inference_worker, collect_manager
 
-    rpi_connection = RPiConnection(on_status_change=update_rpi4_status)
+    rpi_connection = RPiConnection(
+        on_status_change=update_rpi4_status,
+        on_rescue_request=send_fall_sms,
+        on_rpi_log=emit_rpi_log,
+    )
     load_dotenv()  # .env에서 환경 변수 로드
     fall_cooldown = FallCooldown(cooldown_sec=int(os.getenv("COOLDOWN_SEC", "30")))
     packet_monitor = PacketMonitor()

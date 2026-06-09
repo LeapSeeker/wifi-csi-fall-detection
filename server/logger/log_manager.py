@@ -47,9 +47,11 @@ def log_pair(rx1, rx2):
         f"RX2 subs={rx2['n_subcarriers']}"
     )
 
-def log_fall(fall_count: int):
+def log_fall(fall_count: int, confidence: float = 0.0):
+    conf = 0.0 if confidence is None else float(confidence)
     logger.warning(
         f"[FALL] 낙상 감지! 총 {fall_count}회 | "
+        f"conf={conf:.4f} | "
         f"시각={datetime.now().strftime('%H:%M:%S')}"
     )
 

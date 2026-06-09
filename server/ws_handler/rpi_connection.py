@@ -10,11 +10,13 @@ import websockets
 from protocol.pi4_messages import build_fall_alert_payload
 
 class RPiConnection:
-    def __init__(self, on_status_change=None):
+    def __init__(self, on_status_change=None, on_rescue_request=None, on_rpi_log=None):
         self.websocket = None
         self.lock = asyncio.Lock()
         self.connected = False
         self.on_status_change = on_status_change
+        self.on_rescue_request = on_rescue_request
+        self.on_rpi_log = on_rpi_log
         self.loop = None
 
     def start(self):
@@ -44,9 +46,25 @@ class RPiConnection:
             self.on_status_change(True)
 
         try:
-            # 연결 유지 — Pi4에서 오는 메시지 대기 (재연결 감지용)
             async for message in websocket:
                 print(f"[WS] Pi4 수신: {message}")
+                try:
+                    data = json.loads(message)
+                    event = data.get("event")
+                    if event == "rescue_request":
+                        print("[WS] 구조 요청 수신 — SMS 발송")
+                        if self.on_rescue_request:
+                            threading.Thread(
+                                target=self.on_rescue_request, daemon=True
+                            ).start()
+                    elif event == "rpi_log":
+                        if self.on_rpi_log:
+                            self.on_rpi_log(
+                                data.get("message", ""),
+                                data.get("level", "info"),
+                            )
+                except (json.JSONDecodeError, Exception) as e:
+                    print(f"[WS] 메시지 파싱 오류: {e}")
         except websockets.exceptions.ConnectionClosed:
             pass
         finally:
