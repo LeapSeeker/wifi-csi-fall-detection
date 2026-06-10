@@ -99,3 +99,15 @@ debug/dummy_gen/out2/validation/
 # checkpoints_item4_balanced(checkpoints_*/) 는 기존 규칙으로 이미 ignore.
 debug/dummy_gen/balanced/*.npz
 debug/dummy_gen/balanced/validation/
+
+# Drive 수동 업로드 staging (대용량, 커밋 금지)
+_handoff_drive/
+
+# 생성된 더미 데모 데이터 (대용량 CSV/npz — 스크립트·lineage로 재생성)
+data/dummy/
+
+# 핸드오프 export 산출물 폴더 (zip은 *.zip 규칙으로 이미 제외)
+handoff_export_*/
+
+# Claude Code 런타임 락
+.claude/scheduled_tasks.lock
