@@ -39,17 +39,37 @@ def on_fall_detected(
     confidence: float = 0.0,
     seq_num: int = 0,
     timestamp_us: int = 0,
+    result: dict | None = None,
 ):
     global fall_count
 
     if rpi_connection is None or fall_cooldown is None:
         return
 
-    if not fall_cooldown.is_allowed():
+    cooldown = fall_cooldown.check_and_update()
+    if not cooldown["allowed"]:
+        _fall_decision_write(
+            action="suppressed_cooldown",
+            confidence=confidence,
+            seq_num=seq_num,
+            timestamp_us=timestamp_us,
+            cooldown=cooldown,
+            result=result,
+            fall_count_after=fall_count,
+        )
         log_warn("낙상 감지됐지만 쿨다운 중 — 알림 생략")
         return
 
     fall_count += 1
+    _fall_decision_write(
+        action="alert_sent",
+        confidence=confidence,
+        seq_num=seq_num,
+        timestamp_us=timestamp_us,
+        cooldown=cooldown,
+        result=result,
+        fall_count_after=fall_count,
+    )
     log_fall(fall_count, confidence=confidence)
     update_fall()
     rpi_connection.send_fall_alert(
@@ -84,10 +104,11 @@ def record_activity_result(result: dict):
 # -----------------------------------------------
 _conf_diag_fp = None
 _conf_diag_prev_win_ts = {"v": None}
+_fall_decision_fp = None
 
 
 def _conf_diag_init():
-    global _conf_diag_fp
+    global _conf_diag_fp, _fall_decision_fp
     val = os.getenv("SAFESIGNAL_CONF_DIAG", "1").strip().lower()
     if val not in ("1", "true", "yes", "on"):
         return
@@ -101,6 +122,19 @@ def _conf_diag_init():
     )
     _conf_diag_fp.flush()
     log_info(f"[conf-diag] 매 윈도우 추론값 기록: {path}")
+
+    decision_path = os.path.join(
+        os.path.dirname(__file__), "logs", f"fall_decision_{ts}.csv"
+    )
+    _fall_decision_fp = open(decision_path, "a", encoding="utf-8")
+    _fall_decision_fp.write(
+        "wall,action,fall_count,seq,win_ts_us,window_start_us,"
+        "wall_minus_win_ms,threshold,fall_conf,top_conf,top_class,raw_is_fall,is_fall,"
+        "consec,sdp_mean_abs,raw_delta_mean,cooldown_sec,cooldown_elapsed_sec,"
+        "cooldown_remaining_sec,rpi_connected\n"
+    )
+    _fall_decision_fp.flush()
+    log_info(f"[fall-decision] fall 후보/쿨다운 판정 기록: {decision_path}")
 
 
 def _conf_diag_write(result: dict):
@@ -126,6 +160,47 @@ def _conf_diag_write(result: dict):
     _conf_diag_fp.flush()
 
 
+def _fall_decision_write(
+    *,
+    action: str,
+    confidence: float,
+    seq_num: int,
+    timestamp_us: int,
+    cooldown: dict,
+    result: dict | None,
+    fall_count_after: int,
+):
+    if _fall_decision_fp is None:
+        return
+    now = datetime.datetime.now()
+    now_us = int(now.timestamp() * 1_000_000)
+    win_ts = int(timestamp_us or 0)
+    wall_minus_win_ms = ((now_us - win_ts) / 1000.0) if win_ts else float("nan")
+    window_start_us = win_ts - 2_990_000 if win_ts else 0
+    result = result or {}
+    metrics = (result.get("energy_gate") or {}).get("metrics") or {}
+    consec = (result.get("fall_consecutive") or {}).get("count", 0)
+    top_conf = float(result.get("confidence", 0.0))
+    top_class = str(result.get("class", ""))
+    fall_conf = float(result.get("fall_confidence", confidence or 0.0))
+    threshold = float(result.get("threshold", 0.0))
+    rpi_connected = int(bool(getattr(rpi_connection, "connected", False)))
+    _fall_decision_fp.write(
+        f"{now.strftime('%H:%M:%S.%f')[:-3]},"
+        f"{action},{fall_count_after},{seq_num},{win_ts},{window_start_us},"
+        f"{wall_minus_win_ms:.1f},{threshold:.4f},{fall_conf:.4f},{top_conf:.4f},{top_class},"
+        f"{int(bool(result.get('raw_is_fall', True)))},"
+        f"{int(bool(result.get('is_fall', True)))},{consec},"
+        f"{metrics.get('sdp_mean_abs', float('nan')):.6f},"
+        f"{metrics.get('raw_delta_mean', float('nan')):.6f},"
+        f"{float(cooldown.get('cooldown_sec', 0.0)):.3f},"
+        f"{float(cooldown.get('elapsed', 0.0)):.3f},"
+        f"{float(cooldown.get('remaining', 0.0)):.3f},"
+        f"{rpi_connected}\n"
+    )
+    _fall_decision_fp.flush()
+
+
 def handle_inference_result(result: dict):
     """InferenceWorker 결과를 낙상 알림과 일반 행동 저장 흐름으로 분기."""
     _conf_diag_write(result)  # [임시 진단] 매 윈도우 raw 추론값 기록
@@ -137,6 +212,7 @@ def handle_inference_result(result: dict):
             confidence=result.get("fall_confidence", result.get("confidence", 0.0)),
             seq_num=result.get("seq_num", 0),
             timestamp_us=result.get("timestamp_us", 0),
+            result=result,
         )
         return
 
