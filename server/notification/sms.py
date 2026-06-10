@@ -46,7 +46,17 @@ def send_fall_sms():
         )
 
         response = message_service.send(message)
-        print(f"[SMS] 보호자에게 문자 발송 완료")
+        print(f"[SMS] 보호자에게 문자 발송 완료: {response}")
+        try:
+            from logger.log_manager import log_info
+            log_info(f"[SMS] 발송 완료: {response}")
+        except Exception:
+            pass
 
     except Exception as e:
         print(f"[SMS] 오류: {e}")
+        try:
+            from logger.log_manager import log_warn
+            log_warn(f"[SMS] 발송 오류: {e}")
+        except Exception:
+            pass

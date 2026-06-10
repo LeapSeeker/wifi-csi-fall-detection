@@ -1,5 +1,9 @@
 # .gitignore
 
+# 환경 변수 / 시크릿 (API 키 노출 방지)
+.env
+*.env
+
 # 가상환경
 .venv/
 .local/

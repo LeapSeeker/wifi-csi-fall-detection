@@ -73,9 +73,6 @@ def on_fall_detected(
         seq_num=seq_num,
         timestamp_us=timestamp_us,
     )
-    sms_start_wall = _wall_now()
-    send_fall_sms()
-    sms_done_wall = _wall_now()
 
     _fall_decision_write(
         action="alert_sent",
@@ -89,8 +86,6 @@ def on_fall_detected(
             "decision_wall": decision_wall,
             "dashboard_update_wall": dashboard_update_wall,
             "ws_send_call_wall": ws_send_call_wall,
-            "sms_start_wall": sms_start_wall,
-            "sms_done_wall": sms_done_wall,
         },
     )
 
@@ -343,7 +338,12 @@ def result_loop():
         if "error" in result:
             log_warn(f"[InferenceWorker] {result['error']}")
             continue
-        handle_inference_result(result)
+        try:
+            handle_inference_result(result)
+        except Exception as e:
+            import traceback
+            log_warn(f"[result_loop] handle_inference_result 예외 — 스레드 유지: {e}")
+            traceback.print_exc()
 
 
 def main():
