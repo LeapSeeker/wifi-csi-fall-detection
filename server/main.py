@@ -1,6 +1,7 @@
 # server/main.py
 
 import os
+import json
 import multiprocessing
 import sys
 import time
@@ -39,25 +40,59 @@ def on_fall_detected(
     confidence: float = 0.0,
     seq_num: int = 0,
     timestamp_us: int = 0,
+    result: dict | None = None,
 ):
     global fall_count
 
     if rpi_connection is None or fall_cooldown is None:
         return
 
-    if not fall_cooldown.is_allowed():
+    decision_wall = _wall_now()
+    cooldown = fall_cooldown.check_and_update()
+    if not cooldown["allowed"]:
+        _fall_decision_write(
+            action="suppressed_cooldown",
+            fall_count_after=fall_count,
+            confidence=confidence,
+            seq_num=seq_num,
+            timestamp_us=timestamp_us,
+            result=result,
+            cooldown=cooldown,
+            timings={"decision_wall": decision_wall},
+        )
         log_warn("낙상 감지됐지만 쿨다운 중 — 알림 생략")
         return
 
     fall_count += 1
     log_fall(fall_count, confidence=confidence)
+    dashboard_update_wall = _wall_now()
     update_fall()
+    ws_send_call_wall = _wall_now()
     rpi_connection.send_fall_alert(
         confidence=confidence,
         seq_num=seq_num,
         timestamp_us=timestamp_us,
     )
+    sms_start_wall = _wall_now()
     send_fall_sms()
+    sms_done_wall = _wall_now()
+
+    _fall_decision_write(
+        action="alert_sent",
+        fall_count_after=fall_count,
+        confidence=confidence,
+        seq_num=seq_num,
+        timestamp_us=timestamp_us,
+        result=result,
+        cooldown=cooldown,
+        timings={
+            "decision_wall": decision_wall,
+            "dashboard_update_wall": dashboard_update_wall,
+            "ws_send_call_wall": ws_send_call_wall,
+            "sms_start_wall": sms_start_wall,
+            "sms_done_wall": sms_done_wall,
+        },
+    )
 
     if last_fall_pair["rx1"] and last_fall_pair["rx2"]:
         save_fall(fall_count, last_fall_pair["rx1"], last_fall_pair["rx2"])
@@ -84,14 +119,23 @@ def record_activity_result(result: dict):
 # -----------------------------------------------
 _conf_diag_fp = None
 _conf_diag_prev_win_ts = {"v": None}
+_fall_decision_fp = None
+_diag_run_ts = ""
+
+SHADOW_THRESHOLDS = (0.30, 0.40, 0.50, 0.55)
+
+
+def _wall_now() -> str:
+    return datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
 
 
 def _conf_diag_init():
-    global _conf_diag_fp
+    global _conf_diag_fp, _fall_decision_fp, _diag_run_ts
     val = os.getenv("SAFESIGNAL_CONF_DIAG", "1").strip().lower()
     if val not in ("1", "true", "yes", "on"):
         return
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    _diag_run_ts = ts
     path = os.path.join(os.path.dirname(__file__), "logs", f"conf_diag_{ts}.csv")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     _conf_diag_fp = open(path, "a", encoding="utf-8")
@@ -101,6 +145,21 @@ def _conf_diag_init():
     )
     _conf_diag_fp.flush()
     log_info(f"[conf-diag] 매 윈도우 추론값 기록: {path}")
+
+    decision_path = os.path.join(
+        os.path.dirname(__file__), "logs", f"fall_decision_{ts}.csv"
+    )
+    _fall_decision_fp = open(decision_path, "a", encoding="utf-8")
+    shadow_cols = ",".join(f"would_fire_{int(t * 100):03d}" for t in SHADOW_THRESHOLDS)
+    _fall_decision_fp.write(
+        "candidate_id,wall,action,fall_count,seq,win_ts_us,window_start_us,"
+        "wall_minus_win_ms,decision_wall,dashboard_update_wall,ws_send_call_wall,"
+        "sms_start_wall,sms_done_wall,threshold,fall_conf,top_conf,top_class,"
+        f"{shadow_cols},raw_is_fall,is_fall,consec,sdp_mean_abs,raw_delta_mean,"
+        "cooldown_sec,cooldown_elapsed_sec,cooldown_remaining_sec,rpi_connected\n"
+    )
+    _fall_decision_fp.flush()
+    log_info(f"[fall-decision] fall 후보/쿨다운 판정 기록: {decision_path}")
 
 
 def _conf_diag_write(result: dict):
@@ -113,7 +172,7 @@ def _conf_diag_write(result: dict):
     metrics = (result.get("energy_gate") or {}).get("metrics") or {}
     consec = (result.get("fall_consecutive") or {}).get("count", 0)
     _conf_diag_fp.write(
-        f"{datetime.datetime.now().strftime('%H:%M:%S.%f')[:-3]},"
+        f"{_wall_now()},"
         f"{result.get('seq_num', 0)},{win_ts},{d_ts},"
         f"{result.get('fall_confidence', 0.0):.4f},"
         f"{result.get('confidence', 0.0):.4f},"
@@ -124,6 +183,84 @@ def _conf_diag_write(result: dict):
         f"{metrics.get('raw_delta_mean', float('nan')):.6f}\n"
     )
     _conf_diag_fp.flush()
+
+
+def _fall_decision_write(
+    *,
+    action: str,
+    fall_count_after: int,
+    confidence: float,
+    seq_num: int,
+    timestamp_us: int,
+    result: dict | None,
+    cooldown: dict,
+    timings: dict[str, str],
+):
+    if _fall_decision_fp is None:
+        return
+    now = datetime.datetime.now()
+    now_us = int(now.timestamp() * 1_000_000)
+    win_ts = int(timestamp_us or 0)
+    candidate_id = f"{seq_num}_{win_ts}"
+    wall_minus_win_ms = ((now_us - win_ts) / 1000.0) if win_ts else float("nan")
+    window_start_us = win_ts - 2_990_000 if win_ts else 0
+    result = result or {}
+    metrics = (result.get("energy_gate") or {}).get("metrics") or {}
+    fall_conf = float(result.get("fall_confidence", confidence or 0.0))
+    top_conf = float(result.get("confidence", 0.0))
+    top_class = str(result.get("class", ""))
+    threshold = float(result.get("threshold", 0.0))
+    consec = (result.get("fall_consecutive") or {}).get("count", 0)
+    shadow = ",".join("1" if fall_conf >= t else "0" for t in SHADOW_THRESHOLDS)
+    rpi_connected = int(bool(getattr(rpi_connection, "connected", False)))
+    _fall_decision_fp.write(
+        f"{candidate_id},{_wall_now()},{action},{fall_count_after},"
+        f"{seq_num},{win_ts},{window_start_us},{wall_minus_win_ms:.1f},"
+        f"{timings.get('decision_wall', '')},"
+        f"{timings.get('dashboard_update_wall', '')},"
+        f"{timings.get('ws_send_call_wall', '')},"
+        f"{timings.get('sms_start_wall', '')},"
+        f"{timings.get('sms_done_wall', '')},"
+        f"{threshold:.4f},{fall_conf:.4f},{top_conf:.4f},{top_class},"
+        f"{shadow},{int(bool(result.get('raw_is_fall', True)))},"
+        f"{int(bool(result.get('is_fall', True)))},{consec},"
+        f"{metrics.get('sdp_mean_abs', float('nan')):.6f},"
+        f"{metrics.get('raw_delta_mean', float('nan')):.6f},"
+        f"{float(cooldown.get('cooldown_sec', 0.0)):.3f},"
+        f"{float(cooldown.get('elapsed', 0.0)):.3f},"
+        f"{float(cooldown.get('remaining', 0.0)):.3f},"
+        f"{rpi_connected}\n"
+    )
+    _fall_decision_fp.flush()
+
+
+def _write_run_config_snapshot(inference_disabled: bool, cooldown_sec: int):
+    run_ts = _diag_run_ts or datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    from inference import config as inference_config
+
+    path = os.path.join(
+        os.path.dirname(__file__), "logs", f"run_config_{run_ts}.json"
+    )
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    data = {
+        "wall": datetime.datetime.now().isoformat(timespec="seconds"),
+        "model_path": str(inference_config.MODEL_PATH),
+        "model_path_exists": os.path.exists(inference_config.MODEL_PATH),
+        "fall_threshold": inference_config.FALL_THRESHOLD,
+        "inference_stride": inference_config.INFERENCE_STRIDE,
+        "rpca_max_iter": inference_config.RPCA_MAX_ITER,
+        "fall_consecutive_n": inference_config.FALL_CONSECUTIVE_N,
+        "energy_gate_enabled": inference_config.ENERGY_GATE_ENABLED,
+        "energy_gate_threshold": inference_config.ENERGY_GATE_THRESHOLD,
+        "energy_gate_metric": inference_config.ENERGY_GATE_METRIC,
+        "cooldown_sec": cooldown_sec,
+        "conf_diag": os.getenv("SAFESIGNAL_CONF_DIAG", "1"),
+        "inference_disabled": inference_disabled,
+        "shadow_thresholds": list(SHADOW_THRESHOLDS),
+    }
+    with open(path, "w", encoding="utf-8") as fp:
+        json.dump(data, fp, ensure_ascii=False, indent=2)
+    log_info(f"[run-config] 실제 서버 실행 설정 기록: {path}")
 
 
 def handle_inference_result(result: dict):
@@ -137,6 +274,7 @@ def handle_inference_result(result: dict):
             confidence=result.get("fall_confidence", result.get("confidence", 0.0)),
             seq_num=result.get("seq_num", 0),
             timestamp_us=result.get("timestamp_us", 0),
+            result=result,
         )
         return
 
@@ -218,7 +356,8 @@ def main():
     )
     load_dotenv()  # .env에서 환경 변수 로드
     _conf_diag_init()  # 기본 on. SAFESIGNAL_CONF_DIAG=0이면 no-op.
-    fall_cooldown = FallCooldown(cooldown_sec=int(os.getenv("COOLDOWN_SEC", "10")))
+    cooldown_sec = int(os.getenv("COOLDOWN_SEC", "10"))
+    fall_cooldown = FallCooldown(cooldown_sec=cooldown_sec)
     packet_monitor = PacketMonitor()
     pairing_buffer = PairingBuffer(on_paired=on_paired)
 
@@ -228,6 +367,7 @@ def main():
     inference_disabled = _is_inference_disabled()
     inference_worker = None if inference_disabled else InferenceWorker()
     collect_manager = CollectManager()
+    _write_run_config_snapshot(inference_disabled, cooldown_sec)
 
     log_info("서버 시작")
     log_info(f"로그 파일: {get_log_filepath()}")
