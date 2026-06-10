@@ -1,6 +1,6 @@
 """추론 파이프라인 설정 (D-013/D-014/D-015).
 
-기본값은 기존 E2E 동작을 보존한다. 데모용 방어선은 환경변수로만 켠다.
+기본값은 2026-06-10 데모 최종 운영값이다. 환경변수로 override 가능하다.
 """
 from __future__ import annotations
 
@@ -29,9 +29,9 @@ def _env_float(name: str, default: float) -> float:
     return float(val)
 
 
-# 윈도우/슬라이딩 (D-014: stride=100 기본, RTX4060 실측 후 조정 예정)
+# 윈도우/슬라이딩 (데모 최종: stride=150, drop 0 확인)
 WINDOW_SIZE: int = 300
-INFERENCE_STRIDE: int = _env_int("SAFESIGNAL_INFERENCE_STRIDE", 100)
+INFERENCE_STRIDE: int = _env_int("SAFESIGNAL_INFERENCE_STRIDE", 150)
 
 # 낙상 클래스. pretrained 6-class는 "fall", fine-tuned 7-class는 방향별 fall_* 가능.
 FALL_LABELS: tuple[str, ...] = (
@@ -40,7 +40,7 @@ FALL_LABELS: tuple[str, ...] = (
     "fall_backward",
     "fall_side",
 )
-FALL_THRESHOLD: float = _env_float("SAFESIGNAL_FALL_THRESHOLD", 0.5)
+FALL_THRESHOLD: float = _env_float("SAFESIGNAL_FALL_THRESHOLD", 0.30)
 
 # 연속 fire 판정. 1이면 기존 동작과 동일.
 FALL_CONSECUTIVE_N: int = max(1, _env_int("SAFESIGNAL_FALL_CONSECUTIVE_N", 1))
@@ -50,8 +50,8 @@ ENERGY_GATE_ENABLED: bool = _env_bool("SAFESIGNAL_ENERGY_GATE_ENABLED", False)
 ENERGY_GATE_THRESHOLD: float = _env_float("SAFESIGNAL_ENERGY_GATE_THRESHOLD", 0.0)
 ENERGY_GATE_METRIC: str = os.getenv("SAFESIGNAL_ENERGY_GATE_METRIC", "sdp_mean_abs").strip()
 
-# RPCA 반복 횟수. 낮출수록 latency 감소, 기본 200은 원래 동작 보존.
-RPCA_MAX_ITER: int = _env_int("SAFESIGNAL_RPCA_MAX_ITER", 200)
+# RPCA 반복 횟수. 데모 최종: 100 (p95 latency 3279ms -> 1478ms).
+RPCA_MAX_ITER: int = _env_int("SAFESIGNAL_RPCA_MAX_ITER", 100)
 
 # 서브캐리어 수 (Rx1/Rx2 각각)
 N_SUBCARRIERS_EACH: int = 52
@@ -74,13 +74,14 @@ def _resolve_model_path() -> Path:
         return path.resolve()
     return (
         _PROJECT_ROOT
-        / "model" / "finetune" / "checkpoints_track1_formal_global_s43" / "best_operating.pt"
+        / "model" / "finetune" / "checkpoints_item4_balanced"
+        / "onset_primary_balanced_aug_s42" / "best_operating.pt"
     )
 
 # [사전학습 데이터만 적용된 모델] Alsaify LOS 6-class. 자체수집 데이터 미반영.
 #   Alsaify 테스트셋 기준 fall_recall 0.92 / FAR 0.03 (실 ESP32 도메인 갭 존재)
 # MODEL_PATH: Path = _PROJECT_ROOT / "model" / "pretrained" / "checkpoints" / "best.pt"
 
-# [예비 학습 모델] 자체수집 ESP32 데이터 파인튜닝 (track1_formal_global_s43, 미확정 임시본)
-#   within_subject 기준 fall_recall 0.778 / FAR 0.150 / F1 0.687 (threshold=0.1 측정)
+# [데모 최종 모델] onset_primary_balanced_aug_s42
+#   validation 기준 fall_recall 0.808 / FAR 0.010 / F1 0.824 (threshold=0.30)
 MODEL_PATH: Path = _resolve_model_path()

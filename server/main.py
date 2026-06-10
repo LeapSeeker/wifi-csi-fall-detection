@@ -79,8 +79,8 @@ def record_activity_result(result: dict):
 
 
 # -----------------------------------------------
-# [임시 진단] 매 윈도우 fall_confidence/energy/timestamp 추적 (SAFESIGNAL_CONF_DIAG=1)
-#   오탐 원인 분석용. 정상 운영에는 영향 없음 (env 미설정 시 no-op). 분석 후 제거 예정.
+# [데모 진단] 매 윈도우 fall_confidence/energy/timestamp 추적.
+#   기본 on. SAFESIGNAL_CONF_DIAG=0 으로 끌 수 있다.
 # -----------------------------------------------
 _conf_diag_fp = None
 _conf_diag_prev_win_ts = {"v": None}
@@ -88,7 +88,7 @@ _conf_diag_prev_win_ts = {"v": None}
 
 def _conf_diag_init():
     global _conf_diag_fp
-    val = os.getenv("SAFESIGNAL_CONF_DIAG", "").strip().lower()
+    val = os.getenv("SAFESIGNAL_CONF_DIAG", "1").strip().lower()
     if val not in ("1", "true", "yes", "on"):
         return
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -217,8 +217,8 @@ def main():
         on_rpi_log=emit_rpi_log,
     )
     load_dotenv()  # .env에서 환경 변수 로드
-    _conf_diag_init()  # [임시 진단] SAFESIGNAL_CONF_DIAG=1이면 매 윈도우 추론값 CSV 기록
-    fall_cooldown = FallCooldown(cooldown_sec=int(os.getenv("COOLDOWN_SEC", "30")))
+    _conf_diag_init()  # 기본 on. SAFESIGNAL_CONF_DIAG=0이면 no-op.
+    fall_cooldown = FallCooldown(cooldown_sec=int(os.getenv("COOLDOWN_SEC", "10")))
     packet_monitor = PacketMonitor()
     pairing_buffer = PairingBuffer(on_paired=on_paired)
 
